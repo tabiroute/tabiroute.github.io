@@ -2001,7 +2001,15 @@ function fmtMin(m){ m=Math.round(m); return m>=60? Math.floor(m/60)+"時間"+(m%
    プロジェクト管理・アカウント・共有
    ============================================================ */
 // ▼ 公開する人が1回だけ設定します（README参照）。null のままなら「この端末だけに保存」モードで動きます。
-const FIREBASE_CONFIG = null;
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyCEHowRfyILfkFVDfMHtEj7vfpiIzaUE9o",
+  authDomain: "travel-fbb8b.firebaseapp.com",
+  projectId: "travel-fbb8b",
+  storageBucket: "travel-fbb8b.firebasestorage.app",
+  messagingSenderId: "225731700287",
+  appId: "1:225731700287:web:6991d948ebee94e73d3a8a",
+  measurementId: "G-NZYSHQ5XNF"
+};
 const FBV = "10.12.2";
 const CLIENT_ID = Math.random().toString(36).slice(2);
 const PLAN_KEYS = ["pref","city","cityOther","days","date","start","end","wishes","picks","ai","hotelMode","hotelName","hotelLoc","hotelAnchor","hotelInfo","hotelDecCands","cond","hotelCands","hotelPick","transport","pace","example"];
