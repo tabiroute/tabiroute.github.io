@@ -1,0 +1,33 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+
+    // プロフィール（自宅・最寄り駅）：本人だけが読み書きできる
+    match /users/{uid} {
+      allow read, write: if signedIn() && request.auth.uid == uid;
+    }
+
+    // 旅行プロジェクト
+    match /projects/{pid} {
+      function isMember() { return signedIn() && request.auth.uid in resource.data.members; }
+
+      // 招待リンク（旅行のID）を知っている人は、参加前に中身を確認できる
+      allow get: if signedIn();
+      // 一覧は自分が参加している旅行だけ
+      allow list: if signedIn() && request.auth.uid in resource.data.members;
+      // 作成者は自分をメンバーに含める
+      allow create: if signedIn()
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.auth.uid in request.resource.data.members;
+      // メンバーは編集できる。メンバー以外は「自分を1人追加する」参加の操作だけできる
+      allow update: if isMember() || (signedIn()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members','memberInfo','starts','updatedAt','updatedBy'])
+        && request.resource.data.members.hasAll(resource.data.members)
+        && request.resource.data.members.size() == resource.data.members.size() + 1
+        && request.auth.uid in request.resource.data.members);
+      // 削除は作成者だけ
+      allow delete: if signedIn() && resource.data.ownerUid == request.auth.uid;
+    }
+  }
+}

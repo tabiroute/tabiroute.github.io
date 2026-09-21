@@ -1,0 +1,11 @@
+{
+  "hosting": {
+    "public": ".",
+    "ignore": ["firebase.json", "firestore.rules", "README.md", "**/.*"],
+    "headers": [
+      { "source": "**/*.@(png|webmanifest)", "headers": [{ "key": "Cache-Control", "value": "max-age=604800" }] },
+      { "source": "**/*.html", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] }
+    ]
+  },
+  "firestore": { "rules": "firestore.rules" }
+}
