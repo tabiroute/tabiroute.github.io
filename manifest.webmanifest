@@ -1,16 +1,29 @@
 {
-  "name": "たびルート",
+  "name": "旅行プラン自動作成 たびルート",
   "short_name": "たびルート",
-  "description": "旅の予定表と回り方の地図をつくり、友達と共有できるアプリ",
+  "description": "移動から観光まで全部おまかせ。旅行プラン（旅程表・旅のしおり）とルート地図を無料で自動作成",
   "lang": "ja",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#F4F5F1",
-  "theme_color": "#1F4E8C",
+  "background_color": "#F5F7FB",
+  "theme_color": "#2356F6",
   "icons": [
-    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
-    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
   ]
 }
