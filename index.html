@@ -14,7 +14,7 @@
 <meta property="og:description" content="行きたい場所を答えるだけで、旅の予定表と回り方の地図をつくります。友達と共有して、どこで合流するかも提案します。">
 <meta property="og:site_name" content="たびルート">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="theme-color" content="#1F4E8C">
+<meta name="theme-color" content="#2356F6">
 <link rel="manifest" href="manifest.webmanifest">
 <script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "WebApplication", "name": "たびルート", "url": "https://tabiroute.github.io/", "applicationCategory": "TravelApplication", "operatingSystem": "Web", "inLanguage": "ja", "image": "https://tabiroute.github.io/og.png", "description": "行き先と行きたい場所を選ぶだけで、旅行の予定表と回る順番のルート地図を自動で作成する無料の旅行計画アプリ。友達とLINEで共有し、新幹線や飛行機での合流場所も提案します。", "offers": {"@type": "Offer", "price": "0", "priceCurrency": "JPY"}, "featureList": ["旅行の予定表（旅程表）の自動作成", "回る順番のルート地図", "人気観光スポットの提案", "朝・昼・夜の飲食店の提案", "ホテル・宿泊エリアの提案", "LINEで友達と共有", "新幹線・飛行機での合流場所の提案"]}, {"@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "無料で使えますか？", "acceptedAnswer": {"@type": "Answer", "text": "はい。登録なしでも、すべての機能を無料で使えます。友達との共有を使う場合も料金はかかりません。"}}, {"@type": "Question", "name": "どんな予定表がつくれますか？", "acceptedAnswer": {"@type": "Answer", "text": "都道府県（市区町村）、日数、行きたい場所、宿泊先、移動手段（公共交通機関・車）を選ぶと、回る順番、到着時刻、移動時間、昼食の時間を入れた1日ごとの予定表と、ルートを書き込んだ地図を自動で作成します。"}}, {"@type": "Question", "name": "友達と別々の場所から出発しても使えますか？", "acceptedAnswer": {"@type": "Answer", "text": "はい。それぞれの自宅や最寄り駅を登録すると、新幹線・特急・飛行機・ローカル線から、現地集合・途中の駅で合流・車で迎えに行くなどの案を比べて、どこで合流するのが良いかを提案します。"}}, {"@type": "Question", "name": "予定表を友達と共有するには？", "acceptedAnswer": {"@type": "Answer", "text": "旅行の画面の「共有」から、LINEなどで招待リンクを送れます。リンクを開いた友達は、プランを一緒に見たり編集したり、自分の出発地を登録したりできます。"}}, {"@type": "Question", "name": "飲食店やホテルも入れられますか？", "acceptedAnswer": {"@type": "Answer", "text": "はい。飲食店は朝食・昼食・夕食の時間帯を選ぶと、その時間に合わせて予定表に入ります。ホテルが決まっていない場合は、回りやすい宿泊エリアと周辺のホテルを提案します。"}}]}]}</script>
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
@@ -24,7 +24,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Zen+Old+Mincho:wght@700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;800;900&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap">
 <style>
 :root{
   --bg:#F4F5F1; --surface:#FFFFFF; --surface-2:#EEF0EB; --ink:#1D2430; --muted:#5E6673; --line:#DADDD5;
@@ -338,6 +338,15 @@ textarea{font:inherit;color:inherit;width:100%;border:1px solid var(--line);back
 .tl li.hl .stop{background:var(--accent-soft);border-radius:0 8px 8px 0}
 .dayacts{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 .daymode{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:6px 0 4px}
+.daytime{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:0 0 4px;font-size:13px}
+.daytime .note{font-size:12px}
+.daytime input[type=time]{padding:3px 6px;font-size:13px;width:auto}
+.dtlist{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.dtrow{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.dtrow>b{min-width:120px;font-size:14px}
+.dtrow>b small{font-weight:400;color:var(--muted);margin-left:4px}
+.dtrow input[type=time]{width:auto}
+.dtrow input:disabled{opacity:.45}
 .daymode .chip{display:inline-flex;align-items:center;gap:5px}
 .daymode .chip svg{width:15px;height:15px}
 .daymode .note{font-size:12px}
@@ -382,16 +391,206 @@ body.nofscroll{overflow:hidden}
   .navbar .hint{display:none}
   .navbar .btn{flex:1;justify-content:center}
 }
+/* ================= デザイン v2（モダン・PCとスマホで同じ見え方） ================= */
+:root{
+  --bg:#F5F7FB; --surface:#FFFFFF; --surface-2:#F1F4F9; --ink:#0F172A; --muted:#64748B; --line:#E3E8F0;
+  --accent:#2356F6; --accent-2:#0BB4D6; --accent-ink:#FFFFFF; --accent-soft:#EAF0FF; --hot:#FF5A5F; --hot-soft:#FFECEC; --ok:#0E9F6E; --ok-soft:#E3F7EE; --warn:#B45309; --warn-soft:#FFF4E0;
+  --grad:linear-gradient(135deg,#2356F6 0%,#0BB4D6 100%);
+  --grad-hot:linear-gradient(135deg,#FF7A59 0%,#FF4D7E 100%);
+  --map-bg:#EEF2F6; --map-grid:#DCE3EC;
+  --r-lg:22px; --r-md:14px; --r-sm:10px;
+  --shadow:0 1px 2px rgba(15,23,42,.05),0 10px 30px -12px rgba(15,23,42,.16);
+  --shadow-lg:0 2px 4px rgba(15,23,42,.05),0 24px 48px -18px rgba(35,86,246,.32);
+  --f-body:"Noto Sans JP","Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif;
+  --f-disp:"Noto Sans JP","Hiragino Sans","Yu Gothic",system-ui,sans-serif;
+  --f-num:"Plus Jakarta Sans","Noto Sans JP",system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0B1020; --surface:#131A2E; --surface-2:#1A2340; --ink:#E7ECF5; --muted:#94A3B8; --line:#26314F;
+    --accent:#7C9BFF; --accent-2:#36D1EE; --accent-ink:#0B1020; --accent-soft:#1B2650; --hot:#FF7B7F; --hot-soft:#3A1E26; --ok:#34D399; --ok-soft:#10302A; --warn:#FBBF24; --warn-soft:#33270F;
+    --grad:linear-gradient(135deg,#4B74FF 0%,#16B8DA 100%); --map-bg:#111828; --map-grid:#223052;
+    --shadow:0 1px 2px rgba(0,0,0,.35),0 10px 30px -12px rgba(0,0,0,.55); --shadow-lg:0 24px 48px -18px rgba(0,0,0,.6);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0B1020; --surface:#131A2E; --surface-2:#1A2340; --ink:#E7ECF5; --muted:#94A3B8; --line:#26314F;
+  --accent:#7C9BFF; --accent-2:#36D1EE; --accent-ink:#0B1020; --accent-soft:#1B2650; --hot:#FF7B7F; --hot-soft:#3A1E26; --ok:#34D399; --ok-soft:#10302A; --warn:#FBBF24; --warn-soft:#33270F;
+  --grad:linear-gradient(135deg,#4B74FF 0%,#16B8DA 100%); --map-bg:#111828; --map-grid:#223052;
+  --shadow:0 1px 2px rgba(0,0,0,.35),0 10px 30px -12px rgba(0,0,0,.55); --shadow-lg:0 24px 48px -18px rgba(0,0,0,.6);
+}
+html,body{background:var(--bg)}
+body{font-family:var(--f-body);font-size:15px;line-height:1.75;letter-spacing:.01em;-webkit-font-smoothing:antialiased;
+  background:radial-gradient(1200px 520px at 100% -10%,color-mix(in srgb,var(--accent-2) 14%,transparent),transparent 60%),radial-gradient(900px 480px at -10% -5%,color-mix(in srgb,var(--accent) 12%,transparent),transparent 60%),var(--bg);background-attachment:fixed}
+.wrap{max-width:820px}
+.wrap.wide{max-width:1200px}
+/* ヘッダー */
+.top{position:sticky;top:0;z-index:30;margin-inline:-16px;padding:12px 16px;gap:10px;align-items:center;background:color-mix(in srgb,var(--bg) 78%,transparent);backdrop-filter:saturate(1.6) blur(14px);-webkit-backdrop-filter:saturate(1.6) blur(14px);border-bottom:1px solid color-mix(in srgb,var(--line) 70%,transparent)}
+.brand{font-family:var(--f-disp);font-weight:800;font-size:20px;letter-spacing:.02em;display:inline-flex;align-items:center;gap:9px}
+.brand::before{content:"";width:32px;height:32px;border-radius:10px;flex:none;background:var(--grad);box-shadow:0 6px 16px -6px rgba(35,86,246,.6);
+  -webkit-mask:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M9 23c0-4 4-5 7-5s7-1 7-5' fill='none' stroke='white' stroke-width='2.4' stroke-linecap='round' stroke-dasharray='1 4.2'/%3E%3Ccircle cx='9' cy='23' r='3' fill='white'/%3E%3Cpath d='M23 6.5a4 4 0 0 1 4 4c0 3-4 6.5-4 6.5s-4-3.5-4-6.5a4 4 0 0 1 4-4z' fill='white'/%3E%3Ccircle cx='23' cy='10.5' r='1.4' fill='%232356F6'/%3E%3C/svg%3E"),var(--grad);background-size:cover}
+.brand b{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.tagline{font-size:12.5px}
+@media (max-width:720px){ .tagline{display:none} }
+.linkbtn{color:var(--muted)}
+.acct{border-color:var(--line);box-shadow:var(--shadow)}
+/* ステップ表示 */
+.stepper{gap:6px;padding-block:14px 16px}
+.st{min-width:0;flex:1 1 0;border-top:0;padding:0;display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px;position:relative}
+.st::before{content:"";position:absolute;top:13px;left:calc(-50% + 16px);right:calc(50% + 16px);height:2px;background:var(--line);border-radius:2px}
+.st:first-child::before{display:none}
+.st .n{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font:700 12px/1 var(--f-num);letter-spacing:0;background:var(--surface);border:1.5px solid var(--line);color:var(--muted);position:relative;z-index:1}
+.st .l{font-size:11.5px;font-weight:600;color:var(--muted)}
+.st.done .n{background:var(--accent-soft);border-color:transparent;color:var(--accent)}
+.st.done::before,.st.cur::before{background:var(--grad)}
+.st.done .l{color:var(--ink)}
+.st.cur .n{background:var(--grad);border-color:transparent;color:#fff;box-shadow:0 6px 14px -6px rgba(35,86,246,.7)}
+.st.cur .l{color:var(--accent);font-weight:800}
+@media (max-width:560px){ .st .l{font-size:10px;white-space:normal;line-height:1.3} .st:not(.cur) .l{opacity:.8} }
+/* パネル・見出し */
+.panel{border:1px solid color-mix(in srgb,var(--line) 70%,transparent);border-radius:var(--r-lg);box-shadow:var(--shadow);padding:30px clamp(18px,4vw,40px)}
+.eyebrow{display:inline-flex;align-items:center;gap:6px;font:800 11.5px/1 var(--f-num);letter-spacing:.14em;color:var(--accent);background:var(--accent-soft);border-radius:999px;padding:6px 11px}
+h1.q{font-family:var(--f-disp);font-weight:800;font-size:clamp(23px,3.6vw,31px);letter-spacing:.01em;line-height:1.4;margin:12px 0 8px}
+.lead{font-size:14.5px}
+h2.sub{font-size:15px;font-weight:800;margin:30px 0 12px}
+h2.sub::before{content:"";width:4px;height:16px;border-radius:2px;background:var(--grad)}
+.banner{border-radius:var(--r-md);padding:12px 16px;font-size:13.5px;background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 16%,transparent)}
+.banner.warn{background:var(--warn-soft);border-color:color-mix(in srgb,var(--warn) 22%,transparent)}
+.banner .linkbtn{font-weight:700;text-decoration:none;border-bottom:1.5px solid currentColor;padding:0;margin-left:4px}
+/* チップ・ボタン・入力 */
+.chip{border:1px solid var(--line);background:var(--surface);padding:6px 14px;font-weight:500;transition:transform .12s,background .15s,border-color .15s,box-shadow .15s}
+.chip:hover{border-color:color-mix(in srgb,var(--accent) 50%,var(--line));transform:translateY(-1px)}
+.chip[aria-pressed="true"]{background:var(--grad);border-color:transparent;color:#fff;box-shadow:0 6px 14px -8px rgba(35,86,246,.8)}
+.chip.small{padding:4px 11px}
+.btn{border-radius:999px;padding:10px 18px;font-weight:700;border-color:var(--line);transition:transform .12s,box-shadow .15s,border-color .15s,background .15s}
+.btn:hover{transform:translateY(-1px);box-shadow:var(--shadow)}
+.btn.primary{background:var(--grad);border-color:transparent;color:#fff;box-shadow:0 10px 22px -10px rgba(35,86,246,.8)}
+.btn.primary:hover{box-shadow:0 14px 28px -10px rgba(35,86,246,.9)}
+.btn.ghost{background:var(--surface-2);border-color:transparent}
+.btn.small{padding:6px 13px}
+.btn.line{background:#06C755;border-color:#06C755}
+input[type=text],input[type=date],input[type=time],input[type=email],input[type=password],select,textarea{border:1.5px solid var(--line);border-radius:12px;background:var(--surface);padding:10px 14px;transition:border-color .15s,box-shadow .15s}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 18%,transparent)}
+.counter{border:1.5px solid var(--line);border-radius:14px;background:var(--surface)}
+.counter button{background:transparent;color:var(--accent);font-weight:700}
+.counter output{font-family:var(--f-num);font-size:19px}
+/* 選択カード */
+.choice{border:1.5px solid var(--line);border-radius:18px;padding:20px;transition:transform .15s,box-shadow .15s,border-color .15s}
+.choice:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
+.choice svg{width:46px;height:46px;padding:10px;border-radius:14px;background:var(--accent-soft);color:var(--accent)}
+.choice[aria-pressed="true"]{border-color:var(--accent);background:linear-gradient(180deg,var(--accent-soft),var(--surface));box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 18%,transparent)}
+.choice[aria-pressed="true"] svg{background:var(--grad);color:#fff}
+/* リスト・カード */
+.item,.spot,.cand,.mopt,.dtrow{border-color:var(--line);border-radius:16px;background:var(--surface)}
+.item{padding:12px 14px;transition:box-shadow .15s}
+.item:hover,.spot:hover{box-shadow:var(--shadow)}
+.spot{padding:14px;transition:transform .15s,box-shadow .15s}
+.spot:hover{transform:translateY(-2px)}
+.spot.on{border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 30%,transparent)}
+.ph-card{border-radius:15px 15px 0 0}
+.ph-thumb{border-radius:12px}.ph-sm{border-radius:10px}
+.rank{font-family:var(--f-num);font-weight:800;background:var(--grad-hot);-webkit-background-clip:text;background-clip:text;color:transparent}
+.pill{font-weight:700;padding:2px 10px}
+.pill.meal{background:var(--grad-hot)}
+.empty{border-radius:16px;background:color-mix(in srgb,var(--surface) 60%,transparent)}
+.foodq{background:linear-gradient(135deg,var(--accent-soft),color-mix(in srgb,var(--accent-2) 10%,var(--surface)));border-radius:18px;padding:16px 18px;border:1px solid color-mix(in srgb,var(--accent) 14%,transparent)}
+.mealrow{border-radius:12px}
+/* プロジェクト */
+.pbar{border-radius:var(--r-lg);padding:14px 18px 0;border-color:color-mix(in srgb,var(--line) 70%,transparent)}
+.pbar-t h2,.pcard h3,.titleedit,.sheet h2,.about h2{font-family:var(--f-disp);font-weight:800}
+.ptab{border-bottom-width:3px;border-radius:10px 10px 0 0}
+.ptab[aria-pressed="true"]{color:var(--accent);border-image:var(--grad) 1;border-bottom-style:solid}
+.pcard{border-radius:var(--r-lg);border-color:color-mix(in srgb,var(--line) 70%,transparent);transition:transform .15s,box-shadow .15s}
+.pcard:hover{transform:translateY(-3px);box-shadow:var(--shadow-lg)}
+.pcard::before{content:"";height:6px;background:var(--grad)}
+.panel.ov{border-radius:var(--r-lg)}
+.facts div{border-radius:12px}
+.prog b{background:var(--grad)}
+/* ホーム：ヒーロー */
+.hero{position:relative;overflow:hidden;border-radius:28px;background:var(--grad);color:#fff;padding:clamp(26px,5vw,48px);margin:8px 0 24px;box-shadow:var(--shadow-lg);display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:20px;align-items:center}
+.hero::after{content:"";position:absolute;inset:auto -60px -120px auto;width:340px;height:340px;border-radius:50%;background:radial-gradient(closest-side,rgba(255,255,255,.28),transparent);pointer-events:none}
+.hero .kicker{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.08em;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:5px 12px}
+.hero h1{font-family:var(--f-disp);font-weight:900;font-size:clamp(24px,4.2vw,40px);line-height:1.35;margin:14px 0 10px;letter-spacing:.01em;text-wrap:balance}
+.hero p{margin:0 0 18px;opacity:.92;font-size:14.5px;max-width:34em}
+.hero .btn.primary{background:#fff;color:var(--accent);box-shadow:0 12px 26px -12px rgba(0,0,0,.45)}
+.hero .btn.glass{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.4);color:#fff}
+.hero-cta{display:flex;gap:10px;flex-wrap:wrap}
+.hero-art{position:relative;aspect-ratio:1/1;max-width:300px;justify-self:center;width:100%}
+.hero-art svg{width:100%;height:100%;display:block;filter:drop-shadow(0 18px 30px rgba(0,0,0,.25))}
+.hero-feats{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:16px;font-size:12.5px;opacity:.95}
+.hero-feats span::before{content:"✓ ";font-weight:900}
+@media (max-width:640px){ .hero{grid-template-columns:1fr} .hero-art{max-width:200px;order:-1;margin:-6px auto -8px} }
+.homehd h1.q{font-size:22px}
+/* 予定表 */
+.sum{gap:8px;margin:6px 0 18px}
+.sum span{background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:4px 12px;font-size:12.5px}
+.tabs .chip{padding:7px 14px}
+.res{gap:20px}
+.mapcard{border-radius:var(--r-lg);border-color:color-mix(in srgb,var(--line) 70%,transparent);top:calc(72px + env(safe-area-inset-top,0px))}
+/* 地図は PC でもスマホでも同じ縦横比（4:3）にして、同じ範囲が見えるようにする */
+.mapbox{height:auto!important;min-height:0!important;aspect-ratio:4/3}
+.mapcard.full .mapbox{aspect-ratio:auto}
+.mapbar,.legend{background:var(--surface)}
+.legend{gap:6px 14px;padding:12px 16px}
+.day{border-radius:var(--r-lg);border-color:color-mix(in srgb,var(--line) 70%,transparent);box-shadow:var(--shadow);padding:18px 20px 16px;position:relative;overflow:hidden}
+.day::before{content:"";position:absolute;left:0;top:0;right:0;height:5px;background:var(--c)}
+.day h3{font-size:18px;font-weight:800}
+.tl li{grid-template-columns:54px 1fr}
+.tl .t{font-family:var(--f-num);font-weight:800;font-size:13.5px}
+.tl .stop{border-left-width:3px;padding:8px 10px 8px 14px;border-radius:0 12px 12px 0;margin:3px 0}
+.tl li[data-stop] .stop{background:var(--surface-2)}
+.tl li[data-stop]:hover .stop{background:color-mix(in srgb,var(--c) 8%,var(--surface-2))}
+.tl .num{width:24px;height:24px;font-family:var(--f-num);box-shadow:0 3px 8px -3px var(--c)}
+.tl .leg{border-left-width:3px;padding:5px 0 5px 14px}
+.tl li.hl .stop{background:color-mix(in srgb,var(--c) 14%,var(--surface))!important;box-shadow:inset 0 0 0 1.5px var(--c)}
+.tl li.trip .stop{background:color-mix(in srgb,var(--accent) 6%,var(--surface));border-radius:0 12px 12px 0}
+.daymode .chip,.daytime input{font-size:12.5px}
+.pin{width:28px;height:28px;font-family:var(--f-num);box-shadow:0 4px 10px -2px rgba(15,23,42,.45)}
+.pin-hotel{border-radius:9px;background:#0F172A;box-shadow:0 4px 10px -2px rgba(15,23,42,.5)}
+.pin-hotel.hub{background:#FF5A5F}
+.legbadge{font-family:var(--f-num)}
+/* 下のボタン・モーダル */
+.navbar{left:50%;right:auto;bottom:calc(12px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);width:min(calc(100% - 24px),820px);border:1px solid color-mix(in srgb,var(--line) 80%,transparent);border-radius:999px;padding:8px 8px 8px 10px;box-shadow:0 16px 40px -14px rgba(15,23,42,.35);background:color-mix(in srgb,var(--surface) 86%,transparent);backdrop-filter:saturate(1.6) blur(16px);-webkit-backdrop-filter:saturate(1.6) blur(16px)}
+.navbar.wide{width:min(calc(100% - 24px),1200px)}
+.navbar .in{max-width:none}
+.navbar .btn{padding:11px 22px}
+.modal{background:rgba(8,12,28,.5);backdrop-filter:blur(4px)}
+.sheet{border-radius:24px;padding:24px}
+.ph-hero{border-radius:24px 24px 0 0;margin:-24px -24px 14px;width:calc(100% + 48px)}
+.toast{border-radius:999px;padding:11px 18px;box-shadow:var(--shadow-lg)}
+.about .feat>div{border-radius:18px;border-color:color-mix(in srgb,var(--line) 70%,transparent);box-shadow:var(--shadow)}
+.about h3{font-weight:800}
+@media (max-width:480px){
+  .panel{padding:22px 16px;border-radius:20px}
+  .navbar{border-radius:22px}
+  .navbar .btn{padding:11px 14px}
+  .day{padding:16px 14px}
+  .tl li{grid-template-columns:46px 1fr;gap:8px}
+}
+.hero h1 span{display:inline-block}
+.hero{grid-template-columns:minmax(0,1.6fr) minmax(0,1fr)}
+.hero h1{font-size:clamp(24px,3.6vw,36px)}
+.tagline{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:0 1 auto}
+#resetBtn{white-space:nowrap;flex:none}
+.top{flex-wrap:nowrap;box-shadow:0 0 0 100vmax color-mix(in srgb,var(--bg) 78%,transparent);clip-path:inset(0 -100vmax)}
+.top .brand{flex:none}
+.top>*{min-width:0}
+.acct{max-width:180px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;flex:none}
+#homeBtn{flex:none}
+@media (max-width:1000px){ .tagline{display:none} }
+@media (max-width:640px){ #resetBtn{font-size:12px;white-space:nowrap;flex:none} #homeBtn{display:none!important} .acct{max-width:130px;font-size:12px} .brand{font-size:18px} .brand::before{width:28px;height:28px} .hero-art{max-width:150px} }
+.legbadge.c{font-size:10.5px;padding:0 6px;border-width:1.5px}
+@media (prefers-reduced-motion:reduce){ .chip,.btn,.choice,.spot,.pcard{transition:none} .chip:hover,.btn:hover,.choice:hover,.spot:hover,.pcard:hover{transform:none} }
 </style>
 
 </head>
 <body>
 <div class="wrap" id="wrap">
   <header class="top">
-    <button type="button" class="brand" data-app="home" style="border:0;background:none;cursor:pointer;padding:0;color:inherit">たび<b>ルート</b></button>
+    <button type="button" class="brand" data-app="home" style="border:0;background:none;cursor:pointer;padding:0;color:inherit"><span>たび<b>ルート</b></span></button>
     <div class="tagline">質問に答えるだけで、旅の予定表と回り方の地図をつくります</div>
     <div class="spacer"></div>
-    <button class="linkbtn" id="resetBtn" type="button" hidden>このプランを最初から入力し直す</button>
+    <button class="linkbtn" id="resetBtn" type="button" title="このプランを最初から入力し直す" hidden>最初から入力</button>
     <button class="btn small ghost" id="homeBtn" type="button" data-app="home" hidden>マイ旅行</button>
     <button class="acct" id="acctBtn" type="button" data-app="acct" aria-label="アカウント"></button>
   </header>
@@ -484,7 +683,7 @@ const P = [
 ];
 const PREF = {}; P.forEach(([n,r,la,ln,sp])=>{PREF[n]={name:n,region:r,lat:la,lng:ln,spots:sp.map((s,i)=>({name:s[0],lat:s[1],lng:s[2],stay:s[3],city:s[4],rank:i+1,src:"base"}))}});
 const REGIONS = ["北海道・東北","関東","中部","近畿","中国","四国","九州・沖縄"];
-const DAYC = ["#1F4E8C","#C84A31","#2B7553","#8A56A8","#B7800E","#1B8796","#A3456B"];
+const DAYC = ["#2356F6","#FF5A5F","#0E9F6E","#7A5AF8","#F08C00","#0891B2","#DB2777"];
 const STEPS = ["行き先","日程","行きたい場所","おすすめ","宿泊","移動手段","予定表"];
 
 const ICON = {
@@ -521,7 +720,7 @@ function example(){
 function blank(){
   return {step:0, pref:"", city:"", cityOther:"", days:2, date:isoToday(7), start:"09:00", end:"18:00", wishes:[], picks:[], ai:{},
     hotelMode:"", hotelName:"", hotelLoc:null, hotelAnchor:"", cond:{budget:"", type:"", prefs:[]}, hotelCands:[], hotelPick:-1,
-    transport:"", pace:"標準", example:false, visited:0, dayMode:{}, honten:true};
+    transport:"", pace:"標準", example:false, visited:0, dayMode:{}, honten:true, dayTimes:{}, perDay:false};
 }
 function newId(){ return "w"+Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
 function isoToday(add){const d=new Date();d.setDate(d.getDate()+add);return d.toISOString().slice(0,10)}
@@ -579,7 +778,7 @@ const links = s => ({
 
 /* ============ ステッパー／ナビ ============ */
 function renderStepper(){
-  $("#stepper").innerHTML = STEPS.map((l,i)=>`<button type="button" class="st ${i===S.step?"cur":i<=S.visited?"done":""}" data-go="${i}" ${i===S.step?'aria-current="step"':""}><span class="n">STEP ${i+1}</span><span class="l">${l}</span></button>`).join("");
+  $("#stepper").innerHTML = STEPS.map((l,i)=>`<button type="button" class="st ${i===S.step?"cur":i<=S.visited?"done":""}" data-go="${i}" ${i===S.step?'aria-current="step"':""}><span class="n">${i!==S.step&&i<=S.visited?"✓":i+1}</span><span class="l">${l}</span></button>`).join("");
 }
 function canNext(){
   if(S&&S.step===0) return !!S.pref || "都道府県を選んでください";
@@ -649,7 +848,18 @@ function stepDates(){
   </div>
   <h2 class="sub">観光する時間帯</h2>
   <div class="row"><div class="field"><label for="tStart">ホテルを出る</label><input type="time" id="tStart" value="${S.start}" step="900"></div><span style="padding-top:22px">〜</span><div class="field"><label for="tEnd">ホテルに戻る</label><input type="time" id="tEnd" value="${S.end}" step="900"></div></div>
-  <p class="note" style="margin-top:14px">お昼どきには1時間の昼食休憩を自動で入れます。</p></section>`;
+  <div class="row" style="margin-top:14px"><button type="button" class="chip" data-act="perDay" aria-pressed="${!!S.perDay}">${S.perDay?"✓ ":""}日ごとに時間を変える</button><span class="note" style="font-size:12.5px">例：1日目は午後から、最終日は午前だけ</span></div>
+  ${S.perDay?dayTimesHTML():""}
+  <p class="note" style="margin-top:14px">お昼どきには1時間の昼食休憩を自動で入れます。観光する時間が長い日ほど、多くの場所を割り振ります。</p></section>`;
+}
+const DTPRESET=[["終日",null,null],["午前だけ","09:00","12:30"],["午後から","13:00","18:00"],["夜まで","09:00","21:00"],["観光しない","off","off"]];
+function dayTimesHTML(){
+  let h=`<div class="dtlist">`;
+  for(let di=0;di<S.days;di++){ const t=dayTime(di);
+    h+=`<div class="dtrow"><b>${di+1}日目 <small>${fmtDate(S.date,di)}</small></b>
+      <span class="row" style="gap:6px;flex-wrap:nowrap"><input type="time" step="900" data-dtime="${di}|start" value="${t.start}" ${t.off?"disabled":""} aria-label="${di+1}日目の観光の開始"><span>〜</span><input type="time" step="900" data-dtime="${di}|end" value="${t.end}" ${t.off?"disabled":""} aria-label="${di+1}日目の観光の終了"></span>
+      <span class="chips">${DTPRESET.map(([l,a,b],k)=>{ const on = a===null? !t.custom : a==="off"? t.off : (t.custom&&!t.off&&t.start===a&&t.end===b); return `<button type="button" class="chip small" data-dtpre="${di}|${k}" aria-pressed="${on}">${l}</button>`; }).join("")}</span></div>`; }
+  return h+`</div>`;
 }
 /* STEP3 行きたい場所 */
 const STAYS=[20,30,45,60,90,120,180,240,300];
@@ -834,6 +1044,12 @@ function orderDay(H,arr){
   return out;
 }
 function splitDays(H,stops,n){
+  const caps=Array.from({length:n},(_,i)=>dayCap(i));
+  const act=caps.map((c,i)=>c>0?i:-1).filter(i=>i>=0);
+  if(act.length && act.length<n){ const g=splitDaysW(H,stops,act.length,act.map(i=>caps[i])); const out=Array.from({length:n},()=>[]); act.forEach((di,k)=>out[di]=g[k]); return out; }
+  return splitDaysW(H,stops,n,caps);
+}
+function splitDaysW(H,stops,n,caps){
   if(n<=1) return [stops.slice()];
   if(stops.length<=n) {const g=Array.from({length:n},()=>[]);stops.forEach((s,i)=>g[i].push(s));return g;}
   const lat0=H.lat, h=proj(H,lat0);
@@ -842,15 +1058,20 @@ function splitDays(H,stops,n){
   let gi=0,gm=-1;for(let i=0;i<arr.length;i++){const nx=arr[(i+1)%arr.length];let g=nx.a-arr[i].a;if(g<=0)g+=Math.PI*2;if(g>gm){gm=g;gi=(i+1)%arr.length}}
   const rot=arr.slice(gi).concat(arr.slice(0,gi));
   const total=rot.reduce((a,x)=>a+x.w,0);
+  const cs=(caps&&caps.length===n&&caps.every(c=>c>0))?caps:Array(n).fill(1); const ct=cs.reduce((a,c)=>a+c,0);
+  const frac=k=>cs.slice(0,k+1).reduce((a,c)=>a+c,0)/ct;
   const groups=[];let cur=[],acc=0,k=0;
   rot.forEach((x,i)=>{
     const remainItems=rot.length-i, remainGroups=n-groups.length;
-    if(cur.length && groups.length<n-1 && (acc+x.w/2>total*(k+1)/n || remainItems<remainGroups)){groups.push(cur);cur=[];k++}
+    if(cur.length && groups.length<n-1 && (acc+x.w/2>total*frac(k) || remainItems<remainGroups)){groups.push(cur);cur=[];k++}
     cur.push(x.s);acc+=x.w;
   });
   groups.push(cur); while(groups.length<n) groups.push([]);
   return groups;
 }
+// 日ごとの観光時間（指定がなければ共通の時間）
+function dayTime(di){ const o=(S.dayTimes||{})[di]; return {start:(o&&o.start)||S.start||"09:00", end:(o&&o.end)||S.end||"18:00", custom:!!o, off:!!(o&&o.off)}; }
+function dayCap(di){ const t=dayTime(di); if(t.off) return 0; return Math.max(0,t2m(t.end)-t2m(t.start)); }
 function paceK(){return S.pace==="ゆったり"?1.25:S.pace==="たくさん回る"?0.8:1}
 function pathLen(A,arr,B){let t=0,p=A;arr.forEach(x=>{t+=hav(p,x);p=x});return t+hav(p,B)}
 function orderPath(A,B,arr){
@@ -863,12 +1084,14 @@ function orderPath(A,B,arr){
   return out;
 }
 function centroid(g){return {lat:g.reduce((a,x)=>a+x.lat,0)/g.length,lng:g.reduce((a,x)=>a+x.lng,0)/g.length}}
-function schedule(H,seq,hasLunchRest,from,t0,to){
-  const endM=t2m(S.end), startM=t0?t2m(t0):t2m(S.start);
+function schedule(H,seq,hasLunchRest,from,t0,to,di){
+  const DT=dayTime(di||0);
+  const endM=t2m(DT.end), sightM=t2m(DT.start), startM=t0?t2m(t0):sightM;
   const items=[]; let t=startM, prev=from||H, lunch=!!hasLunchRest, km=0, lunchT=null, late=null, sightsEnd=null;
   if(!from && seq.length && seq[0].meal){ const w=MEALWIN[seq[0].meal]; const tr=leg(H,seq[0]).min; const dep=Math.round((w.target-tr)/5)*5; t = seq[0].meal==="朝" ? Math.max(6*60, Math.min(startM,dep)) : Math.max(startM,dep); }
   const startT=t;
   items.push({type:"start",t,label:(from||H).name,node:from||H});
+  if(t0 && DT.custom && sightM>t+10){ items.push({type:"free",t,dur:sightM-t,until:DT.start}); t=sightM; }
   const tryLunch=()=>{ if(!lunch && t>=11*60+45 && t<=14*60 ){items.push({type:"lunch",t,dur:60,near:prev===H||prev===from?"":prev.name});t+=60;lunch=true} };
   let n=0;
   seq.forEach(s=>{
@@ -914,7 +1137,7 @@ function buildPlan(){
   meals.slice().sort((a,b)=>(b.mday?1:0)-(a.mday?1:0)).forEach(m=>{
     let di=-1;
     if(m.mday && m.mday<=S.days) di=m.mday-1;
-    else { let bd=1e9; groups.forEach((g,i)=>{ if(slots[i][m.meal]) return; const c=g.length?centroid(g):H; const d=hav(c,m)+(g.length?0:2); if(d<bd){bd=d;di=i} }); }
+    else { let bd=1e9; groups.forEach((g,i)=>{ if(slots[i][m.meal]||dayTime(i).off) return; const c=g.length?centroid(g):H; const d=hav(c,m)+(g.length?0:2); if(d<bd){bd=d;di=i} }); }
     if(di<0){ di=0; }
     if(slots[di][m.meal]){ conflicts.push({...m,meal:"",conflict:MEALNAME[m.meal]}); groups[di].push(conflicts[conflicts.length-1]); return; }
     slots[di][m.meal]=m;
@@ -932,7 +1155,7 @@ function buildPlan(){
       CURMODE=mode; let best=null;
       ks.forEach(k=>{
         const seq=[...(B?[B]:[]), ...(k===null?ord:ord.slice(0,k)), ...(Lm?[Lm]:[]), ...(k===null?[]:ord.slice(k)), ...(D?[D]:[])];
-        const r=schedule(H,seq,!!Lm,from,from?from.time:null,to);
+        const r=schedule(H,seq,!!Lm,from,from?from.time:null,to,di);
         const waitMin=r.items.filter(x=>x.type==="wait").reduce((a,x)=>a+x.dur,0);
         const score = r.km*0.5 + waitMin/4 + (Lm&&r.lunchT!=null? Math.abs(r.lunchT-12*60)/6 + (r.lunchT>14*60?60:0) : 0);
         if(!best||score<best.score) best={score,seq,r};
@@ -994,8 +1217,9 @@ function dayHTML(d,H){
   let h=`<article class="day" style="--c:${c}"><h3><span class="dot" style="background:${c}"></span>${d.di+1}日目　${fmtDate(S.date,d.di)}</h3>
   <div class="daymode"><span class="note">この日の移動</span>${["transit","car"].map(m=>`<button type="button" class="chip small" data-daymode="${d.di}|${m}" aria-pressed="${d.mode===m}">${m==="car"?ICON.car:ICON.train}${MJ[m]}</button>`).join("")}
     ${d.auto&&d.alt?`<span class="note">おまかせで選びました（${MJ[d.alt.mode]}だと移動が約${fmtMin(d.alt.cost)}、${MJ[d.mode]}は約${fmtMin(d.alt.mine)}）</span>`:""}${d.manual?`<button type="button" class="linkbtn" style="font-size:12px" data-daymode="${d.di}|">${S.transport==="auto"?"おまかせに戻す":"最初の設定に戻す"}</button>`:""}</div>
-  <div class="dmeta">${d.ord.length}か所・移動 約${d.km.toFixed(0)}km・${m2t(t0)}〜${m2t(t1)} ${d.over?`<span class="over">　観光が予定の${S.end}を過ぎます</span>`:""}${d.late?`<span class="over">　${MEALNAME[d.late]}の時間に間に合いません（スポットを減らすか日を変えてください）</span>`:""}</div>`;
-  if(!d.ord.length){h+=`<p class="note">この日はフリータイムです。スポットを増やすとこの日にも割り振られます。</p></article>`;return h}
+  <div class="daytime"><span class="note">観光する時間</span><input type="time" step="900" data-dtime="${d.di}|start" value="${dayTime(d.di).start}" aria-label="${d.di+1}日目の観光の開始"><span>〜</span><input type="time" step="900" data-dtime="${d.di}|end" value="${dayTime(d.di).end}" aria-label="${d.di+1}日目の観光の終了">${dayTime(d.di).custom?`<button type="button" class="linkbtn" style="font-size:12px" data-dtreset="${d.di}">共通の時間に戻す</button>`:""}</div>
+  <div class="dmeta">${d.ord.length}か所・移動 約${d.km.toFixed(0)}km・${m2t(t0)}〜${m2t(t1)} ${d.over?`<span class="over">　観光が予定の${dayTime(d.di).end}を過ぎます</span>`:""}${d.late?`<span class="over">　${MEALNAME[d.late]}の時間に間に合いません（スポットを減らすか日を変えてください）</span>`:""}</div>`;
+  if(!d.ord.length){h+=`<p class="note">${dayTime(d.di).off?"この日は観光しない日に設定しています。":"この日はフリータイムです。スポットを増やすとこの日にも割り振られます。"}</p>${window.__plan&&window.__plan.trip&&(d.tripOut||d.tripBack)?`<ol class="tl">${(d.tripOut||[]).concat(d.tripBack||[]).map(it=>tripItemHTML(it,window.__plan.trip)).join("")}</ol>`:""}</article>`;return h}
   h+=`<ol class="tl">`;
   if(d.tripOut&&trip) h+=d.tripOut.map(it=>tripItemHTML(it,trip)).join("");
   d.items.forEach(it=>{
@@ -1007,6 +1231,7 @@ function dayHTML(d,H){
     else if(it.type==="leg"){const ic=it.mode==="walk"?ICON.walk:it.mode==="car"?ICON.car:ICON.train;const lb=it.mode==="walk"?"徒歩":it.mode==="car"?"車":"電車・バス";
       const gm = it.mode==="walk"?"walking":mm;
       h+=`<li><div></div><div class="leg" style="border-left-color:${c}">${ic}${lb} ${it.real?"":"約"}${it.min}分（${it.km.toFixed(1)}km）${it.real?'<span class="pill ok">道路経路</span>':""}<a href="${gdir(it.from,it.to,null,gm)}" target="_blank" rel="noopener">経路</a></div></li>`;}
+    else if(it.type==="free") h+=`<li class="lunch"><div class="t">${m2t(it.t)}</div><div class="stop"><div class="nm">自由時間</div><div class="sm">${fmtMin(it.dur)}・観光は${esc(it.until)}から（ホテルに荷物を預ける、駅の周辺を歩くなど）</div></div></li>`;
     else if(it.type==="wait") h+=`<li class="lunch"><div class="t">${m2t(it.t)}</div><div class="stop"><div class="nm">自由時間</div><div class="sm">${it.dur}分・${it.meal==="夜"?"ホテルで休憩、買い物や散策など":"周辺の散策など"}（${MEALNAME[it.meal]}のお店の時間まで）</div></div></li>`;
     else if(it.type==="lunch") h+=`<li class="lunch"><div class="t">${m2t(it.t)}</div><div class="stop"><div class="nm">昼食</div><div class="sm">${it.near?esc(it.near)+"の周辺で・":""}60分</div></div></li>`;
     else if(it.type==="stop") h+=`<li data-stop="${esc(it.s.id)}" class="${hlStop===it.s.id?"hl":""}"><div class="t">${m2t(it.t)}</div><div class="stop hasimg">${imgSlot(it.s,"sm")}<div><div class="nm"><span class="num">${it.n}</span>${esc(it.s.name)}${it.meal?`<span class="pill meal">${MEALNAME[it.meal]}</span>`:it.s.kind==="wish"?'<span class="pill hot">行きたい場所</span>':""}${it.s.conflict?`<span class="pill warn">同じ日の${it.s.conflict}が重なるため通常の立ち寄り</span>`:""}${it.s.approx?'<span class="pill warn">位置は推定</span>':""}</div><div class="sm">${m2t(it.t)}〜${m2t(it.t+it.dur)}（${it.dur}分）・<button type="button" class="linkbtn" style="padding:0;font-size:12.5px" data-detail="${esc(it.s.name)}">詳細を見る</button>${hasL()?`・<button type="button" class="linkbtn" style="padding:0;font-size:12.5px" data-mapfocus="${esc(it.s.id)}">地図で見る</button>`:""}</div></div></div></li>`;
@@ -1348,7 +1573,7 @@ function mapDays(){ const plan=window.__plan; return plan? plan.days.filter(d=>(
 function drawLMap(){
   const el=$("#lmap"), plan=window.__plan; if(!el||!plan) return;
   if(lMap){ lMap.remove(); lMap=null; }
-  lMap=L.map(el,{scrollWheelZoom:mapFull,zoomControl:true,tap:true});
+  lMap=L.map(el,{scrollWheelZoom:mapFull,zoomControl:true,tap:true,zoomSnap:0.25,zoomDelta:0.5});
   const attr='<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">国土地理院</a>';
   const layers={}; Object.entries(MAPBASE).forEach(([k,[nm,u,mz]])=>{ layers[nm]=L.tileLayer(u,{maxZoom:mz,minZoom:5,attribution:attr}); layers[nm]._k=k; });
   layers[MAPBASE[mapBaseSel][0]].addTo(lMap);
@@ -1364,7 +1589,7 @@ function fitMap(anim){
   const plan=window.__plan; if(!lMap||!plan) return;
   const pts=[]; mapDays().forEach(d=>{ [d.from||plan.H,...d.ord,d.to||plan.H].forEach(p=>pts.push([p.lat,p.lng])); });
   if(!pts.length) pts.push([plan.H.lat,plan.H.lng]);
-  lMap.fitBounds(L.latLngBounds(pts),{padding:[36,36],maxZoom:16,animate:!!anim});
+  const pd=Math.max(18,Math.round(Math.min(lMap.getSize().x,lMap.getSize().y)*0.09)); lMap.fitBounds(L.latLngBounds(pts),{padding:[pd,pd],maxZoom:16,animate:!!anim});
 }
 function legLine(it){
   const k=legKey(it.from,it.to,it.mode==="walk"?"walk":it.mode);
@@ -1380,7 +1605,7 @@ function midOf(pts){
 function drawRouteLayer(){
   const plan=window.__plan; if(!lMap||!lRoute||!plan) return;
   lRoute.clearLayers(); lPins={};
-  const H=plan.H, single=viewDay!==-1, photo=mapBaseSel==="photo";
+  const H=plan.H, single=viewDay!==-1, photo=mapBaseSel==="photo", compact=lMap.getSize().x<520;
   const days=mapDays(); const drawnEnds=new Set();
   days.forEach(d=>{
     const col=DAYC[d.di%DAYC.length];
@@ -1391,7 +1616,7 @@ function drawRouteLayer(){
       L.polyline(pts,{color:col,opacity:.95,...st,interactive:false}).addTo(lRoute);
       if(single&&it.min>=5){
         const ic=it.mode==="walk"?ICON.walk:it.mode==="car"?ICON.car:ICON.train;
-        L.marker(midOf(pts),{interactive:false,keyboard:false,icon:L.divIcon({className:"",html:`<div class="legbadge" style="--c:${col}">${ic}${fmtMin(it.min)}</div>`,iconSize:null,iconAnchor:[0,0]})}).addTo(lRoute);
+        L.marker(midOf(pts),{interactive:false,keyboard:false,icon:L.divIcon({className:"",html:`<div class="legbadge${compact?" c":""}" style="--c:${col}">${compact?"":ic}${compact&&it.min>=60?fmtMin(it.min).replace("時間","h").replace("分",""):fmtMin(it.min)}</div>`,iconSize:null,iconAnchor:[0,0]})}).addTo(lRoute);
       }
     });
     d.ord.forEach((s,i)=>{
@@ -1399,8 +1624,9 @@ function drawRouteLayer(){
       const lab=single?n:`${d.di+1}-${n}`;
       const m=L.marker([s.lat,s.lng],{title:`${d.di+1}日目 ${n}. ${s.name}`,zIndexOffset:500,icon:L.divIcon({className:"",html:`<div class="pin${hlStop===s.id?" big":""}${single?"":" sm"}" style="background:${col}">${s.meal?`<span class="pm">${esc(s.meal)}</span>`:lab}</div>`,iconSize:[26,26],iconAnchor:[13,13]})}).addTo(lRoute);
       m.on("click",()=>selectStop(s.id,true));
-      const tip=`${single?"":`${d.di+1}日目 `}${n}. ${esc(s.name)}${it?`<br><small>${m2t(it.t)}〜${m2t(it.t+it.dur)}</small>`:""}`;
-      m.bindTooltip(tip,{direction:"top",offset:[0,-12],permanent:single&&d.ord.length<=12,className:"maplbl"+(single?" perm":"")});
+      const nm=compact&&single&&s.name.length>9? esc(s.name.slice(0,8))+"…" : esc(s.name);
+      const tip=`${single?"":`${d.di+1}日目 `}${n}. ${single&&compact?nm:esc(s.name)}${it&&!(single&&compact)?`<br><small>${m2t(it.t)}〜${m2t(it.t+it.dur)}</small>`:""}`;
+      m.bindTooltip(tip,{direction:compact&&single?"right":"top",offset:compact&&single?[12,0]:[0,-12],permanent:single&&d.ord.length<=12,className:"maplbl"+(single?" perm":"")});
       lPins[s.id]=m.getElement()&&m.getElement().firstChild;
     });
     const ends=[[d.from,"発"],[d.to,"帰"]];
@@ -1904,7 +2130,7 @@ document.addEventListener("click",async e=>{
   if(d.go!==undefined){ closeModal(); go(+d.go); return; }
   if(d.pref){ if(S.pref!==d.pref){S.pref=d.pref;S.city="";S.cityOther="";S.wishes=[];S.picks=[];S.hotelCands=[];S.hotelPick=-1;S.hotelLoc=null;S.hotelAnchor="";} S.example=false; save(); render(); return; }
   if(d.city!==undefined){ S.city=d.city; save(); render(); if(d.city==="__other") $("#cityOther")?.focus(); return; }
-  if(d.days){ S.days=Math.max(1,Math.min(7,S.days+ +d.days)); save(); $("#daysOut").textContent=S.days+"日間"; return; }
+  if(d.days){ S.days=Math.max(1,Math.min(7,S.days+ +d.days)); save(); if(S.perDay) render(); else $("#daysOut").textContent=S.days+"日間"; return; }
   if(d.delwish){ S.wishes=S.wishes.filter(w=>w.id!==d.delwish); save(); render(); return; }
   if(d.pick){ const i=S.picks.indexOf(d.pick); if(i>=0) S.picks.splice(i,1); else S.picks.push(d.pick); save(); render(); return; }
   if(d.detail){ openDetail(d.detail); return; }
@@ -1914,6 +2140,9 @@ document.addEventListener("click",async e=>{
   if(d.trans){ S.transport=d.trans; save(); render(); return; }
   if(d.pace){ S.pace=d.pace; save(); render(); return; }
   if(d.vday!==undefined){ viewDay=+d.vday; hlStop=null; render(); return; }
+  if(d.act==="perDay"){ S.perDay=!S.perDay; if(!S.perDay) S.dayTimes={}; save(); render(); return; }
+  if(d.dtpre){ const [di,k]=d.dtpre.split("|"); const [,a,b]=DTPRESET[+k]; S.dayTimes={...(S.dayTimes||{})}; if(a===null) delete S.dayTimes[di]; else if(a==="off") S.dayTimes[di]={off:true}; else S.dayTimes[di]={start:a,end:b}; save(); render(); return; }
+  if(d.dtreset!==undefined){ S.dayTimes={...(S.dayTimes||{})}; delete S.dayTimes[d.dtreset]; save(); render(); return; }
   if(d.daymode!==undefined){ const [di,m]=d.daymode.split("|"); S.dayMode={...(S.dayMode||{})}; if(m) S.dayMode[di]=m; else delete S.dayMode[di]; save(); render(); return; }
   if(d.mapfocus){ focusStop(d.mapfocus); return; }
   if(d.mapact){ mapAct(d.mapact); return; }
@@ -1956,8 +2185,11 @@ document.addEventListener("change",e=>{
   const t=e.target;
   if(t.id==="cityOther"){ S.cityOther=t.value.trim(); save(); }
   if(t.id==="date"){ S.date=t.value; save(); }
-  if(t.id==="tStart"){ S.start=t.value||"09:00"; save(); }
-  if(t.id==="tEnd"){ S.end=t.value||"18:00"; save(); }
+  if(t.id==="tStart"){ S.start=t.value||"09:00"; save(); if(S.perDay) render(); }
+  if(t.id==="tEnd"){ S.end=t.value||"18:00"; save(); if(S.perDay) render(); }
+  if(t.dataset.dtime){ const [di,k]=t.dataset.dtime.split("|"); const cur=dayTime(+di); const o={start:cur.start,end:cur.end,[k]:t.value||(k==="start"?S.start:S.end)};
+    S.dayTimes={...(S.dayTimes||{})}; if(o.start===S.start&&o.end===S.end) delete S.dayTimes[di]; else S.dayTimes[di]={start:o.start,end:o.end};
+    if(t.closest(".day")) S.perDay=true; save(); render(); }
   if(t.dataset.rename){ const w=S.wishes.find(x=>x.id===t.dataset.rename); const v=t.value.trim(); if(w&&v){w.name=v; if(w.status!=="ok") w.q=v; save();} }
   if(t.dataset.stay){ const w=S.wishes.find(x=>x.id===t.dataset.stay); if(w){w.stay=+t.value; w.stayTouched=true; save();} }
   if(t.dataset.mday){ const w=S.wishes.find(x=>x.id===t.dataset.mday); if(w){w.day=+t.value; save();} }
@@ -1988,7 +2220,7 @@ function planText(){
     if(it.type==="start") s+=`${m2t(it.t)} 出発（${it.label}）\n`;
     else if(it.type==="leg") s+=`   ↓ ${it.mode==="walk"?"徒歩":it.mode==="car"?"車":"電車・バス"} 約${it.min}分\n`;
     else if(it.type==="stop") s+=`${m2t(it.t)} ${it.meal?"【"+MEALNAME[it.meal]+"】":""}${it.s.name}（${it.dur}分）\n`;
-    else if(it.type==="wait") s+=`${m2t(it.t)} 自由時間（${it.dur}分）\n`;
+    else if(it.type==="wait"||it.type==="free") s+=`${m2t(it.t)} 自由時間（${it.dur}分）\n`;
     else if(it.type==="lunch") s+=`${m2t(it.t)} 昼食（60分）\n`;
     else if(it.type==="end") s+=`${m2t(it.t)} 到着（${it.label}）\n`; }); (d.tripBack||[]).forEach(it=>s+=tl(it)+"\n"); });
   return s;
@@ -2300,10 +2532,10 @@ const FIREBASE_CONFIG = {
 };
 const FBV = "10.12.2";
 const CLIENT_ID = Math.random().toString(36).slice(2);
-const PLAN_KEYS = ["dayMode","honten","pref","city","cityOther","days","date","start","end","wishes","picks","ai","hotelMode","hotelName","hotelLoc","hotelAnchor","hotelInfo","hotelDecCands","cond","hotelCands","hotelPick","transport","pace","example"];
+const PLAN_KEYS = ["dayMode","honten","dayTimes","perDay","pref","city","cityOther","days","date","start","end","wishes","picks","ai","hotelMode","hotelName","hotelLoc","hotelAnchor","hotelInfo","hotelDecCands","cond","hotelCands","hotelPick","transport","pace","example"];
 const UI_KEYS = ["step","visited","foodTab","food","foodS"];
 const STATUS = ["計画中","予約済み","旅行中","完了"];
-const MEMBER_C = ["#1F4E8C","#C84A31","#2B7553","#8A56A8","#B7800E","#1B8796","#A3456B","#5B6B2E"];
+const MEMBER_C = ["#2356F6","#FF5A5F","#0E9F6E","#7A5AF8","#F08C00","#0891B2","#DB2777","#65A30D"];
 const TODO_SUGGEST = ["新幹線・飛行機を予約する","ホテルを予約する","レンタカーを予約する","集合時間と場所を全員に連絡する","持ち物を確認する","お店を予約する"];
 
 let APP = {view:"loading", ptab:"overview", pid:null, project:null, projects:[], user:null, profile:null, mode:"local", joinId:null, meetSel:null, pendingRender:false};
@@ -2569,7 +2801,20 @@ function pbarHTML(){
 
 /* ---------- 画面：マイ旅行 ---------- */
 function homeHTML(){
-  let h=`<section class="home"><div class="homehd"><h1 class="q" style="margin:0">マイ旅行</h1><span class="spacer"></span>${APP.user?`<button type="button" class="btn primary" data-app="newProject">＋ 新しい旅行をつくる</button>`:""}</div>`;
+  let h=`<section class="home"><div class="hero"><div><span class="kicker">無料・インストール不要の旅行プランナー</span>
+    <h1><span>行きたい場所を</span><span>選ぶだけ。</span><br><span>旅のしおりが、</span><span>地図つきで完成。</span></h1>
+    <p>回る順番と移動時間、朝・昼・夜のごはん、ホテル、友達との合流場所まで。家を出てから帰るまでの予定を自動でつくります。</p>
+    <div class="hero-cta">${APP.user?`<button type="button" class="btn primary" data-app="newProject">＋ 新しい旅行をつくる</button>`:""}<a class="btn glass" href="#about">使い方を見る</a></div>
+    <div class="hero-feats"><span>47都道府県の人気スポット</span><span>電車・車どちらも</span><span>LINEで共有</span></div></div>
+  <div class="hero-art" aria-hidden="true"><svg viewBox="0 0 300 300"><defs><linearGradient id="hg" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset="1" stop-color="#fff" stop-opacity=".8"/></linearGradient></defs>
+    <rect x="34" y="30" width="232" height="240" rx="28" fill="url(#hg)"/>
+    <g opacity=".5" stroke="#CFE0FF" stroke-width="2"><path d="M34 110h232M34 190h232M110 30v240M190 30v240"/></g>
+    <path d="M82 222C96 170 150 196 160 150S214 110 222 78" fill="none" stroke="#2356F6" stroke-width="6" stroke-linecap="round" stroke-dasharray="2 12"/>
+    <circle cx="82" cy="222" r="15" fill="#2356F6"/><text x="82" y="227" text-anchor="middle" font-size="14" font-weight="800" fill="#fff" font-family="sans-serif">1</text>
+    <circle cx="160" cy="150" r="15" fill="#0BB4D6"/><text x="160" y="155" text-anchor="middle" font-size="14" font-weight="800" fill="#fff" font-family="sans-serif">2</text>
+    <path d="M222 48a22 22 0 0 1 22 22c0 17-22 36-22 36s-22-19-22-36a22 22 0 0 1 22-22z" fill="#FF5A5F"/><circle cx="222" cy="70" r="8" fill="#fff"/>
+    <rect x="52" y="52" width="92" height="30" rx="15" fill="#EAF0FF"/><text x="98" y="72" text-anchor="middle" font-size="13" font-weight="700" fill="#2356F6" font-family="sans-serif">9:00 出発</text>
+  </svg></div></div><div class="homehd"><h1 class="q" style="margin:0">マイ旅行</h1><span class="spacer"></span>${APP.user?`<button type="button" class="btn small" data-app="newProject">＋ 新しい旅行</button>`:""}</div>`;
   if(APP.cloudErr) h+=`<div class="banner warn"><span>${esc(APP.cloudErr)}</span></div>`;
   if(APP.mode==="local") h+=`<div class="banner"><span>旅行はこの端末のブラウザだけに保存しています。友達との共有・アカウント登録を使うには、サイトを公開する人が共有サーバー（Firebase）を設定します。<button type="button" class="linkbtn" data-app="fbSetup">管理者向けの設定</button></span></div>`;
   if(APP.mode==="cloud" && !APP.user) return h+loginCard()+`</section>`;
@@ -2765,7 +3010,7 @@ function segHTML(s,person){
   return `<li><span class="sgi">${/新幹線/.test(s.line)?ICON.shinkansen:ICON.train}</span><span>${esc(stName(s.from))} → ${esc(stName(s.to))}<small>${esc(s.line)} 約${fmtMin(s.min)}</small></span>${/バス/.test(s.line)?`<a href="https://www.google.com/maps/dir/?api=1&origin=${enc(stName(s.from))}&destination=${enc(stName(s.to))}&travelmode=transit" target="_blank" rel="noopener">経路</a>`:`<a href="https://transit.yahoo.co.jp/search/result?from=${enc(stName(s.from).replace(/駅$/,""))}&to=${enc(stName(s.to).replace(/駅$/,""))}" target="_blank" rel="noopener">乗換案内</a>`}</li>`;
 }
 function meetOptionHTML(o,M,i,chosenKey,shownKey){
-  const meet=t2m((APP.project.meet&&APP.project.meet.time)||"10:00");
+  const meet=t2m(meetTimeStr(APP.project));
   const key=optKey(o); const chosen=key===chosenKey; const open=key===shownKey;
   let rows="", summ="";
   if(o.type==="car"){ summ=`<span>合計 約<b>${fmtMin(o.total)}</b></span>`; }
@@ -2799,7 +3044,7 @@ function meetSectionHTML(){
   if(M.none) return h+`<div class="empty">メンバーの出発地を登録すると、合流場所を提案します。</div></section>`;
   if(!M.options||!M.options.length) return h+`<div class="empty">出発地から${esc(M.dest.name)}までの経路を見つけられませんでした。出発地を駅にしてみてください。</div></section>`;
   const chosenKey=meet.choice||null;
-  h+=`<div class="row" style="gap:10px;margin-bottom:10px"><label class="note" for="meetTime">${esc(M.dest.name)}に着く時刻（1日目）</label><input type="time" id="meetTime" value="${esc(meet.time||"10:00")}" step="600"><span class="note">行き先の中心：${esc(M.dest.name)}</span></div>`;
+  h+=`<div class="row" style="gap:10px;margin-bottom:10px"><label class="note" for="meetTime">${esc(M.dest.name)}に着く時刻（1日目）</label>${S&&dayTime(0).custom&&!dayTime(0).off?`<b>${esc(dayTime(0).start)}</b><span class="note">（旅行プランの「1日目の観光する時間」に合わせています）</span>`:`<input type="time" id="meetTime" value="${esc(meet.time||"10:00")}" step="600">`}<span class="note">行き先の中心：${esc(M.dest.name)}</span></div>`;
   h+=`<div class="note" style="margin:-4px 0 10px">${LRAIL.state==="loading"?'<span class="spin"></span>出発地と行き先の周辺のローカル線（JR在来線・私鉄・地下鉄など）を読み込んでいます…（初回は10〜60秒ほど）':LRAIL.state==="ready"?`${ICON.train.replace("<svg",'<svg width="14" height="14" style="vertical-align:-2px"')} 新幹線・特急・飛行機に加えて、周辺のローカル線 ${LRAIL.lines}路線（OpenStreetMap）を使って計算しています。`:LRAIL.state==="error"?`ローカル線を読み込めなかったため、新幹線・特急などの主要路線だけで計算しています。<button type="button" class="linkbtn" data-app="railRetry">もう一度読み込む</button>`:""}</div>`;
   h+=`<div class="mapbox" id="mmap" style="height:300px;min-height:260px;border-radius:12px;margin-bottom:12px"></div>`;
   const shownKey=APP.meetSel||chosenKey||optKey(M.options[0]);
@@ -2821,7 +3066,7 @@ function myTrip(){
   const M=meetingPlan(); if(!M||!M.options||!M.options.length) return null;
   const choice=p.meet&&p.meet.choice; const o=M.options.find(x=>optKey(x)===choice)||M.options[0];
   const j=M.members.findIndex(m=>m.key===me); if(j<0) return null;
-  const meetStr=(p.meet&&p.meet.time)||"10:00", meet=t2m(meetStr);
+  const meetStr=meetTimeStr(p), meet=t2m(meetStr);
   const nm=a=>a.map(m=>m.name+"さん").join("・");
   const others=M.members.filter((m,i)=>i!==j);
   const label=st.label||"出発地";
@@ -2902,9 +3147,11 @@ function tripItemHTML(it,trip){
   const f=tripSegInfo(it.seg,trip.label,mode);
   return `<li class="trip"><div class="t">${m2t(it.t)}</div><div class="stop tripseg" style="--c:var(--muted)"><div class="nm"><span class="sgi">${f.ic}</span>${esc(f.title)}${it.together?'<span class="pill info">みんなで</span>':""}</div><div class="sm">${esc(f.sub)} 約${fmtMin(it.seg.min)}${f.link?`・<a href="${f.link}" target="_blank" rel="noopener">${f.lk||"経路"}</a>`:""}</div></div></li>`;
 }
+// 1日目の観光開始を日ごとに指定したときは、その時刻に現地に着くようにする
+function meetTimeStr(p){ const t=S?dayTime(0):null; if(t&&t.custom&&!t.off) return t.start; return (p&&p.meet&&p.meet.time)||"10:00"; }
 function meetStartNode(){
   const p=APP.project; if(!p||!p.meet||!p.meet.useForDay1||!p.meet.point) return null;
-  const pt=p.meet.point; return {name:"集合："+pt.name,place:pt.name,lat:pt.lat,lng:pt.lng,meet:true,time:p.meet.time||"10:00",note:"合流プランで決めた集合場所"};
+  const pt=p.meet.point; return {name:"集合："+pt.name,place:pt.name,lat:pt.lat,lng:pt.lng,meet:true,time:meetTimeStr(p),note:"合流プランで決めた集合場所"};
 }
 let mMap=null;
 function railPoints(){ const p=APP.project; const dest=destPoint(); if(!p||!dest) return []; const pts=allPeople(p).filter(x=>x.start&&x.start.lat!=null).map(x=>({lat:x.start.lat,lng:x.start.lng})); if(!pts.length) return []; return [...pts,{lat:dest.lat,lng:dest.lng}]; }
