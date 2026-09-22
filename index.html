@@ -568,7 +568,23 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);
   .tl li{grid-template-columns:46px 1fr;gap:8px}
 }
 .hero h1 span{display:inline-block}
-.hero{grid-template-columns:minmax(0,1.6fr) minmax(0,1fr)}
+/* PCでは画面の幅を広く使う（最大1280px） */
+.wrap,.wrap.wide{max-width:1280px}
+.navbar,.navbar.wide{width:min(calc(100% - 24px),1280px)}
+@media (min-width:1100px){
+  body{padding-inline:32px}
+  .top{margin-inline:-32px;padding-inline:32px}
+  .panel{padding:36px 48px}
+  .choices{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .spots{grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
+  .pgrid{grid-template-columns:repeat(auto-fill,minmax(320px,1fr))}
+  .hero{padding:56px 64px}
+  .hero h1{font-size:clamp(32px,3vw,44px)}
+  .hero-art{max-width:340px}
+  .res{grid-template-columns:minmax(0,1.2fr) minmax(0,1fr)}
+}
+@media (min-width:641px){ .hero{grid-template-columns:minmax(0,1.6fr) minmax(0,1fr)} }
+@media (max-width:640px){ .hero-art{max-width:120px!important} .hero{grid-template-columns:1fr;padding:24px 20px} .hero .kicker{font-size:11px} .hero h1{font-size:25px} .hero-cta .btn{flex:1 1 auto;justify-content:center} }
 .hero h1{font-size:clamp(24px,3.6vw,36px)}
 .tagline{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:0 1 auto}
 #resetBtn{white-space:nowrap;flex:none}
@@ -580,6 +596,19 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);
 @media (max-width:1000px){ .tagline{display:none} }
 @media (max-width:640px){ #resetBtn{font-size:12px;white-space:nowrap;flex:none} #homeBtn{display:none!important} .acct{max-width:130px;font-size:12px} .brand{font-size:18px} .brand::before{width:28px;height:28px} .hero-art{max-width:150px} }
 .legbadge.c{font-size:10.5px;padding:0 6px;border-width:1.5px}
+.ttime{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px;margin:2px 0}
+.ttime b{font-family:var(--f-num);font-size:15px;color:var(--accent)}
+.ttime span{color:var(--muted)}
+.ttime small{font-size:12px;color:var(--muted)}
+.tl .leg .lt{font-family:var(--f-num);color:var(--ink);font-weight:700}
+.askst{background:linear-gradient(135deg,var(--accent-soft),color-mix(in srgb,var(--accent-2) 12%,var(--surface)));border:1px solid color-mix(in srgb,var(--accent) 22%,transparent);border-radius:var(--r-lg);padding:18px 20px;margin-bottom:16px;display:flex;flex-direction:column;gap:12px}
+.askst-t{display:flex;gap:12px;align-items:flex-start}
+.askst-t svg{width:26px;height:26px;padding:6px;box-sizing:content-box;border-radius:12px;background:var(--grad);color:#fff;flex:none}
+.askst-t b{display:block;font-size:16px}
+.askst-t span{font-size:13px;color:var(--muted)}
+.askst input{flex:1 1 200px}
+.banner.hotelpick{flex-direction:column;gap:8px}
+.banner.hotelpick a{font-weight:700;margin-left:4px}
 @media (prefers-reduced-motion:reduce){ .chip,.btn,.choice,.spot,.pcard{transition:none} .chip:hover,.btn:hover,.choice:hover,.spot:hover,.pcard:hover{transform:none} }
 </style>
 
@@ -803,6 +832,7 @@ function go(i){
   if(i>S.step){ // 前へ進むときは検証
     for(let k=S.step;k<i;k++){ const cur=S.step; S.step=k; const ok=canNext(); S.step=cur; if(ok!==true){ S.step=k; flash(ok); render(); return; } }
   }
+  if(typeof APP!=="undefined"&&APP.view==="project"&&APP.ptab==="result"&&i!==6) APP.ptab="plan";
   S.step=i; S.visited=Math.max(S.visited||0,i); save(); render(); window.scrollTo({top:0,behavior:"auto"});
 }
 function flash(msg){ $("#navHint").textContent=msg; }
@@ -811,12 +841,19 @@ function flash(msg){ $("#navHint").textContent=msg; }
 function renderPlan(){
   renderStepper(); renderNav();
   const f=[stepPref,stepDates,stepWish,stepRec,stepHotel,stepMove,stepResult][S.step];
-  $("#main").innerHTML = f();
+  $("#main").innerHTML = askStartHTML() + f();
   if(S&&S.step===6) afterResult();
   hydrateImages();
   if(S&&S.step===3 && !busy.food && !(S.food&&S.food.key===foodKey()) && !msg.food) setTimeout(()=>loadFood(false),0);
+  if(S&&(S.step===4||S.step===6) && S.hotelMode!=="decided" && !(S.hotelCands&&S.hotelCands.length) && stopsAll().length && !busy.wh && !msg.wh){ if(!S.hotelMode&&S.step===6) S.hotelMode="undecided"; if(S.hotelMode==="undecided") setTimeout(()=>webHotels(),0); }
   $("#foot").hidden = !(S.step===3||S.step===6);
   document.querySelectorAll(".foot").forEach(f=>f.hidden=!(S.step===2||S.step===3||S.step===4||S.step===6));
+}
+function askStartHTML(){
+  if(typeof APP==="undefined"||APP.view!=="project"||!APP.project||!APP.user||S.step===6) return "";
+  if((APP.project.starts||{})[APP.user.uid]) return "";
+  return `<section class="askst"><div class="askst-t">${ICON.home}<div><b>あなたの最寄り駅を教えてください</b><span>家を出てから帰るまでの予定と、友達との合流場所の計算に使います。</span></div></div>
+  <div class="row"><input type="text" id="askStQ" placeholder="例：大和八木" aria-label="最寄り駅"><button type="button" class="btn primary" data-app="askSt">${ICON.search}駅を探す</button></div></section>`;
 }
 function exampleBanner(){
   return S.example ? `<div class="banner"><span>例として「京都 2日間」の旅を入力してあります。そのまま進めて動きを確認するか、<button type="button" class="linkbtn" data-act="reset">空の状態から始める</button>こともできます。</span></div>` : "";
@@ -930,6 +967,22 @@ function stepRec(){
 }
 /* STEP5 宿泊 */
 const BUDGETS=["〜8千円","〜1.5万円","〜3万円","3万円〜"], TYPES=["ビジネスホテル","シティホテル","旅館","リゾートホテル","ゲストハウス"], HPREFS=["駅近","観光地に近い","温泉・大浴場","朝食付き","駐車場あり","禁煙室"];
+// 楽天トラベルはEUC-JPで検索語を受け取るため、ブラウザの文字表からEUC-JPに変換してURLにする
+let EUCMAP=null;
+function eucjpURI(str){
+  if(!EUCMAP){ EUCMAP=new Map(); try{ const dec=new TextDecoder("euc-jp");
+    for(let h=0xA1;h<=0xFE;h++) for(let l=0xA1;l<=0xFE;l++){ const c=dec.decode(new Uint8Array([h,l])); if(c.length===1&&c!=="�"&&!EUCMAP.has(c)) EUCMAP.set(c,[h,l]); }
+  }catch(e){ EUCMAP=null; return null; } }
+  const hx=b=>"%"+b.toString(16).toUpperCase().padStart(2,"0");
+  let out=""; for(const ch of String(str).normalize("NFKC")){
+    const cp=ch.codePointAt(0);
+    if(cp<0x80){ out+=/[A-Za-z0-9\-_.]/.test(ch)?ch:ch===" "?"+":hx(cp); continue; }
+    const b=EUCMAP.get(ch); if(b) out+=b.map(hx).join("");
+  }
+  return out;
+}
+function rakutenURL(q){ const e=eucjpURI(q); return e!=null? "https://kw.travel.rakuten.co.jp/keyword/Search.do?f_query="+e : "https://www.google.com/search?q="+enc("楽天トラベル "+q); }
+function gHotelURL(q){ return "https://www.google.com/travel/search?q="+enc(q); }
 function stepHotel(){
   let h=`<section class="panel">${head(4,"泊まるホテルは決まっていますか？","決まっていればホテル名を、まだなら希望の条件を教えてください。予定表の回りやすさから最適な場所を提案します。")}
   <div class="choices">
@@ -959,12 +1012,13 @@ function stepHotel(){
       h+=`<h2 class="sub">予定表から計算したおすすめの宿泊エリア</h2>
       <div class="item"><div class="main"><div class="name">${esc(a.label)}</div><div class="note">選んだ${stops.length}か所の中心付近です（各スポットまで平均 約${a.avg.toFixed(1)}km）。</div></div>
       <a class="btn small" href="https://www.google.com/maps/search/${enc("ホテル "+(S.cond.type||""))}/@${a.lat.toFixed(5)},${a.lng.toFixed(5)},15z" target="_blank" rel="noopener">${ICON.map}周辺のホテルを地図で探す</a>
-      <a class="btn small ghost" href="https://kw.travel.rakuten.co.jp/keyword/Search.do?f_query=${enc(a.near+" "+(S.cond.type||"")+" "+S.cond.prefs.join(" "))}" target="_blank" rel="noopener">${ICON.search}楽天トラベルで探す</a></div>`;
+      <a class="btn small ghost" href="${rakutenURL(a.near+" "+(S.cond.type||""))}" target="_blank" rel="noopener">${ICON.search}楽天トラベルで探す</a></div>`;
       h+=`<div class="aibox"><button type="button" class="btn primary" data-act="webHotels" ${busy.wh?"disabled":""}>${ICON.search}このエリアのホテルを探す</button><span class="status">${stat("wh","周辺のホテルを探しています…（10〜30秒ほど）")}</span></div>`;
       if(sample) h+=`<div class="aibox"><button type="button" class="btn" data-act="aiHotels" ${busy.hotels?"disabled":""}>${ICON.spark}この条件でホテルを提案してもらう</button><span class="status" id="st-hotels">${stat("hotels","探しています…（10〜60秒ほど）")}</span></div>`;
       if(S.hotelCands.length){
         h+=`<h2 class="sub">提案されたホテル <small>1つ選ぶと予定表の出発地になります</small></h2><div class="list">`+S.hotelCands.map((c,i)=>`<div class="item"><div class="withimg">${imgSlot({...c,hotel:true},"thumb")}<div class="main"><div class="name">${esc(c.name)}</div><div class="note">${esc(c.area||c.addr||"")}${c.price?"・"+esc(c.price):""}</div>${c.dist!=null?`<div class="note">${esc(c.kind||"")}${c.kind?"・":""}おすすめエリアから約${c.dist.toFixed(1)}km</div>`:""}${c.extra?infoLine({extra:c.extra}):""}<div class="note">${esc(c.reason||"")}</div></div></div>
-        <a class="btn small ghost" href="https://www.google.com/search?q=${enc(c.name+" "+(c.addr||S.pref))}" target="_blank" rel="noopener">${ICON.search}検索</a>
+        <a class="btn small ghost" href="${rakutenURL(c.name)}" target="_blank" rel="noopener">楽天トラベル</a>
+        <a class="btn small ghost" href="${gHotelURL(c.name+" "+S.pref)}" target="_blank" rel="noopener">料金・空室</a>
         <button type="button" class="btn small ${S.hotelPick===i?"primary":""}" data-hpick="${i}" aria-pressed="${S.hotelPick===i}">${S.hotelPick===i?"✓ 選択中":"これにする"}</button></div>`).join("")+`</div><p class="note">${S.hotelCands[0]&&S.hotelCands[0].src==="web"?"OpenStreetMapに登録されているホテルを、ご希望のタイプとエリアからの近さで並べています。":"AIによる提案です。"}空室・料金・最新の営業状況は予約サイトで確認してください。</p>`;
       }
       h+=`<p class="note" style="margin-top:8px">ホテルが決まっていなくても、このエリアを出発地として予定表をつくれます。</p>`;
@@ -1190,6 +1244,10 @@ function stepResult(){
   if(plan.trip) h+=`<div class="banner"><span>${ICON.home} あなたの出発地（${esc(plan.trip.label)}）から出発して、${esc(plan.trip.label)}に帰るまでの予定です。一緒に行く人の画面には、その人の出発地からの予定が表示されます。${APP.project&&APP.project.meet&&APP.project.meet.choice?"":`<button type="button" class="linkbtn" data-app="ptab" data-v="overview">合流の仕方を選ぶ</button>`}</span></div>`;
   else if(typeof APP!=="undefined"&&APP.project) h+=`<div class="banner"><span>自分の出発地（自宅や最寄り駅）を登録すると、家を出てから帰るまでの予定にできます。<button type="button" class="linkbtn" data-app="setStart" data-v="${esc(APP.user.uid)}">出発地を登録</button></span></div>`;
   if(plan.H.area && S.hotelMode==="decided") h+=`<div class="banner warn"><span>ホテルの位置を確認できなかったため、回りやすい場所を仮の出発地にしています。<button type="button" class="linkbtn" data-go="4">ホテルの位置を指定する</button></span></div>`;
+  else if(S.hotelMode==="undecided"&&S.hotelPick>=0&&S.hotelCands[S.hotelPick]){ const cur=S.hotelCands[S.hotelPick];
+    h+=`<div class="banner hotelpick"><span>ホテルは未定のため、回るルートに合う<b>「${esc(cur.name)}」</b>を仮の宿にしています。<a href="${rakutenURL(cur.name)}" target="_blank" rel="noopener">楽天トラベル</a>・<a href="${gHotelURL(cur.name+" "+S.pref)}" target="_blank" rel="noopener">料金・空室</a></span>
+    <span class="chips">${S.hotelCands.slice(0,5).map((c,i)=>`<button type="button" class="chip small" data-hpick="${i}" aria-pressed="${S.hotelPick===i}">${esc(c.name)}</button>`).join("")}<button type="button" class="linkbtn" data-go="4">条件を変える</button></span></div>`; }
+  else if(plan.H.area&&busy.wh) h+=`<div class="banner"><span><span class="spin"></span>ルートに合う実際のホテルを探しています…</span></div>`;
   else if(plan.H.area) h+=`<div class="banner"><span>ホテルが未定のため、回りやすい「宿泊エリア」を出発地にしています。<button type="button" class="linkbtn" data-go="4">ホテルを選ぶ</button></span></div>`;
   if(unresolved.length) h+=`<div class="banner warn"><span>位置を確認できなかったため予定に入れていない場所：${unresolved.map(w=>esc(w.name)).join("、")}　<button type="button" class="linkbtn" data-go="2">場所を確認する</button></span></div>`;
   h+=`<div class="tabs" role="tablist"><button type="button" class="chip" role="tab" data-vday="-1" aria-pressed="${viewDay===-1}">全日程</button>${plan.days.map((d,i)=>`<button type="button" class="chip" role="tab" data-vday="${i}" aria-pressed="${viewDay===i}"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${DAYC[i%DAYC.length]};margin-right:6px"></span>${i+1}日目 ${fmtDate(S.date,i)}</button>`).join("")}</div>
@@ -1219,9 +1277,9 @@ function dayHTML(d,H){
     ${d.auto&&d.alt?`<span class="note">おまかせで選びました（${MJ[d.alt.mode]}だと移動が約${fmtMin(d.alt.cost)}、${MJ[d.mode]}は約${fmtMin(d.alt.mine)}）</span>`:""}${d.manual?`<button type="button" class="linkbtn" style="font-size:12px" data-daymode="${d.di}|">${S.transport==="auto"?"おまかせに戻す":"最初の設定に戻す"}</button>`:""}</div>
   <div class="daytime"><span class="note">観光する時間</span><input type="time" step="900" data-dtime="${d.di}|start" value="${dayTime(d.di).start}" aria-label="${d.di+1}日目の観光の開始"><span>〜</span><input type="time" step="900" data-dtime="${d.di}|end" value="${dayTime(d.di).end}" aria-label="${d.di+1}日目の観光の終了">${dayTime(d.di).custom?`<button type="button" class="linkbtn" style="font-size:12px" data-dtreset="${d.di}">共通の時間に戻す</button>`:""}</div>
   <div class="dmeta">${d.ord.length}か所・移動 約${d.km.toFixed(0)}km・${m2t(t0)}〜${m2t(t1)} ${d.over?`<span class="over">　観光が予定の${dayTime(d.di).end}を過ぎます</span>`:""}${d.late?`<span class="over">　${MEALNAME[d.late]}の時間に間に合いません（スポットを減らすか日を変えてください）</span>`:""}</div>`;
-  if(!d.ord.length){h+=`<p class="note">${dayTime(d.di).off?"この日は観光しない日に設定しています。":"この日はフリータイムです。スポットを増やすとこの日にも割り振られます。"}</p>${window.__plan&&window.__plan.trip&&(d.tripOut||d.tripBack)?`<ol class="tl">${(d.tripOut||[]).concat(d.tripBack||[]).map(it=>tripItemHTML(it,window.__plan.trip)).join("")}</ol>`:""}</article>`;return h}
+  if(!d.ord.length){h+=`<p class="note">${dayTime(d.di).off?"この日は観光しない日に設定しています。":"この日はフリータイムです。スポットを増やすとこの日にも割り振られます。"}</p>${window.__plan&&window.__plan.trip&&(d.tripOut||d.tripBack)?`<ol class="tl">${(d.tripOut||[]).concat(d.tripBack||[]).map(it=>tripItemHTML(it,window.__plan.trip,d.di)).join("")}</ol>`:""}</article>`;return h}
   h+=`<ol class="tl">`;
-  if(d.tripOut&&trip) h+=d.tripOut.map(it=>tripItemHTML(it,trip)).join("");
+  if(d.tripOut&&trip) h+=d.tripOut.map(it=>tripItemHTML(it,trip,d.di)).join("");
   d.items.forEach(it=>{
     if(it.type==="start" && it.node && it.node.tripHub) h+=`<li><div class="t">${m2t(it.t)}</div><div class="stop" style="--c:var(--hot)"><div class="nm"><span class="pill meal">到着</span>${esc(it.node.place)}に到着・ここから観光スタート</div></div></li>`;
     else if(it.type==="end" && it.node && it.node.tripHub) h+=`<li><div class="t">${m2t(it.t)}</div><div class="stop" style="--c:var(--hot)"><div class="nm"><span class="pill warn">帰り</span>${esc(it.node.place)}に到着・ここから帰りの移動</div></div></li>`;
@@ -1230,13 +1288,13 @@ function dayHTML(d,H){
     else if(it.type==="end") h+=`<li><div class="t">${m2t(it.t)}</div><div class="stop" style="--c:var(--ink)"><div class="nm">${ICON.bed.replace("<svg",'<svg width="18" height="18"')} ${esc(it.label)} に到着</div></div></li>`;
     else if(it.type==="leg"){const ic=it.mode==="walk"?ICON.walk:it.mode==="car"?ICON.car:ICON.train;const lb=it.mode==="walk"?"徒歩":it.mode==="car"?"車":"電車・バス";
       const gm = it.mode==="walk"?"walking":mm;
-      h+=`<li><div></div><div class="leg" style="border-left-color:${c}">${ic}${lb} ${it.real?"":"約"}${it.min}分（${it.km.toFixed(1)}km）${it.real?'<span class="pill ok">道路経路</span>':""}<a href="${gdir(it.from,it.to,null,gm)}" target="_blank" rel="noopener">経路</a></div></li>`;}
+      h+=`<li><div></div><div class="leg" style="border-left-color:${c}">${ic}${lb} <b class="lt">${m2t(it.t)}${it.mode==="transit"?"発":"出発"}→${m2t(it.t+it.min)}${it.mode==="transit"?"着":"到着"}</b> ${it.real?"":"約"}${it.min}分（${it.km.toFixed(1)}km）${it.real?'<span class="pill ok">道路経路</span>':""}<a href="${gdir(it.from,it.to,null,gm)}" target="_blank" rel="noopener">経路</a></div></li>`;}
     else if(it.type==="free") h+=`<li class="lunch"><div class="t">${m2t(it.t)}</div><div class="stop"><div class="nm">自由時間</div><div class="sm">${fmtMin(it.dur)}・観光は${esc(it.until)}から（ホテルに荷物を預ける、駅の周辺を歩くなど）</div></div></li>`;
     else if(it.type==="wait") h+=`<li class="lunch"><div class="t">${m2t(it.t)}</div><div class="stop"><div class="nm">自由時間</div><div class="sm">${it.dur}分・${it.meal==="夜"?"ホテルで休憩、買い物や散策など":"周辺の散策など"}（${MEALNAME[it.meal]}のお店の時間まで）</div></div></li>`;
     else if(it.type==="lunch") h+=`<li class="lunch"><div class="t">${m2t(it.t)}</div><div class="stop"><div class="nm">昼食</div><div class="sm">${it.near?esc(it.near)+"の周辺で・":""}60分</div></div></li>`;
     else if(it.type==="stop") h+=`<li data-stop="${esc(it.s.id)}" class="${hlStop===it.s.id?"hl":""}"><div class="t">${m2t(it.t)}</div><div class="stop hasimg">${imgSlot(it.s,"sm")}<div><div class="nm"><span class="num">${it.n}</span>${esc(it.s.name)}${it.meal?`<span class="pill meal">${MEALNAME[it.meal]}</span>`:it.s.kind==="wish"?'<span class="pill hot">行きたい場所</span>':""}${it.s.conflict?`<span class="pill warn">同じ日の${it.s.conflict}が重なるため通常の立ち寄り</span>`:""}${it.s.approx?'<span class="pill warn">位置は推定</span>':""}</div><div class="sm">${m2t(it.t)}〜${m2t(it.t+it.dur)}（${it.dur}分）・<button type="button" class="linkbtn" style="padding:0;font-size:12.5px" data-detail="${esc(it.s.name)}">詳細を見る</button>${hasL()?`・<button type="button" class="linkbtn" style="padding:0;font-size:12.5px" data-mapfocus="${esc(it.s.id)}">地図で見る</button>`:""}</div></div></div></li>`;
   });
-  if(d.tripBack&&trip) h+=d.tripBack.map(it=>tripItemHTML(it,trip)).join("");
+  if(d.tripBack&&trip) h+=d.tripBack.map(it=>tripItemHTML(it,trip,d.di)).join("");
   h+=`</ol><div class="dayacts"><a class="btn small" href="${gdir(d.from||H,d.to||H,d.ord,d.mode==="car"?"driving":null)}" target="_blank" rel="noopener">${ICON.map}この日のルートをGoogleマップで開く</a></div></article>`;
   return h;
 }
@@ -1333,7 +1391,8 @@ function openDetail(name){
 }
 function closeModal(){ $("#modal").hidden=true; }
 $("#modal").addEventListener("click",e=>{ if(e.target.id==="modal") closeModal(); });
-document.addEventListener("keydown",e=>{ if(e.key==="Escape" && !$("#modal").hidden) closeModal(); if(e.key==="Enter" && e.target && e.target.id==="foodQ" && !e.isComposing){ e.preventDefault(); foodSearch(e.target.value); } });
+document.addEventListener("keydown",e=>{ if(e.key==="Escape" && !$("#modal").hidden) closeModal(); if(e.key==="Enter" && e.target && e.target.id==="askStQ" && !e.isComposing){ e.preventDefault(); document.querySelector('[data-app="askSt"]')?.click(); }
+  if(e.key==="Enter" && e.target && e.target.id==="foodQ" && !e.isComposing){ e.preventDefault(); foodSearch(e.target.value); } });
 
 /* ============ インターネットから場所情報を取得（APIキー不要） ============ */
 const legCache={}; const dayGeom={}; const legGeom={}; const infoCache={};
@@ -2215,10 +2274,10 @@ $("#resetBtn").onclick=()=>{ S=blank(); viewDay=0; save(); render(); };
 function planText(){
   const plan=window.__plan; if(!plan) return "";
   let s=`【${S.pref}${cityLabel()?" "+cityLabel():""} ${S.days}日間の旅】\n宿泊：${plan.H.name}\n`;
-  const tl=it=>{ if(it.type==="tripstart") return `${m2t(it.t)} ${it.label}を出発`; if(it.type==="tripend") return `${m2t(it.t)} ${it.label}に到着`; if(it.type==="merge") return `${m2t(it.t)} 【合流】${it.place}で${it.with}と合流`; if(it.type==="split") return `${m2t(it.t)} 【解散】${it.place}で${it.with}と別れる`; const f=tripSegInfo(it.seg,plan.trip.label,(plan.trip.me&&plan.trip.me.mode)||"transit"); return `${m2t(it.t)} ${f.title}（${f.sub} 約${fmtMin(it.seg.min)}）`; };
+  const tl=it=>{ if(it.type==="tripstart") return `${m2t(it.t)} ${it.label}を出発`; if(it.type==="tripend") return `${m2t(it.t)} ${it.label}に到着`; if(it.type==="merge") return `${m2t(it.t)} 【合流】${it.place}で${it.with}と合流`; if(it.type==="split") return `${m2t(it.t)} 【解散】${it.place}で${it.with}と別れる`; const f=tripSegInfo(it.seg,plan.trip.label,(plan.trip.me&&plan.trip.me.mode)||"transit"); return `${m2t(it.t)}発 ${f.title}（${f.sub}） → ${m2t(it.t+it.seg.min)}着`; };
   plan.days.forEach(d=>{ s+=`\n■ ${d.di+1}日目 ${fmtDate(S.date,d.di)}（移動：${d.mode==="car"?"車":"電車・バス"}）\n`; (d.tripOut||[]).forEach(it=>s+=tl(it)+"\n"); d.items.forEach(it=>{
     if(it.type==="start") s+=`${m2t(it.t)} 出発（${it.label}）\n`;
-    else if(it.type==="leg") s+=`   ↓ ${it.mode==="walk"?"徒歩":it.mode==="car"?"車":"電車・バス"} 約${it.min}分\n`;
+    else if(it.type==="leg") s+=`   ↓ ${it.mode==="walk"?"徒歩":it.mode==="car"?"車":"電車・バス"} ${m2t(it.t)}発 約${it.min}分\n`;
     else if(it.type==="stop") s+=`${m2t(it.t)} ${it.meal?"【"+MEALNAME[it.meal]+"】":""}${it.s.name}（${it.dur}分）\n`;
     else if(it.type==="wait"||it.type==="free") s+=`${m2t(it.t)} 自由時間（${it.dur}分）\n`;
     else if(it.type==="lunch") s+=`${m2t(it.t)} 昼食（60分）\n`;
@@ -2977,6 +3036,11 @@ async function smSave(){
   const name = isMe? myName() : ((($("#smName")&&$("#smName").value)||sm.name||"").trim()||"友達");
   const st={...sm.sel,name,mode:sm.mode,long:sm.mode==="car"?"auto":(sm.long||"auto"),uid:isMe?APP.user.uid:null,by:APP.user.uid,updatedAt:Date.now()};
   closeModal(); await pupdate({["starts."+sm.key]:st});
+  // プロフィールに最寄り駅がなければ、次から自動で入るように保存する
+  if(isMe && st.kind==="station" && APP.profile && !APP.profile.station && !APP.profile.home){
+    APP.profile.station={name:String(st.label||"").replace(/駅$/,""),lat:st.lat,lng:st.lng,addr:st.addr||""};
+    try{ await Store.saveProfile(APP.profile); toast("最寄り駅を保存しました。次の旅行からは自動で入ります"); return; }catch(e){}
+  }
   toast("出発地を保存しました");
 }
 
@@ -3128,24 +3192,35 @@ function tripBackItems(trip,tEnd){
   });
   return out;
 }
-function tripSegInfo(sg,label,mode){
+function dayDate(di){ const d=new Date((S.date||isoToday(0))+"T00:00:00"); d.setDate(d.getDate()+(di||0)); return d; }
+function yahooURL(from,to,di,t,arrive){
+  const d=dayDate(di); const h=Math.floor(t/60)%24, m=Math.round(t)%60;
+  return `https://transit.yahoo.co.jp/search/result?from=${enc(String(from).replace(/駅$/,""))}&to=${enc(String(to).replace(/駅$/,""))}&y=${d.getFullYear()}&m=${String(d.getMonth()+1).padStart(2,"0")}&d=${String(d.getDate()).padStart(2,"0")}&hh=${h}&m1=${Math.floor(m/10)}&m2=${m%10}&type=${arrive?4:1}&ticket=ic&expkind=1&ws=3&s=0&al=1&shin=1&ex=1&hb=1&lb=1&sr=1`;
+}
+function tripSegInfo(sg,label,mode,di,t){
   const S2=id=>stName(id);
   if(sg.kind==="car") return {ic:ICON.car,title:sg.text,sub:"車"};
+  const rail=mode!=="car"&&t!=null;
+  if(sg.kind==="access" && rail && isSt(label) && !(tnPt(sg.to)||{}).air) return {ic:ICON.train,title:`${label} → ${S2(sg.to)}`,sub:"電車",link:yahooURL(label,S2(sg.to),di,t),lk:"乗換案内（この時刻）",train:true};
+  if(sg.kind==="homeward" && rail && isSt(label) && !(tnPt(sg.from)||{}).air) return {ic:ICON.train,title:`${S2(sg.from)} → ${label}`,sub:"電車",link:yahooURL(S2(sg.from),label,di,t),lk:"乗換案内（この時刻）",train:true};
   if(sg.kind==="access") return {ic:mode==="car"?ICON.car:ICON.train,title:`${label} → ${S2(sg.to)}`,sub:mode==="car"?"車":"電車・バス",link:`https://www.google.com/maps/dir/?api=1&destination=${enc(S2(sg.to))}&travelmode=${mode==="car"?"driving":"transit"}`};
   if(sg.kind==="homeward") return {ic:mode==="car"?ICON.car:ICON.train,title:`${S2(sg.from)} → ${label}`,sub:mode==="car"?"車":"電車・バス",link:`https://www.google.com/maps/dir/?api=1&origin=${enc(S2(sg.from))}&travelmode=${mode==="car"?"driving":"transit"}`};
   if(sg.flight) return {ic:ICON.plane,title:`${sg.from} → ${sg.to}`,sub:`飛行機 約${fmtMin(sg.fly)}（空港での手続き・移動を含む）`,link:`https://www.google.com/travel/flights?q=${enc(sg.from+"から"+sg.to)}`,lk:"便を探す"};
   const bus=/バス/.test(sg.line||"");
   return {ic:/新幹線/.test(sg.line||"")?ICON.shinkansen:ICON.train,title:`${S2(sg.from)} → ${S2(sg.to)}`,sub:sg.line||(sg.kind==="transfer"?"電車・バス":""),
-    link: bus||sg.kind==="transfer" ? `https://www.google.com/maps/dir/?api=1&origin=${enc(S2(sg.from))}&destination=${enc(S2(sg.to))}&travelmode=transit` : `https://transit.yahoo.co.jp/search/result?from=${enc(S2(sg.from).replace(/駅$/,""))}&to=${enc(S2(sg.to).replace(/駅$/,""))}`, lk: bus||sg.kind==="transfer"?"経路":"乗換案内"};
+    link: bus||sg.kind==="transfer" ? `https://www.google.com/maps/dir/?api=1&origin=${enc(S2(sg.from))}&destination=${enc(S2(sg.to))}&travelmode=transit` : (t!=null? yahooURL(S2(sg.from),S2(sg.to),di,t) : `https://transit.yahoo.co.jp/search/result?from=${enc(S2(sg.from).replace(/駅$/,""))}&to=${enc(S2(sg.to).replace(/駅$/,""))}`), lk: bus||sg.kind==="transfer"?"経路":t!=null?"乗換案内（この時刻）":"乗換案内", train:!bus&&sg.kind!=="transfer"};
 }
-function tripItemHTML(it,trip){
+function tripItemHTML(it,trip,di){
   const mode=(trip.me&&trip.me.mode)||"transit";
   if(it.type==="tripstart") return `<li class="trip"><div class="t">${m2t(it.t)}</div><div class="stop" style="--c:var(--ink)"><div class="nm">${ICON.home} ${esc(it.label)} を出発</div>${it.note?`<div class="sm">${esc(it.note)}</div>`:""}</div></li>`;
   if(it.type==="tripend") return `<li class="trip"><div class="t">${m2t(it.t)}</div><div class="stop" style="--c:var(--ink)"><div class="nm">${ICON.home} ${esc(it.label)} に到着・おつかれさまでした</div></div></li>`;
   if(it.type==="merge") return `<li class="trip"><div class="t">${m2t(it.t)}</div><div class="stop" style="--c:var(--hot)"><div class="nm"><span class="pill meal">合流</span>${esc(it.place)}で${esc(it.with)}と合流</div></div></li>`;
   if(it.type==="split") return `<li class="trip"><div class="t">${m2t(it.t)}</div><div class="stop" style="--c:var(--hot)"><div class="nm"><span class="pill warn">解散</span>${esc(it.place)}で${esc(it.with)}と別れる</div>${it.note?`<div class="sm">${esc(it.note)}</div>`:""}</div></li>`;
-  const f=tripSegInfo(it.seg,trip.label,mode);
-  return `<li class="trip"><div class="t">${m2t(it.t)}</div><div class="stop tripseg" style="--c:var(--muted)"><div class="nm"><span class="sgi">${f.ic}</span>${esc(f.title)}${it.together?'<span class="pill info">みんなで</span>':""}</div><div class="sm">${esc(f.sub)} 約${fmtMin(it.seg.min)}${f.link?`・<a href="${f.link}" target="_blank" rel="noopener">${f.lk||"経路"}</a>`:""}</div></div></li>`;
+  const f=tripSegInfo(it.seg,trip.label,mode,di,it.t);
+  const car=/車/.test(f.sub)&&!/電車/.test(f.sub);
+  return `<li class="trip"><div class="t">${m2t(it.t)}</div><div class="stop tripseg" style="--c:var(--muted)"><div class="nm"><span class="sgi">${f.ic}</span>${esc(f.title)}${it.together?'<span class="pill info">みんなで</span>':""}</div>
+    <div class="ttime"><b>${m2t(it.t)}${car?"出発":"発"}</b><span>→</span><b>${m2t(it.t+it.seg.min)}${car?"到着":"着"}</b><small>${esc(f.sub)}・約${fmtMin(it.seg.min)}</small></div>
+    <div class="sm">${f.train?"時刻は目安です。この時刻で乗換案内を開くと、乗る電車を確認できます。":""}${f.link?` <a href="${f.link}" target="_blank" rel="noopener">${f.lk||"経路"}</a>`:""}</div></div></li>`;
 }
 // 1日目の観光開始を日ごとに指定したときは、その時刻に現地に着くようにする
 function meetTimeStr(p){ const t=S?dayTime(0):null; if(t&&t.custom&&!t.off) return t.start; return (p&&p.meet&&p.meet.time)||"10:00"; }
@@ -3275,6 +3350,7 @@ document.addEventListener("click",async e=>{
     case "smCand": { const c=APP.sm.cands[+v]; const isStn=/station|halt|stop/.test(c.type||"")||/駅$/.test(c.name); APP.sm.sel={kind:isStn?"station":"other",st:isStn,label:isStn&&!/駅$/.test(c.name)?c.name+"駅":c.name,addr:c.addr||"",lat:c.lat,lng:c.lng}; const nm=$("#smName")&&$("#smName").value; renderStartModal(); if(nm&&$("#smName")) $("#smName").value=nm; break; }
     case "smMode": { APP.sm.mode=v; const nm=$("#smName")&&$("#smName").value; renderStartModal(); if(nm&&$("#smName")) $("#smName").value=nm; break; }
     case "smLong": { APP.sm.long=v; const nm=$("#smName")&&$("#smName").value; renderStartModal(); if(nm&&$("#smName")) $("#smName").value=nm; break; }
+    case "askSt": { const q=(($("#askStQ")&&$("#askStQ").value)||"").trim(); openStartModal(APP.user.uid,true); if(q&&$("#smQ")){ $("#smQ").value=/駅$/.test(q)?q:q+"駅"; smSearch(); } break; }
     case "smSave": smSave(); break;
     case "smDel": closeModal(); pupdate({["starts."+APP.sm.key]:DEL}); break;
     case "railRetry": LRAIL.key=null; LRAIL.state="none"; try{ localStorage.removeItem("tabiroute-rail-"+railKeyOf(railPoints())); }catch(er){} render(); break;
