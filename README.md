@@ -16,6 +16,7 @@
 | `index.html` | アプリ本体 |
 | `privacy.html` | プライバシーポリシー（運営者名・連絡先を書き換える） |
 | `og.png` | LINEなどで送ったときに表示されるプレビュー画像 |
+| `img/` | トップページで使う写真（出発・電車・観光・昼食・ホテル） |
 | `manifest.webmanifest`・`icons/` | スマホの「ホーム画面に追加」用のアイコン |
 | `firestore.rules` | Firebaseのデータを守るルール |
 | `firebase.json` | Firebase Hostingで公開する場合の設定（使わなければ無視してOK） |
