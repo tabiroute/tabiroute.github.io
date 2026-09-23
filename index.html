@@ -162,6 +162,21 @@ input[type=text]{flex:1 1 220px}
 .ph.loading .phi svg{animation:pulse 1.2s ease-in-out infinite}
 @keyframes pulse{50%{opacity:.25}}
 @media (prefers-reduced-motion:reduce){.ph.loading .phi svg{animation:none}.ph img{transition:none}}
+
+.ttime .fare{font:700 12px/1 var(--f-num);color:#0F172A;background:var(--surface-2);border-radius:999px;padding:4px 9px}
+.bk{margin-top:6px}
+.bk summary{cursor:pointer;font-size:12.5px;font-weight:700;color:var(--accent);list-style:none;display:inline-flex;align-items:center;gap:5px}
+.bk summary::-webkit-details-marker{display:none}
+.bk summary::before{content:"▸";font-size:11px}
+.bk[open] summary::before{content:"▾"}
+.bk-in{display:flex;flex-direction:column;gap:6px;margin-top:6px;background:var(--surface-2);border-radius:12px;padding:10px 12px}
+.bk-g{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.bk-g>b{font-size:11.5px;background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:2px 9px}
+.bk-in .note{font-size:11.5px}
+.ph-swap{position:absolute;right:6px;bottom:6px;width:28px;height:28px;border-radius:50%;border:0;background:rgba(15,23,42,.55);color:#fff;font-size:15px;line-height:1;cursor:pointer;opacity:0;transition:opacity .15s;z-index:2}
+.ph:hover .ph-swap,.ph-hero .ph-swap{opacity:1}
+@media (hover:none){ .ph-swap{opacity:.85} }
+.qs-note{font-size:12px;margin:8px 0 0;opacity:.9}
 .ph .near{position:absolute;left:6px;top:6px;background:rgba(0,0,0,.55);color:#fff;font-size:10.5px;border-radius:4px;padding:1px 6px}
 .ph-card{width:calc(100% + 28px);margin:-12px -14px 4px;aspect-ratio:16/10;border-radius:11px 11px 0 0;max-width:none}
 .ph-thumb{width:72px;height:72px;border-radius:9px}
@@ -759,8 +774,12 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);
 .demo.jr[data-stage="1"] .jn:is([data-i="0"],[data-i="1"]),
 .demo.jr[data-stage="2"] .jn:is([data-i="0"],[data-i="1"],[data-i="2"]),
 .demo.jr[data-stage="3"] .jn:is([data-i="0"],[data-i="1"],[data-i="2"],[data-i="3"]),
-.demo.jr[data-stage="4"] .jn:not([data-i="5"]),
-.demo.jr[data-stage="5"] .jn{opacity:1;transform:none}
+.demo.jr[data-stage="4"] .jn{opacity:1;transform:none}
+.hero h1 .say2{position:relative;transition:transform .5s cubic-bezier(.2,1.4,.4,1)}
+.hero h1 .say2::after{content:"";position:absolute;left:0;right:100%;bottom:2px;height:6px;border-radius:3px;background:rgba(255,255,255,.45);transition:right .7s ease}
+.hero.say h1 .say2{transform:scale(1.04)}
+.hero.say h1 .say2::after{right:0}
+@media (prefers-reduced-motion:reduce){ .hero h1 .say2,.hero h1 .say2::after{transition:none} }
 .demo.jr[data-stage="0"] .jn[data-i="0"] .jn-card,.demo.jr[data-stage="1"] .jn[data-i="1"] .jn-card,.demo.jr[data-stage="2"] .jn[data-i="2"] .jn-card,.demo.jr[data-stage="3"] .jn[data-i="3"] .jn-card,.demo.jr[data-stage="4"] .jn[data-i="4"] .jn-card,.demo.jr[data-stage="5"] .jn[data-i="5"] .jn-card{animation:jnpop .7s ease}
 @keyframes jnpop{40%{transform:translateY(-6px) scale(1.06)}}
 @media (prefers-reduced-motion:reduce){ .jn{transition:none} .jn-card{animation:none!important} }
@@ -800,8 +819,8 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);
   <h3>北海道・東北</h3><dl class="prefs"><div><dt>北海道</dt><dd>小樽運河・函館山展望台・白金青い池・旭山動物園・ファーム富田</dd></div><div><dt>青森県</dt><dd>弘前公園・奥入瀬渓流・十和田湖・ねぶたの家 ワ・ラッセ・八甲田ロープウェー</dd></div><div><dt>岩手県</dt><dd>中尊寺・浄土ヶ浜・毛越寺・小岩井農場・盛岡城跡公園</dd></div><div><dt>宮城県</dt><dd>松島 瑞巌寺・仙台城跡・秋保大滝・蔵王 御釜・定義如来 西方寺</dd></div><div><dt>秋田県</dt><dd>角館武家屋敷通り・乳頭温泉郷 鶴の湯・田沢湖・男鹿真山伝承館・千秋公園</dd></div><div><dt>山形県</dt><dd>銀山温泉・山寺（立石寺）・蔵王温泉・羽黒山五重塔・上杉神社</dd></div><div><dt>福島県</dt><dd>大内宿・鶴ヶ城・五色沼・花見山公園・塔のへつり</dd></div></dl><h3>関東</h3><dl class="prefs"><div><dt>茨城県</dt><dd>国営ひたち海浜公園・大洗磯前神社（神磯の鳥居）・偕楽園・袋田の滝・筑波山</dd></div><div><dt>栃木県</dt><dd>日光東照宮・華厳の滝・中禅寺湖・大谷資料館・那須どうぶつ王国</dd></div><div><dt>群馬県</dt><dd>草津温泉 湯畑・伊香保温泉 石段街・富岡製糸場・谷川岳ロープウェイ・高崎白衣大観音</dd></div><div><dt>埼玉県</dt><dd>小江戸川越 蔵造りの町並み・川越氷川神社・長瀞ライン下り・秩父神社・鉄道博物館</dd></div><div><dt>千葉県</dt><dd>東京ディズニーリゾート・鋸山・成田山新勝寺・濃溝の滝・佐原の町並み</dd></div><div><dt>東京都</dt><dd>浅草寺・渋谷スクランブル交差点・東京スカイツリー・東京タワー・明治神宮</dd></div><div><dt>神奈川県</dt><dd>江の島・鎌倉大仏（高徳院）・横浜中華街・鶴岡八幡宮・横浜赤レンガ倉庫</dd></div></dl><h3>中部</h3><dl class="prefs"><div><dt>新潟県</dt><dd>清津峡渓谷トンネル・彌彦神社・佐渡金山・萬代橋・GALA湯沢</dd></div><div><dt>富山県</dt><dd>立山黒部アルペンルート 室堂・富岩運河環水公園・五箇山 相倉合掌造り集落・雨晴海岸・高岡大仏</dd></div><div><dt>石川県</dt><dd>兼六園・ひがし茶屋街・金沢21世紀美術館・近江町市場・白米千枚田</dd></div><div><dt>福井県</dt><dd>東尋坊・福井県立恐竜博物館・永平寺・一乗谷朝倉氏遺跡・丸岡城</dd></div><div><dt>山梨県</dt><dd>新倉山浅間公園（忠霊塔）・河口湖 大石公園・忍野八海・昇仙峡・富士急ハイランド</dd></div><div><dt>長野県</dt><dd>上高地 河童橋・松本城・善光寺・地獄谷野猿公苑・旧軽井沢銀座</dd></div><div><dt>岐阜県</dt><dd>白川郷 荻町合掌造り集落・飛騨高山 古い町並・モネの池・下呂温泉・新穂高ロープウェイ</dd></div><div><dt>静岡県</dt><dd>三保松原・城ヶ崎海岸 門脇つり橋・白糸の滝・日本平夢テラス・来宮神社</dd></div><div><dt>愛知県</dt><dd>名古屋城・熱田神宮・大須商店街・犬山城・博物館明治村</dd></div></dl><h3>近畿</h3><dl class="prefs"><div><dt>三重県</dt><dd>伊勢神宮 内宮・おかげ横丁・夫婦岩（二見興玉神社）・なばなの里・鳥羽水族館</dd></div><div><dt>滋賀県</dt><dd>白鬚神社・メタセコイア並木・彦根城・びわ湖テラス・ラ コリーナ近江八幡</dd></div><div><dt>京都府</dt><dd>伏見稲荷大社・清水寺・嵐山 竹林の小径・金閣寺・八坂神社・祇園</dd></div><div><dt>大阪府</dt><dd>道頓堀・ユニバーサル・スタジオ・ジャパン・大阪城・通天閣・新世界・海遊館</dd></div><div><dt>兵庫県</dt><dd>姫路城・北野異人館街・メリケンパーク・城崎温泉・竹田城跡</dd></div><div><dt>奈良県</dt><dd>奈良公園・東大寺・春日大社・興福寺・ならまち</dd></div><div><dt>和歌山県</dt><dd>那智の滝・高野山 奥之院・アドベンチャーワールド・円月島・金剛峯寺</dd></div></dl><h3>中国</h3><dl class="prefs"><div><dt>鳥取県</dt><dd>鳥取砂丘・水木しげるロード・白壁土蔵群・三徳山三佛寺 投入堂・大山</dd></div><div><dt>島根県</dt><dd>出雲大社・稲佐の浜・松江城・足立美術館・石見銀山</dd></div><div><dt>岡山県</dt><dd>倉敷美観地区・岡山後楽園・岡山城・備中松山城・吉備津神社</dd></div><div><dt>広島県</dt><dd>厳島神社・原爆ドーム・平和記念公園・尾道 千光寺・大久野島・弥山</dd></div><div><dt>山口県</dt><dd>角島大橋・元乃隅神社・錦帯橋・秋芳洞・萩城下町</dd></div></dl><h3>四国</h3><dl class="prefs"><div><dt>徳島県</dt><dd>大塚国際美術館・鳴門の渦潮（渦の道）・祖谷のかずら橋・大歩危峡・眉山</dd></div><div><dt>香川県</dt><dd>父母ヶ浜・金刀比羅宮・栗林公園・地中美術館・高屋神社（天空の鳥居）</dd></div><div><dt>愛媛県</dt><dd>道後温泉本館・松山城・下灘駅・来島海峡展望館・内子の町並み</dd></div><div><dt>高知県</dt><dd>桂浜・ひろめ市場・高知城・仁淀川 にこ淵・四万十川 佐田沈下橋</dd></div></dl><h3>九州・沖縄</h3><dl class="prefs"><div><dt>福岡県</dt><dd>太宰府天満宮・中洲屋台・糸島 桜井二見ヶ浦・門司港レトロ・宮地嶽神社</dd></div><div><dt>佐賀県</dt><dd>御船山楽園・武雄市図書館・祐徳稲荷神社・大魚神社の海中鳥居・唐津城</dd></div><div><dt>長崎県</dt><dd>ハウステンボス・グラバー園・稲佐山展望台・軍艦島・大浦天主堂</dd></div><div><dt>熊本県</dt><dd>熊本城・黒川温泉・阿蘇 草千里ヶ浜・大観峰・鍋ヶ滝</dd></div><div><dt>大分県</dt><dd>別府地獄めぐり・由布院 金鱗湖・湯の坪街道・九重“夢”大吊橋・宇佐神宮</dd></div><div><dt>宮崎県</dt><dd>高千穂峡・青島神社・鵜戸神宮・天岩戸神社・サンメッセ日南</dd></div><div><dt>鹿児島県</dt><dd>桜島・仙巌園・霧島神宮・天文館・指宿 砂むし温泉</dd></div><div><dt>沖縄県</dt><dd>沖縄美ら海水族館・古宇利大橋・国際通り・首里城公園・万座毛</dd></div></dl>
 </section>
   <p class="foot" id="foot">人気順は、SNSでよく投稿・検索される定番スポットをもとにした参考順位です（Instagramのリアルタイムの投稿数ではありません）。車の移動時間は道路の経路から計算し、電車・バスの移動時間は距離からの目安です。実際の所要時間は各区間の「経路」リンク（Googleマップ）で確認してください。</p>
-  <p class="foot">地図：© <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>・<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">国土地理院</a>／場所・住所・ホテル情報：© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>（Nominatim・Overpass API）、国土地理院 地名検索／車の経路：<a href="https://project-osrm.org/" target="_blank" rel="noopener">OSRM</a>／写真：<a href="https://commons.wikimedia.org/" target="_blank" rel="noopener">Wikimedia Commons</a>（撮影者とライセンスは写真の上にマウスを置くか「詳細を見る」で表示）</p>
-  <footer class="sitefoot"><a href="privacy.html">プライバシーポリシー</a><span>地図：CARTO・国土地理院／地図データ：© OpenStreetMap contributors／写真：Wikimedia Commons</span></footer>
+  <p class="foot">地図：<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">国土地理院</a>／場所・住所・ホテル情報：© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>（Nominatim・Overpass API）、国土地理院 地名検索／車の経路：<a href="https://project-osrm.org/" target="_blank" rel="noopener">OSRM</a>／写真：<a href="https://commons.wikimedia.org/" target="_blank" rel="noopener">Wikimedia Commons</a>（撮影者とライセンスは写真の上にマウスを置くか「詳細を見る」で表示）</p>
+  <footer class="sitefoot"><a href="privacy.html">プライバシーポリシー</a><span>地図：国土地理院／地図データ：© OpenStreetMap contributors／写真：Wikimedia Commons</span></footer>
 </div>
 
 <div class="navbar" id="navbar" hidden><div class="in">
@@ -1041,6 +1060,17 @@ function askStartHTML(){
   if((APP.project.starts||{})[APP.user.uid]) return "";
   return `<section class="askst"><div class="askst-t">${ICON.home}<div><b>あなたの最寄り駅を教えてください</b><span>家を出てから帰るまでの予定と、友達との合流場所の計算に使います。</span></div></div>
   <div class="row"><input type="text" id="askStQ" placeholder="例：大和八木" aria-label="最寄り駅"><button type="button" class="btn primary" data-app="askSt">${ICON.search}駅を探す</button></div></section>`;
+}
+// 1泊の目安（予算の選択と宿のタイプから）
+function hotelYen(kind){
+  const b=S&&S.cond&&S.cond.budget;
+  if(b==="〜8千円") return "〜8,000円";
+  if(b==="〜1.5万円") return "8,000〜15,000円";
+  if(b==="〜3万円") return "15,000〜30,000円";
+  if(b==="3万円〜") return "30,000円〜";
+  if(/ゲストハウス|ホステル|民宿/.test(kind||"")) return "3,000〜7,000円";
+  if(/旅館/.test(kind||"")) return "12,000〜30,000円";
+  return "7,000〜18,000円";
 }
 function topSpotOf(pl){ if(!pl||!pl.pref||!PREF[pl.pref]) return null; const w=(pl.wishes||[]).find(x=>x.status==="ok"&&x.lat!=null&&!x.food); const sp=PREF[pl.pref].spots; const c=pl.city&&pl.city!=="__other"?pl.city:""; const cs=c?sp.filter(x=>x.city===c):[]; return (cs[0]||sp[0]||w||null); }
 function stayLabel(d){ d=+d||1; return d<=1?"日帰り":`${d-1}泊${d}日`; }
@@ -1293,9 +1323,9 @@ function eucjpURI(str){
   return out;
 }
 function rakutenURL(q){ const e=eucjpURI(q); return e!=null? "https://kw.travel.rakuten.co.jp/keyword/Search.do?f_query="+e : "https://www.google.com/search?q="+enc("楽天トラベル "+q); }
-function luckyURL(site,q){ return "https://www.google.com/search?btnI=1&q="+enc("site:"+site+" "+q); }
-function rakutenHotelURL(name){ return luckyURL("travel.rakuten.co.jp/HOTEL",name+" "+S.pref); }
-function jalanHotelURL(name){ return luckyURL("jalan.net",name+" "+S.pref+" 宿"); }
+// 楽天トラベルは検索ページ（EUC-JP）、じゃらんはGoogleの検索結果から開く
+function rakutenHotelURL(name){ return rakutenURL(String(name).replace(/（.*?）/g,"").trim()); }
+function jalanHotelURL(name){ return "https://www.google.com/search?q="+enc("じゃらん "+String(name).replace(/（.*?）/g,"").trim()+" "+(cityLabel()||S.pref)); }
 function gHotelURL(q){ return "https://www.google.com/travel/search?q="+enc(q); }
 function stepHotel(){
   let h=`<section class="panel">${head(4,"泊まるホテルは決まっていますか？","決まっていればホテル名を、まだなら希望の条件を教えてください。予定表の回りやすさから最適な場所を提案します。")}
@@ -1332,7 +1362,7 @@ function stepHotel(){
       h+=`<div class="aibox"><button type="button" class="btn primary" data-act="webHotels" ${busy.wh?"disabled":""}>${ICON.search}このエリアのホテルを探す</button><span class="status">${stat("wh","周辺のホテルを探しています…（10〜30秒ほど）")}</span></div>`;
       if(sample) h+=`<div class="aibox"><button type="button" class="btn" data-act="aiHotels" ${busy.hotels?"disabled":""}>${ICON.spark}この条件でホテルを提案してもらう</button><span class="status" id="st-hotels">${stat("hotels","探しています…（10〜60秒ほど）")}</span></div>`;
       if(S.hotelCands.length){
-        h+=`<h2 class="sub">提案されたホテル <small>1つ選ぶと予定表の出発地になります</small></h2><div class="list">`+S.hotelCands.map((c,i)=>`<div class="item"><div class="withimg">${imgSlot({...c,hotel:true},"thumb")}<div class="main"><div class="name">${esc(c.name)}</div><div class="note">${esc(c.area||c.addr||"")}${c.price?"・"+esc(c.price):""}</div>${c.dist!=null?`<div class="note">${esc(c.kind||"")}${c.kind?"・":""}おすすめエリアから約${c.dist.toFixed(1)}km</div>`:""}${c.extra?infoLine({extra:c.extra}):""}<div class="note">${esc(c.reason||"")}</div></div></div>
+        h+=`<h2 class="sub">提案されたホテル <small>1つ選ぶと予定表の出発地になります</small></h2><div class="list">`+S.hotelCands.map((c,i)=>`<div class="item"><div class="withimg">${imgSlot({...c,hotel:true},"thumb")}<div class="main"><div class="name">${esc(c.name)}</div><div class="note">${esc(c.area||c.addr||"")}${c.price?"・"+esc(c.price):""}</div><div class="note">1泊の目安 <b>${esc(hotelYen(c.kind))}</b>（1人・素泊まりの相場。実際の料金は予約サイトで確認してください）</div>${c.dist!=null?`<div class="note">${esc(c.kind||"")}${c.kind?"・":""}おすすめエリアから約${c.dist.toFixed(1)}km</div>`:""}${c.extra?infoLine({extra:c.extra}):""}<div class="note">${esc(c.reason||"")}</div></div></div>
         <a class="btn small ghost" href="${rakutenHotelURL(c.name)}" target="_blank" rel="noopener">楽天トラベル</a>
         <a class="btn small ghost" href="${jalanHotelURL(c.name)}" target="_blank" rel="noopener">じゃらん</a>
         <a class="btn small ghost" href="${gHotelURL(c.name+" "+S.pref)}" target="_blank" rel="noopener">料金・空室</a>
@@ -1564,7 +1594,7 @@ function stepResult(){
   else if(typeof APP!=="undefined"&&APP.project) h+=`<div class="banner"><span>自分の出発地（自宅や最寄り駅）を登録すると、家を出てから帰るまでの予定にできます。<button type="button" class="linkbtn" data-app="setStart" data-v="${esc(APP.user.uid)}">出発地を登録</button></span></div>`;
   if(plan.H.area && S.hotelMode==="decided") h+=`<div class="banner warn"><span>ホテルの位置を確認できなかったため、回りやすい場所を仮の出発地にしています。<button type="button" class="linkbtn" data-go="4">ホテルの位置を指定する</button></span></div>`;
   else if(S.hotelMode==="undecided"&&S.hotelPick>=0&&S.hotelCands[S.hotelPick]){ const cur=S.hotelCands[S.hotelPick];
-    h+=`<div class="banner hotelpick"><span>ホテルは未定のため、回るルートに合う<b>「${esc(cur.name)}」</b>を仮の宿にしています。<a href="${rakutenHotelURL(cur.name)}" target="_blank" rel="noopener">楽天トラベル</a>・<a href="${jalanHotelURL(cur.name)}" target="_blank" rel="noopener">じゃらん</a>・<a href="${gHotelURL(cur.name+" "+S.pref)}" target="_blank" rel="noopener">料金・空室</a></span>
+    h+=`<div class="banner hotelpick"><span>ホテルは未定のため、回るルートに合う<b>「${esc(cur.name)}」</b>を仮の宿にしています。1泊の目安は${esc(hotelYen(cur.kind))}です。<a href="${rakutenHotelURL(cur.name)}" target="_blank" rel="noopener">楽天トラベル</a>・<a href="${jalanHotelURL(cur.name)}" target="_blank" rel="noopener">じゃらん</a>・<a href="${gHotelURL(cur.name+" "+S.pref)}" target="_blank" rel="noopener">料金・空室</a></span>
     <span class="chips">${S.hotelCands.slice(0,5).map((c,i)=>`<button type="button" class="chip small" data-hpick="${i}" aria-pressed="${S.hotelPick===i}">${esc(c.name)}</button>`).join("")}<button type="button" class="linkbtn" data-go="4">条件を変える</button></span></div>`; }
   else if(plan.H.area&&busy.wh) h+=`<div class="banner"><span><span class="spin"></span>ルートに合う実際のホテルを探しています…</span></div>`;
   else if(plan.H.area) h+=`<div class="banner"><span>ホテルが未定のため、回りやすい「宿泊エリア」を出発地にしています。<button type="button" class="linkbtn" data-go="4">ホテルを選ぶ</button></span></div>`;
@@ -1597,7 +1627,7 @@ function dayHTML(d,H){
   <div class="daymode"><span class="note">この日の移動</span>${["transit","car"].map(m=>`<button type="button" class="chip small" data-daymode="${d.di}|${m}" aria-pressed="${d.mode===m}">${m==="car"?ICON.car:ICON.train}${MJ[m]}</button>`).join("")}
     ${d.auto&&d.alt?`<span class="note">おまかせで選びました（${MJ[d.alt.mode]}だと移動が約${fmtMin(d.alt.cost)}、${MJ[d.mode]}は約${fmtMin(d.alt.mine)}）</span>`:""}${d.manual?`<button type="button" class="linkbtn" style="font-size:12px" data-daymode="${d.di}|">${S.transport==="auto"?"おまかせに戻す":"最初の設定に戻す"}</button>`:""}</div>
   <div class="daytime"><span class="note">${dtLabel(d.di)}</span><input type="time" step="900" data-dtime="${d.di}|start" value="${dayTime(d.di).start}" aria-label="${d.di+1}日目の観光の開始"><span>〜</span><input type="time" step="900" data-dtime="${d.di}|end" value="${dayTime(d.di).end}" aria-label="${d.di+1}日目の観光の終了">${dayTime(d.di).custom?`<button type="button" class="linkbtn" style="font-size:12px" data-dtreset="${d.di}">共通の時間に戻す</button>`:""}</div>
-  <div class="dmeta">${d.ord.length}か所・移動 約${d.km.toFixed(0)}km・${m2t(t0)}〜${m2t(t1)} ${d.over?`<span class="over">　観光が予定の${dayTime(d.di).end}を過ぎます</span>`:""}${d.late?`<span class="over">　${MEALNAME[d.late]}の時間に間に合いません（スポットを減らすか日を変えてください）</span>`:""}</div>`;
+  <div class="dmeta">${d.ord.length}か所・移動 約${d.km.toFixed(0)}km${dayFare(d)>0?`・現地の移動費 ${esc(yen(dayFare(d)))}（目安）`:""}・${m2t(t0)}〜${m2t(t1)} ${d.over?`<span class="over">　観光が予定の${dayTime(d.di).end}を過ぎます</span>`:""}${d.late?`<span class="over">　${MEALNAME[d.late]}の時間に間に合いません（スポットを減らすか日を変えてください）</span>`:""}</div>`;
   if(!d.ord.length){h+=`<p class="note">${dayTime(d.di).off?"この日は観光しない日に設定しています。":"この日はフリータイムです。スポットを増やすとこの日にも割り振られます。"}</p>${window.__plan&&window.__plan.trip&&(d.tripOut||d.tripBack)?`<ol class="tl">${(d.tripOut||[]).concat(d.tripBack||[]).map(it=>tripItemHTML(it,window.__plan.trip,d.di)).join("")}</ol>`:""}</article>`;return h}
   if(d.di===0&&trip) h+=crewHTML(crewTrips());
   h+=`<ol class="tl">`;
@@ -1997,7 +2027,8 @@ async function osrmRoutes(){
   if(S&&S.step===6) render();
 }
 /* ================= 地図の共通部品：シンプルな地図・しずく型のアイコン・写真つきの吹き出し ================= */
-const TILE_SIMPLE={url:"https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",opt:{subdomains:"abcd",maxZoom:20,minZoom:4,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>'}};
+// APIキーの要らない無料の地図（国土地理院の淡色地図）
+const TILE_SIMPLE={url:"https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png",opt:{maxZoom:18,minZoom:4,attribution:'<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">国土地理院</a>'}};
 function legPin(g,light,color){ const c=color||PINC[g]; return `<svg class="lgp" viewBox="0 0 40 50" width="16" height="20" aria-hidden="true"><path d="M20 48.5S4 31 4 19A16 16 0 0 1 36 19c0 12-16 29.5-16 29.5z" fill="${light?"#fff":c}" stroke="${c}" stroke-width="3"/><g transform="translate(9 8) scale(.92)"><path d="${GLYPH[g]}" fill="${light?c:"#fff"}"/></g></svg>`; }
 function simpleTiles(){ return L.tileLayer(TILE_SIMPLE.url,TILE_SIMPLE.opt); }
 const GLYPH={
@@ -2039,7 +2070,7 @@ function hoverCard(map,marker,o,sub){
   marker.on("mouseover",show); marker.on("mouseout",hide); map.on("movestart zoomstart",hide);
 }
 let lRoute=null, lBase=null, mapFull=false, walkBusy=false;
-const MAPBASE={simple:["シンプル","",20],pale:["淡色","https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png",18],std:["標準","https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png",18],photo:["写真","https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg",18]};
+const MAPBASE={simple:["シンプル","",18],osm:["くわしい","https://tile.openstreetmap.jp/{z}/{x}/{y}.png",19],std:["標準","https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png",18],photo:["写真","https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg",18]};
 let mapBaseSel="simple";
 function mapDays(){ const plan=window.__plan; return plan? plan.days.filter(d=>(viewDay===-1||d.di===viewDay)&&d.ord.length) : []; }
 function drawLMap(){
@@ -2047,7 +2078,7 @@ function drawLMap(){
   if(lMap){ lMap.remove(); lMap=null; }
   lMap=L.map(el,{scrollWheelZoom:mapFull,zoomControl:true,tap:true,zoomSnap:0.25,zoomDelta:0.5});
   const attr='<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">国土地理院</a>';
-  const layers={}; Object.entries(MAPBASE).forEach(([k,[nm,u,mz]])=>{ layers[nm]=k==="simple"?simpleTiles():L.tileLayer(u,{maxZoom:mz,minZoom:5,attribution:attr}); layers[nm]._k=k; });
+  const layers={}; Object.entries(MAPBASE).forEach(([k,[nm,u,mz]])=>{ layers[nm]=k==="simple"?simpleTiles():L.tileLayer(u,{maxZoom:mz,minZoom:5,attribution:k==="osm"?'&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors':attr}); layers[nm]._k=k; });
   layers[MAPBASE[mapBaseSel][0]].addTo(lMap);
   L.control.layers(layers,null,{position:"topright",collapsed:true}).addTo(lMap);
   lMap.on("baselayerchange",e=>{ mapBaseSel=e.layer._k||"simple"; if(lRoute) drawRouteLayer(); });
@@ -2165,7 +2196,8 @@ function imgKey(o){ return norm(o.name)+"@"+(o.lat!=null?(+o.lat).toFixed(3)+","
 function imgSlot(o,size){
   if(!o||!o.name) return "";
   const k=imgKey(o); IMGREG[k]={name:o.name,lat:o.lat,lng:o.lng,extra:o.extra||null,hotel:!!o.hotel||/hotel|guest_house|hostel|motel/.test(o.type||""),food:!!o.food||!!o.cuisine||!!o.meal};
-  return `<div class="ph ph-${size}" data-imgkey="${esc(k)}" data-size="${size}">${phInner(k,size)}</div>`;
+  const swap=/hero|card|pc|day/.test(size)?`<button type="button" class="ph-swap" data-nextimg="${esc(k)}" title="別の写真にする" aria-label="別の写真にする">⟳</button>`:"";
+  return `<div class="ph ph-${size}" data-imgkey="${esc(k)}" data-size="${size}">${phInner(k,size)}${swap}</div>`;
 }
 // Wikimediaは決められた幅（20,40,60,120,250,330,500,960…）以外の画像を拒否（429）するため、この幅だけを使う
 const WM_W=[120,250,330,500,960];
@@ -2180,6 +2212,24 @@ function phInner(k,size){
   const icon=o.hotel?ICON.bed:ICON.img;
   if(r&&r.none) return size==="sm"||size==="thumb"?`<div class="phi">${icon}</div>`:`<div class="phi">${icon}${r.err?"写真を読み込めませんでした":"写真が見つかりませんでした"}<span><button type="button" class="linkbtn" style="font-size:11px;padding:0 4px" data-act="retryImg">再読み込み</button><a href="https://www.google.com/search?tbm=isch&q=${enc(o.name+" "+(S?S.pref:""))}" target="_blank" rel="noopener">写真を検索</a></span></div>`;
   return `<div class="phi">${icon}${/hero|card|pc|day/.test(size)?"写真を探しています…":""}</div>`;
+}
+// その場所の近くで撮られた写真の一覧（別の写真に切り替えるときに使う）
+async function altPhotos(k){
+  const o=IMGREG[k]; if(!o||o.lat==null) return [];
+  const r=IMG[k]; if(r&&r.alts) return r.alts;
+  try{
+    const j=await jget(CM+`action=query&generator=geosearch&ggscoord=${o.lat}|${o.lng}&ggsradius=${o.hotel||o.food?300:900}&ggslimit=30&ggsnamespace=6&prop=imageinfo&iiprop=url&iiurlwidth=500`);
+    const list=((j.query&&j.query.pages)||[]).map(p=>{ const ii=p.imageinfo&&p.imageinfo[0]; return ii?{file:p.title.replace(/^File:/,""),src:ii.thumburl||ii.url,page:"https://commons.wikimedia.org/wiki/"+enc(p.title)}:null; })
+      .filter(x=>x&&!BADIMG.test(x.file)&&!OLDIMG.test(x.file)&&/\.(jpe?g|png|webp)$/i.test(x.file));
+    if(r) { r.alts=list; imgSave(); }
+    return list;
+  }catch(e){ return []; }
+}
+async function nextPhoto(k){
+  const list=await altPhotos(k); if(!list.length){ toast("ほかの写真が見つかりませんでした"); return; }
+  const r=IMG[k]||{}; const cur=(r.ai==null?-1:r.ai); const ni=(cur+1)%list.length; const pick=list[ni];
+  IMG[k]={...r,src:pick.src,file:pick.file,page:pick.page,artist:"",license:"",lazyCredit:true,ai:ni,alts:list,none:false,near:true};
+  imgSave(); paintKey(k); const c=document.querySelector(`.credit[data-credit="${CSS.escape(k)}"]`); if(c) ensureCredit(k);
 }
 function imgBroken(el){
   const ph=el.closest(".ph"); if(!ph) return; const k=ph.dataset.imgkey; const r=IMG[k];
@@ -2242,12 +2292,16 @@ async function runBatch(){
   items.forEach(({k,o})=>{
     if(o.hotel||o.food){ rest.push(k); return; }
     let hit=null;
+    let oldHit=null;
     for(const t of titleCands(o.name)){
       const p=page[t]; if(!p||!p.thumbnail||!p.pageimage||BADIMG.test(p.pageimage)) continue;
       const c=p.coordinates&&p.coordinates[0];
       if(c&&o.lat!=null&&hav({lat:c.lat,lng:c.lon},o)>8) continue; // 同名の別の場所
+      if(OLDIMG.test(p.pageimage)){ oldHit=oldHit||{p,t}; continue; } // 古い写真は後まわし
       hit={p,t}; break;
     }
+    if(!hit&&oldHit&&o.lat!=null){ rest.push(k); return; } // 近くの新しい写真を探す
+    if(!hit&&oldHit) hit=oldHit;
     if(hit){
       IMG[k]={src:hit.p.thumbnail.source,page:"https://ja.wikipedia.org/wiki/File:"+enc(hit.p.pageimage),file:hit.p.pageimage,artist:"",license:"",near:false,lazyCredit:true};
       delete imgWait[k]; paintKey(k);
@@ -2275,6 +2329,7 @@ async function ensureCredit(k){
 const WP="https://ja.wikipedia.org/w/api.php?format=json&formatversion=2&origin=*&";
 const CM="https://commons.wikimedia.org/w/api.php?format=json&formatversion=2&origin=*&";
 async function jget(u){ const r=await fetchT(u,{},10000); if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); }
+const OLDIMG=/(1[5-9]\d{2}|20[01]\d)|eruption|噴火|明治|大正|昭和\d|戦前|絵葉書|絵はがき|postcard|monochrome|historic|Historic|old_|_old|古写真/;
 const BADIMG=/\.svg$|\.gif$|map|Map|地図|位置|logo|Logo|Flag|flag|紋|Emblem|emblem|icon|Icon|diagram|平面図|路線図|location/;
 function stripHtml(h){ const d=document.createElement("div"); d.innerHTML=String(h||""); return (d.textContent||"").trim().replace(/\s+/g," ").slice(0,80); }
 function fromInfo(ii,title,near){
@@ -2300,7 +2355,7 @@ async function findImage(o){
   const j=await jget(WP+"action=query&generator=search&gsrnamespace=0&gsrlimit=5&prop=pageimages|coordinates&piprop=thumbnail|name&pithumbsize=500&pilicense=free&gsrsearch="+enc(core));
   const pages=((j.query&&j.query.pages)||[]).sort((a,b)=>a.index-b.index);
   for(const p of pages){
-    if(!p.pageimage||!p.thumbnail||BADIMG.test(p.pageimage)) continue;
+    if(!p.pageimage||!p.thumbnail||BADIMG.test(p.pageimage)||OLDIMG.test(p.pageimage)) continue;
     const c=p.coordinates&&p.coordinates[0];
     const nameOk = norm(p.title).includes(nc)||nc.includes(norm(p.title));
     const posOk = c&&o.lat!=null ? hav({lat:c.lat,lng:c.lon},o) < (o.hotel||o.food?0.4:2.5) : false;
@@ -2310,9 +2365,15 @@ async function findImage(o){
   if(o.lat!=null){
     const rad=o.hotel||o.food?80:250;
     const g=await jget(CM+`action=query&generator=geosearch&ggsnamespace=6&ggslimit=15&ggsradius=${rad}&ggscoord=${o.lat}|${o.lng}&prop=imageinfo&iiprop=url|extmetadata|mime|size&iiurlwidth=500`);
-    const fs=((g.query&&g.query.pages)||[]).filter(p=>p.imageinfo&&p.imageinfo[0]&&p.imageinfo[0].mime==="image/jpeg"&&!BADIMG.test(p.title)&&p.imageinfo[0].width>=500).sort((a,b)=>a.index-b.index);
+    const fs=((g.query&&g.query.pages)||[]).filter(p=>p.imageinfo&&p.imageinfo[0]&&p.imageinfo[0].mime==="image/jpeg"&&!BADIMG.test(p.title)&&!OLDIMG.test(p.title)&&p.imageinfo[0].width>=500).sort((a,b)=>a.index-b.index);
     const hit = fs.find(p=>norm(p.title).includes(nc.slice(0,4))) || fs.find(p=>p.imageinfo[0].width>=p.imageinfo[0].height) || fs[0];
     if(hit){ const named=norm(hit.title).includes(nc.slice(0,4)); return fromInfo(hit.imageinfo[0],hit.title,!named); }
+    if(!o.hotel&&!o.food){
+      const g2=await jget(CM+`action=query&generator=geosearch&ggsnamespace=6&ggslimit=25&ggsradius=1200&ggscoord=${o.lat}|${o.lng}&prop=imageinfo&iiprop=url|extmetadata|mime|size&iiurlwidth=500`);
+      const f2=((g2.query&&g2.query.pages)||[]).filter(p=>p.imageinfo&&p.imageinfo[0]&&p.imageinfo[0].mime==="image/jpeg"&&!BADIMG.test(p.title)&&!OLDIMG.test(p.title)&&p.imageinfo[0].width>=800);
+      const h2=f2.find(p=>norm(p.title).includes(nc.slice(0,3)))||f2.find(p=>p.imageinfo[0].width>=p.imageinfo[0].height)||f2[0];
+      if(h2) return fromInfo(h2.imageinfo[0],h2.title,!norm(h2.title).includes(nc.slice(0,3)));
+    }
   }
   return null;
 }
@@ -2664,6 +2725,7 @@ document.addEventListener("click",async e=>{
   if(d.mapact){ mapAct(d.mapact); return; }
   if(d.zoom!==undefined){ if(+d.zoom===0){VB=null;drawMap()} else zoom(+d.zoom); return; }
   if(d.act==="reset"){ S=blank(); viewDay=0; save(); render(); return; }
+  if(d.nextimg){ nextPhoto(d.nextimg); return; }
   if(d.act==="retryImg") return retryImages();
   if(d.act==="aiRec") return aiRec();
   if(d.act==="aiWish") return aiWish();
@@ -2909,7 +2971,7 @@ function tDijkstra(src,mode,long){
 }
 function tPath(D,n){ // ノードnまでの区間リスト
   const out=[]; let k=D.node[n]&&D.node[n].k; if(!k) return null;
-  while(k){ const p=D.prev[k]; if(!p) break; if(p.kind==="access"){ out.unshift({kind:"access",to:k.slice(0,k.indexOf("|")),min:D.best[k]}); break; }
+  while(k){ const p=D.prev[k]; if(!p) break; if(p.kind==="access"){ out.unshift({kind:"access",to:k.slice(0,k.indexOf("|")),min:D.best[k],km:p.d}); break; }
     const fn=p.from.slice(0,p.from.indexOf("|")); if(p.e.line!=="乗り換え") out.unshift({kind:"ride",from:fn,to:k.slice(0,k.indexOf("|")),line:p.e.line,min:p.e.min,flight:!!p.e.flight,fly:p.e.fly,local:!!p.e.local}); k=p.from; }
   return out;
 }
@@ -3151,6 +3213,7 @@ async function afterAuth(){
   if(!APP.user){ APP.view = APP.joinId? "join":"home"; render(); return; }
   try{ APP.profile = await Store.getProfile(); }catch(e){ APP.profile=null; }
   APP.profile = APP.profile || {};
+  if(APP.user&&APP.pendingQS){ const q=APP.pendingQS; APP.pendingQS=null; setTimeout(()=>quickStart(q),300); }
   unsubList = Store.listen(list=>{ APP.projects=list.sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0)); if(APP.view==="home") render(); });
   if(APP.joinId){ return handleJoin(); }
   const last=(location.hash.match(/p=([\w-]+)/)||[])[1];
@@ -3212,7 +3275,9 @@ async function pupdate(patch,noRender){
 /* ---- トップの「行き先を入れてすぐ始める」 ---- */
 async function quickStart(q){
   q=String(q||"").trim(); if(!q){ toast("行き先を入れてください（例：京都、鹿児島）"); $("#qsQ")?.focus(); return; }
-  if(!APP.user){ toast("先にログインしてください"); return; }
+  if(!APP.user){
+    if(APP.mode==="cloud"&&typeof FB!=="undefined"&&FB&&FB.auth){ APP.pendingQS=q; toast("準備しています…"); try{ await FB.auth.signInAnonymously(); }catch(e){ APP.pendingQS=null; toast(fbErr(e)); } return; }
+    toast("準備中です。少し待ってからもう一度押してください"); return; }
   const c=destLocal(q); const x=c.find(v=>v.kind==="pref")||c.find(v=>v.kind==="city")||c[0];
   const patch={}; let title=q+"の旅", step=0;
   if(x){ patch.pref=x.pref; step=1; title=(x.kind==="spot"?x.spot.name:(x.city||x.pref.replace(/[府県]$/,"")))+"の旅";
@@ -3340,9 +3405,8 @@ const JOURNEY=[
   ["plane","出発","8:00","img/start.jpg","#2563EB"],
   ["train","電車42分","9:15","img/train.jpg","#2563EB"],
   ["camera","観光","10:30","img/sight.jpg","#16A34A"],
-  ["food","昼食","12:30","img/food.jpg","#F97316"],
-  ["hotel","ホテル","15:00","img/hotel.jpg","#7C3AED"],
-  ["pin","旅程完成！","","","#EF4444"]
+  ["food","ご飯","12:30","img/food.jpg","#F97316"],
+  ["hotel","ホテル","15:00","img/hotel.jpg","#7C3AED"]
 ];
 function demoHTML(){
   return `<div class="demo jr" id="demo" data-stage="0" aria-hidden="true">
@@ -3357,14 +3421,19 @@ function startDemo(){
   clearInterval(demoT); const el=$("#demo"); if(!el) return;
   if(window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches){ el.dataset.stage=String(JOURNEY.length-1); el.style.setProperty("--prog","1"); return; }
   let i=0; el.dataset.stage="0";
-  demoT=setInterval(()=>{ const e=$("#demo"); if(!e){ clearInterval(demoT); return; } i=(i+1)%(JOURNEY.length+2); e.dataset.stage=String(Math.min(i,JOURNEY.length-1)); e.style.setProperty("--prog",(Math.min(i,JOURNEY.length-1)/(JOURNEY.length-1)).toFixed(3)); },1100);
+  const hero=document.querySelector(".hero");
+  demoT=setInterval(()=>{ const e=$("#demo"); if(!e){ clearInterval(demoT); return; } i=(i+1)%(JOURNEY.length+3);
+    e.dataset.stage=String(Math.min(i,JOURNEY.length-1));
+    if(hero) hero.classList.toggle("say", i>=JOURNEY.length);
+  },1100);
 }
 function homeHTML(){
   let h=`<section class="home"><div class="hero"><div class="hero-l"><span class="kicker">旅行プラン自動作成・無料・インストール不要</span>
-    <h1><span>移動から観光まで、</span><span>全部任せてみませんか。</span></h1>
+    <h1><span>移動から観光まで、</span><span class="say2">全部任せてみませんか。</span></h1>
     <p>行き先を入れるだけで、家を出てから帰るまでの旅行プランを自動でつくります。</p>
-    ${APP.user?`<form class="qs" id="qsForm" autocomplete="off"><label for="qsQ">① まずは行き先を入れてください</label><div class="qs-row"><input type="text" id="qsQ" placeholder="例：京都、鹿児島、熊本城、天文館" aria-label="行き先"><button class="btn primary" type="submit">旅行プランをつくる →</button></div>
-      <div class="qs-pop">${["京都府","北海道","沖縄県","鹿児島県","東京都","大阪府"].map(x=>`<button type="button" class="chip small" data-qs="${x}">${x.replace(/[府県都]$/,"")}</button>`).join("")}</div></form>`:`<div class="hero-cta"><a class="btn primary" href="#login">ログインして始める</a><a class="btn glass" href="#about">使い方を見る</a></div>`}
+    ${true?`<form class="qs" id="qsForm" autocomplete="off"><label for="qsQ">① まずは行き先を入れてください</label><div class="qs-row"><input type="text" id="qsQ" placeholder="例：京都、鹿児島、熊本城、天文館" aria-label="行き先"><button class="btn primary" type="submit">旅行プランをつくる →</button></div>
+      <div class="qs-pop">${["京都府","北海道","沖縄県","鹿児島県","東京都","大阪府"].map(x=>`<button type="button" class="chip small" data-qs="${x}">${x.replace(/[府県都]$/,"")}</button>`).join("")}</div>
+      <p class="qs-note">ログインなしで使えます。あとからアカウント登録すると、別の端末でも見られます。</p></form>`:""}
   </div>${demoHTML()}</div>
   <ol class="howto3"><li><b>1</b><div><strong>行き先を入れる</strong><span>都道府県・市・観光地の名前でOK</span></div></li><li><b>2</b><div><strong>行きたい場所を選ぶ</strong><span>人気スポット・ごはん・ホテルを提案</span></div></li><li><b>3</b><div><strong>旅行プランが完成</strong><span>地図・乗る電車の時刻・友達との合流まで</span></div></li></ol>
   <div class="homehd"><h1 class="q" style="margin:0">マイ旅行</h1><span class="spacer"></span>${APP.user?`<button type="button" class="btn small" data-app="newProject">＋ 名前をつけて新しくつくる</button>`:""}</div>`;
@@ -3697,7 +3766,8 @@ function crewHTML(crew){
   const diff=new Set(crew.map(c=>norm(c.label))).size>1;
   return `<div class="crew"><div class="crew-h">${ICON.users}${crew.length>1?(diff?"みんなの出発地（それぞれ別の場所から出発します）":"みんなの出発地"):"出発地"}</div>
   ${crew.map(c=>`<div class="crew-r${c.me?" me":""}"><span class="av" style="background:${c.col}">${esc(initials(c.name))}</span><div class="crew-m"><b>${esc(c.name)}${c.me?'<span class="pill info">あなた</span>':""}</b><span>${esc(c.label)}${c.dep!=null?`　<b class="crew-t">${m2t(c.dep)}発</b>`:""}${c.mode==="car"?"・車":""}</span></div>${c.merge?`<span class="crew-g">${esc(c.merge.place)}で合流</span>`:c.hub?`<span class="crew-g">${esc(c.hub.place||c.hub.name)}に集合</span>`:""}</div>`).join("")}
-  ${hub?`<div class="crew-f">全員がそろう場所：<b>${esc(hub.place||hub.name)}</b>（${esc(hub.time||"")}）</div>`:""}</div>`;
+  ${hub?`<div class="crew-f">全員がそろう場所：<b>${esc(hub.place||hub.name)}</b>（${esc(hub.time||"")}）</div>`:""}
+  ${(()=>{ const tf=tripFare(window.__plan&&window.__plan.trip); return tf&&tf.total>0?`<div class="crew-f">行き帰りの交通費の目安（あなた）：片道 <b>${esc(yen(tf.out))}</b>・往復 <b>${esc(yen(tf.total))}</b><span class="note">（距離からの概算です。実際の料金は予約サイトで確認してください）</span></div>`:""; })()}</div>`;
 }
 function tripBackItems(trip,tEnd){
   let t=tEnd+10; const out=[];
@@ -3712,6 +3782,63 @@ function dayDate(di){ const d=new Date((S.date||isoToday(0))+"T00:00:00"); d.set
 function yahooURL(from,to,di,t,arrive){
   const d=dayDate(di); const h=Math.floor(t/60)%24, m=Math.round(t)%60;
   return `https://transit.yahoo.co.jp/search/result?from=${enc(String(from).replace(/駅$/,""))}&to=${enc(String(to).replace(/駅$/,""))}&y=${d.getFullYear()}&m=${String(d.getMonth()+1).padStart(2,"0")}&d=${String(d.getDate()).padStart(2,"0")}&hh=${h}&m1=${Math.floor(m/10)}&m2=${m%10}&type=${arrive?4:1}&ticket=ic&expkind=1&ws=3&s=0&al=1&shin=1&ex=1&hb=1&lb=1&sr=1`;
+}
+/* ---- 料金の目安（実際の料金は予約サイトで確認） ---- */
+function yen(n){ return "約" + (Math.round(n/100)*100).toLocaleString("ja-JP") + "円"; }
+function segKm(sg){ if(sg.km!=null) return sg.km; const a=tnPt(sg.from), b=tnPt(sg.to); return (a&&b)?hav(a,b):0; }
+// 乗り物の料金の目安（距離から計算。運賃＋特急料金の相場に合わせています）
+function fareOf(sg,mode){
+  if(!sg) return null;
+  if(sg.kind==="car") return {car:true,v:Math.round((sg.km||(sg.min/60*60))*1*22)};
+  const km=segKm(sg);
+  if(sg.flight) return {air:true,low:Math.min(24000,Math.max(5000,4000+7*km)),std:Math.min(48000,Math.max(9000,9000+14*km))};
+  const line=sg.line||"";
+  if(/新幹線/.test(line)) return {v:Math.max(3000,3000+22*km)};
+  if(/特急|ライナー|しまかぜ|ひのとり|ラピート|サンダーバード|はるか/.test(line)) return {v:Math.max(1200,16*km+140+1200+3*km)};
+  if(/バス/.test(line)) return {v:Math.max(200,10*km+180)};
+  if(mode==="car"&&(sg.kind==="access"||sg.kind==="homeward")) return {car:true,v:Math.round(km*22)};
+  return {v:Math.max(150,13*km+140)};
+}
+function fareText(f){ if(!f) return ""; if(f.air) return `航空券 ${yen(f.low)}〜${yen(f.std)}`; if(f.car) return `ガソリン・高速 ${yen(f.v)}`; return yen(f.v); }
+function tripFare(trip){ if(!trip) return null; const mode=(trip.me&&trip.me.mode)||"transit";
+  const sum=arr=>arr.reduce((a,x)=>{ const f=fareOf(x,mode); if(!f) return a; return a+(f.air?(f.low+f.std)/2:f.v); },0);
+  const out=sum(trip.out.filter(i=>i.type==="trip").map(i=>i.seg)); const back=sum(trip.backList.filter(b=>b.seg).map(b=>b.seg));
+  return {out,back,total:out+back};
+}
+// 1日の中の移動費の目安
+function dayFare(d){
+  let v=0; d.items.filter(x=>x.type==="leg").forEach(l=>{ if(l.mode==="walk") return; v += l.mode==="car" ? l.km*22 : Math.max(150,13*l.km+140); });
+  return v;
+}
+/* ---- ④ 予約リンク（新幹線・特急・飛行機） ---- */
+function bookLinks(sg,di,t){
+  const out=[]; const d=dayDate(di||0); const iso=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; const ymd=iso.slice(2).replace(/-/g,"");
+  if(sg.flight){
+    const a=tnPt(sg.from), b=tnPt(sg.to); const fa=a&&a.air, fb=b&&b.air;
+    if(fa&&fb){
+      out.push(["格安","スカイスキャナーで比べる",`https://www.skyscanner.jp/transport/flights/${fa.toLowerCase()}/${fb.toLowerCase()}/${ymd}/`]);
+      out.push(["格安","Googleフライトで比べる",`https://www.google.com/travel/flights?q=${enc(`Flights from ${fa} to ${fb} on ${iso}`)}`]);
+      out.push(["格安","ジェットスター",`https://www.jetstar.com/jp/ja/home`]);
+      out.push(["格安","ピーチ",`https://www.flypeach.com/jp`]);
+      out.push(["大手","ANA",`https://www.ana.co.jp/ja/jp/domestic/`]);
+      out.push(["大手","JAL",`https://www.jal.co.jp/jp/ja/dom/`]);
+    }
+    return out;
+  }
+  const line=sg.line||"";
+  if(!/新幹線|特急|ライナー|しまかぜ|ひのとり|ラピート|サンダーバード|はるか/.test(line)) return out;
+  if(/東海道|山陽/.test(line)) out.push(["予約","スマートEX（東海道・山陽新幹線）","https://smart-ex.jp/"]);
+  if(/東北|北海道|上越|北陸|山形|秋田/.test(line)) out.push(["予約","えきねっと（JR東日本）","https://www.eki-net.com/"]);
+  if(/九州|西九州/.test(line)) out.push(["予約","JR九州ネット予約","https://train.yoyaku.jrkyushu.co.jp/"]);
+  if(/近鉄/.test(line)) out.push(["予約","近鉄 特急券ネット予約","https://www.kintetsu.jp/yoyaku/"]);
+  if(!out.length||/山陽|新幹線/.test(line)) out.push(["予約","e5489（JR西日本・四国・九州）","https://www.jr-odekake.net/goyoyaku/"]);
+  out.push(["予約","日本旅行（新幹線＋宿のセット）","https://www.nta.co.jp/"]);
+  return out;
+}
+function bookHTML(sg,di,t){
+  const ls=bookLinks(sg,di,t); if(!ls.length) return "";
+  const gs=[...new Set(ls.map(x=>x[0]))];
+  return `<details class="bk"><summary>${sg.flight?"飛行機を予約する":"きっぷを予約する"}</summary><div class="bk-in">${gs.map(g=>`<div class="bk-g"><b>${g}</b>${ls.filter(x=>x[0]===g).map(x=>`<a class="btn small ghost" href="${x[2]}" target="_blank" rel="noopener">${esc(x[1])}</a>`).join("")}</div>`).join("")}<span class="note">満席・運休のことがあります。時刻と空席は予約サイトで確認してください。</span></div></details>`;
 }
 function tripSegInfo(sg,label,mode,di,t){
   const S2=id=>stName(id);
@@ -3735,8 +3862,8 @@ function tripItemHTML(it,trip,di){
   const f=tripSegInfo(it.seg,trip.label,mode,di,it.t);
   const car=/車/.test(f.sub)&&!/電車/.test(f.sub);
   return `<li class="trip"><div class="t">${m2t(it.t)}</div><div class="stop tripseg" style="--c:var(--muted)"><div class="nm"><span class="sgi">${f.ic}</span>${esc(f.title)}${it.together?'<span class="pill info">みんなで</span>':""}</div>
-    <div class="ttime"><b>${m2t(it.t)}${car?"出発":"発"}</b><span>→</span><b>${m2t(it.t+it.seg.min)}${car?"到着":"着"}</b><small>${esc(f.sub)}・約${fmtMin(it.seg.min)}</small></div>
-    <div class="sm">${f.train?"時刻は目安です。この時刻で乗換案内を開くと、乗る電車を確認できます。":""}${f.link?` <a href="${f.link}" target="_blank" rel="noopener">${f.lk||"経路"}</a>`:""}</div></div></li>`;
+    <div class="ttime"><b>${m2t(it.t)}${car?"出発":"発"}</b><span>→</span><b>${m2t(it.t+it.seg.min)}${car?"到着":"着"}</b><small>${esc(f.sub)}・約${fmtMin(it.seg.min)}</small>${fareOf(it.seg,mode)?`<span class="fare">${esc(fareText(fareOf(it.seg,mode)))}${it.seg.flight?"":"（目安）"}</span>`:""}</div>
+    <div class="sm">${f.train?"時刻は目安です。この時刻で乗換案内を開くと、乗る電車を確認できます。":""}${f.link?` <a href="${f.link}" target="_blank" rel="noopener">${f.lk||"経路"}</a>`:""}</div>${bookHTML(it.seg,di,it.t)}</div></li>`;
 }
 // 1日目の観光開始を日ごとに指定したときは、その時刻に現地に着くようにする
 // 出発してから全員がそろうまでにかかる、いちばん長い時間（分）
