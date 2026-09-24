@@ -893,7 +893,22 @@ html{overflow-x:clip}
 .ptile.on .ptile-ck{opacity:1;transform:none}
 @media (max-width:640px){ .pgridx{grid-template-columns:repeat(3,1fr);gap:8px} .ptile{border-radius:12px} }
 .pc-pref{display:block;position:relative;background:#eef3fa}
-.pc-pref img{width:100%;height:100%;object-fit:cover;object-position:center 26%;display:block}
+.pc-pref img{width:100%;height:100%;object-fit:cover;object-position:center;display:block}
+
+.flbox{display:grid;gap:10px;margin-top:8px}
+.flrow{border:1px solid var(--line);border-radius:14px;padding:12px;background:var(--surface)}
+.flhd{font-weight:800;font-size:13.5px;margin-bottom:6px}
+.flrow .row{gap:8px;align-items:flex-end;flex-wrap:wrap}
+.flrow .field{flex:1 1 110px;min-width:96px}
+.flrow input[type=time]{width:100%}
+.flsteps,.flysteps{list-style:none;margin:6px 0 2px;padding:0;display:grid;gap:4px}
+.flysteps li{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.flysteps b{font-family:var(--f-num);font-size:15px;color:var(--accent);min-width:48px}
+.flysteps span{font-weight:700;font-size:13.5px}
+.flysteps small{color:var(--muted);font-size:12px}
+.flysteps small.est{color:var(--muted)}
+.flysteps li:first-child b{color:var(--hot)}
+@media (max-width:640px){ .flysteps b{min-width:44px;font-size:14px} .flysteps span{font-size:13px} }
 </style>
 
 </head>
@@ -997,7 +1012,7 @@ const P = [
 const PREF = {}; P.forEach(([n,r,la,ln,sp])=>{PREF[n]={name:n,region:r,lat:la,lng:ln,spots:sp.map((s,i)=>({name:s[0],lat:s[1],lng:s[2],stay:s[3],city:s[4],rank:i+1,src:"base"}))}});
 const REGIONS = ["北海道・東北","関東","中部","近畿","中国","四国","九州・沖縄"];
 const DAYC = ["#2356F6","#FF5A5F","#0E9F6E","#7A5AF8","#F08C00","#0891B2","#DB2777"];
-const STEPS = ["行き先","日程","移動手段","行きたい場所","おすすめ","宿泊","予定表"];
+const STEPS = ["行き先","日程","移動手段","行きたい場所","おすすめ","食事","宿泊","予定表"];
 
 const ICON = {
   home:'<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg>',
@@ -1125,9 +1140,9 @@ function renderStepper(){
 }
 function canNext(){
   if(S&&S.step===0) return !!S.pref || "都道府県を選んでください";
-  if(S&&S.step===5) return !!S.hotelMode || "「決まっている」か「まだ決まっていない」を選んでください";
+  if(S&&S.step===6) return !!S.hotelMode || "「決まっている」か「まだ決まっていない」を選んでください";
   if(S&&S.step===2) return !!S.transport || "移動手段を選んでください";
-  if(S&&S.step===5 && stopsAll().length===0) return "行きたい場所かおすすめを1つ以上選んでください";
+  if(S&&S.step===6 && stopsAll().length===0) return "行きたい場所かおすすめを1つ以上選んでください";
   return true;
 }
 function renderNav(){
@@ -1154,20 +1169,20 @@ function flash(msg){ $("#navHint").textContent=msg; }
 /* ============ 描画 ============ */
 function renderPlan(){
   renderStepper(); renderNav();
-  const f=[stepPref,stepDates,stepMove,stepWish,stepRec,stepHotel,stepResult][S.step];
+  const f=[stepPref,stepDates,stepMove,stepWish,stepRec,stepFood,stepHotel,stepResult][S.step];
   $("#main").innerHTML = askStartHTML() + f();
-  if(S&&S.step===6) afterResult();
+  if(S&&S.step===7) afterResult();
   hydrateImages();
-  if(S&&S.step===4 && KEYS.gplaces && !gpBusy) setTimeout(()=>loadGRates(foodShown()),0);
-  if(S&&S.step===4 && !busy.food && !busy.foodS && !(S.food&&S.food.key===foodKey()) && !msg.food) setTimeout(()=>loadFood(false),0);
+  if(S&&S.step===5 && KEYS.gplaces && !gpBusy) setTimeout(()=>loadGRates(foodShown()),0);
+  if(S&&S.step===5 && !busy.food && !busy.foodS && !(S.food&&S.food.key===foodKey()) && !msg.food) setTimeout(()=>loadFood(false),0);
   if(S&&S.pref&&(S.step===3||S.step===4)&&!wsLoadCache(S.pref)&&!wsBusy[S.pref]&&!(wsFail[S.pref]&&Date.now()-wsFail[S.pref]<600000)) setTimeout(()=>loadWikiSpots(S.pref),0);
   if(S&&S.step===2&&S.rental&&!busy.rent&&!msg.rent&&!(S.rentCands&&S.rentCands.length)) setTimeout(()=>loadRentals(false),0);
-  if(S&&(S.step===5||S.step===6) && S.hotelMode!=="decided" && !(S.hotelCands&&S.hotelCands.length) && stopsAll().length && !busy.wh && !msg.wh){ if(!S.hotelMode&&S.step===6) S.hotelMode="undecided"; if(S.hotelMode==="undecided") setTimeout(()=>webHotels(),0); }
-  $("#foot").hidden = !(S.step===4||S.step===6);
-  document.querySelectorAll(".foot").forEach(f=>f.hidden=!(S.step===3||S.step===4||S.step===5||S.step===6));
+  if(S&&(S.step===6||S.step===7) && S.hotelMode!=="decided" && !(S.hotelCands&&S.hotelCands.length) && stopsAll().length && !busy.wh && !msg.wh){ if(!S.hotelMode&&S.step===7) S.hotelMode="undecided"; if(S.hotelMode==="undecided") setTimeout(()=>webHotels(),0); }
+  $("#foot").hidden = !(S.step===4||S.step===5||S.step===7);
+  document.querySelectorAll(".foot").forEach(f=>f.hidden=!(S.step>=3));
 }
 function askStartHTML(){
-  if(typeof APP==="undefined"||APP.view!=="project"||!APP.project||!APP.user||S.step===6) return "";
+  if(typeof APP==="undefined"||APP.view!=="project"||!APP.project||!APP.user||S.step===7) return "";
   if((APP.project.starts||{})[APP.user.uid]) return "";
   return `<section class="askst"><div class="askst-t">${ICON.home}<div><b>あなたの最寄り駅を教えてください</b><span>家を出てから帰るまでの予定と、友達との合流場所の計算に使います。</span></div></div>
   <div class="row"><input type="text" id="askStQ" placeholder="例：大和八木" aria-label="最寄り駅"><button type="button" class="btn primary" data-app="askSt">${ICON.search}駅を探す</button></div></section>`;
@@ -1247,6 +1262,8 @@ function destPick(i){
 /* ---- 47都道府県のアイコン ---- */
 const PREF_ROMA={"北海道":"hokkaido","青森県":"aomori","岩手県":"iwate","宮城県":"miyagi","秋田県":"akita","山形県":"yamagata","福島県":"fukushima","茨城県":"ibaraki","栃木県":"tochigi","群馬県":"gunma","埼玉県":"saitama","千葉県":"chiba","東京都":"tokyo","神奈川県":"kanagawa","新潟県":"niigata","富山県":"toyama","石川県":"ishikawa","福井県":"fukui","山梨県":"yamanashi","長野県":"nagano","岐阜県":"gifu","静岡県":"shizuoka","愛知県":"aichi","三重県":"mie","滋賀県":"shiga","京都府":"kyoto","大阪府":"osaka","兵庫県":"hyogo","奈良県":"nara","和歌山県":"wakayama","鳥取県":"tottori","島根県":"shimane","岡山県":"okayama","広島県":"hiroshima","山口県":"yamaguchi","徳島県":"tokushima","香川県":"kagawa","愛媛県":"ehime","高知県":"kochi","福岡県":"fukuoka","佐賀県":"saga","長崎県":"nagasaki","熊本県":"kumamoto","大分県":"oita","宮崎県":"miyazaki","鹿児島県":"kagoshima","沖縄県":"okinawa"};
 function prefIcon(p){ const r=PREF_ROMA[p]; return r?`img/pref/${r}.webp`:""; }
+// 横長（16:9）版：一覧カードの見出し画像に使う
+function prefWide(p){ const r=PREF_ROMA[p]; return r?`img/pref/w/${r}.webp`:""; }
 function prefTile(p,on){
   const u=prefIcon(p); if(!u) return "";
   return `<button type="button" class="ptile${on?" on":""}" data-pref="${p}" aria-pressed="${!!on}" title="${esc(p)}">
@@ -1426,11 +1443,30 @@ function stepRec(){
   if(wsBusy[S.pref]) h+=`<p class="status"><span class="spin"></span>${esc(S.pref)}の観光地を、Wikipediaでよく見られている順に集めています…</p>`;
   h+= inCity.length? `<div class="spots">${inCity.slice(0,S.moreSpots?200:24).map((s,i)=>spotCard(s,i+1)).join("")}</div>${inCity.length>24&&!S.moreSpots?`<div class="row" style="margin-top:10px"><button type="button" class="btn" data-act="moreSpots">もっと見る（ほか${inCity.length-24}か所）</button></div>`:""}` : `<div class="empty">${esc(c)}の登録スポットはまだありません。${sample?"下のボタンでAIに提案してもらえます。":"県内の人気スポットから選んでください。"}</div>`;
   if(sample) h+=`<div class="aibox"><button type="button" class="btn" data-act="aiRec" ${busy.rec?"disabled":""}>${ICON.spark}AIに${esc(c||S.pref)}の人気スポットをもっと聞く</button><span class="status" id="st-rec">${stat("rec")}</span></div>`;
-  h+=foodSection();
   if(other.length) h+=`<h2 class="sub">${esc(S.pref)}のほかの人気スポット <small>少し離れた場所も含みます</small></h2><div class="spots">${other.slice(0,S.moreSpots?200:12).map((s,i)=>spotCard(s,i+1)).join("")}</div>${other.length>12&&!S.moreSpots?`<div class="row" style="margin-top:10px"><button type="button" class="btn" data-act="moreSpots">もっと見る（ほか${other.length-12}か所）</button></div>`:""}`;
   return h+`</section>`;
 }
-/* STEP5 宿泊 */
+/* STEP6 食事 */
+function mealPicked(){ return S.wishes.filter(w=>w.food); }
+function stepFood(){
+  let h=`<section class="panel">${head(5,"ごはんはどうしますか？")}`;
+  const picked=mealPicked();
+  h+=`<div class="banner"><span>予定に入れたお店：<b>${picked.length}件</b>${picked.length?"（"+MEALS.map(m=>{const n=picked.filter(w=>w.meal===m).length; return n?MEALNAME[m]+n+"件":""}).filter(Boolean).join("・")+"）":""}　決まっていなければ、あとから決めても予定表はつくれます。</span></div>`;
+  // 行くお店が決まっている場合
+  h+=`<h2 class="sub">行くお店が決まっている <small>店名を入れると、住所と位置を調べて予定表に入れます</small></h2>
+  <p class="note" style="margin:6px 0 4px">いつ行きますか？</p>
+  <div class="chips">${MEALS.map(m=>`<button type="button" class="chip" data-mymeal="${m}" aria-pressed="${(S.myMeal||"昼")===m}">${MEALNAME[m]}</button>`).join("")}</div>
+  <div class="row" style="margin-top:8px"><input type="text" id="myShop" placeholder="例：${esc((SPECIAL[S.pref]||["ラーメン"])[0])}の有名店の名前" aria-label="お店の名前" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" value="${esc(DRAFT.myShop||"")}"><button type="button" class="btn primary" data-act="addMyShop" ${busy.myshop?"disabled":""}>${ICON.search}${MEALNAME[S.myMeal||"昼"]}に追加</button></div>
+  <div style="margin-top:6px"><span class="status">${stat("myshop","お店の場所を調べています…")}</span></div>`;
+  if(picked.length){
+    h+=`<h3 class="sub3">予定に入れたお店</h3><div class="list">`+picked.map(w=>`<div class="item"><div class="withimg">${imgSlot({...w,food:true},"thumb")}<div class="main"><div class="name">${esc(w.name)}<span class="pill meal">${MEALNAME[w.meal]}</span>${w.src==="mine"?'<span class="pill info">自分で登録</span>':""}</div><div class="note">${esc(w.addr||"")}</div>${w.status!=="ok"?'<div class="note"><span class="pill warn">場所が未確認</span></div>':""}</div></div>
+    <a class="btn small ghost" href="${tabelogURL(w.name,cityLabel()||S.pref,1)}" target="_blank" rel="noopener">食べログ</a>
+    <button type="button" class="btn small" data-delwish="${esc(w.id)}">外す</button></div>`).join("")+`</div>`;
+  }
+  h+=foodSection();
+  return h+`</section>`;
+}
+/* STEP7 宿泊 */
 // タイプ・こだわりは複数選択（古い保存データの文字列も配列として扱う）
 function condArr(k){ const v=S.cond&&S.cond[k]; return Array.isArray(v)?v:(v?[v]:[]); }
 const BUDGETS=["〜8千円","〜1.5万円","〜3万円","3万円〜"], TYPES=["ビジネスホテル","シティホテル","旅館","リゾートホテル","ゲストハウス"], HPREFS=["駅近","観光地に近い","温泉・大浴場","朝食付き","駐車場あり","禁煙室"];
@@ -1462,7 +1498,7 @@ function jalanHotelURL(name){ const s=stayInfo();
   return "https://www.google.com/search?q="+enc(`じゃらん ${hotelQ(name)} ${cityLabel()||S.pref} ${s.in.getMonth()+1}月${s.in.getDate()}日 ${s.nights}泊 大人${s.ppl}名 ${s.rooms}部屋`); }
 function gHotelURL(q){ const s=stayInfo(); return "https://www.google.com/travel/search?q="+enc(`${q} ${s.in.getFullYear()}年${s.in.getMonth()+1}月${s.in.getDate()}日 ${s.nights}泊 ${s.ppl}名`); }
 function stepHotel(){
-  let h=`<section class="panel">${head(5,"泊まるホテルは決まっていますか？","決まっていればホテル名を、まだなら希望の条件を教えてください。予定表の回りやすさから最適な場所を提案します。")}
+  let h=`<section class="panel">${head(6,"泊まるホテルは決まっていますか？","決まっていればホテル名を、まだなら希望の条件を教えてください。予定表の回りやすさから最適な場所を提案します。")}
   <div class="choices">
     <button type="button" class="choice" data-hmode="decided" aria-pressed="${S.hotelMode==="decided"}">${picIcon("ic-hotel")}<div><b>決まっている</b><span>ホテル名を入力します</span></div></button>
     <button type="button" class="choice" data-hmode="undecided" aria-pressed="${S.hotelMode==="undecided"}">${picIcon("ic-hotel-undecided")}<div><b>まだ決まっていない</b><span>条件からおすすめを提案します</span></div></button>
@@ -1573,6 +1609,38 @@ function rentalHTML(){
   <p class="note">料金の目安：軽・コンパクトで1日 5,000〜9,000円、ミニバンで1日 10,000〜18,000円ほど（時期で変わります）。ガソリン代・高速代は予定表に目安を出しています。</p>`;
   return h;
 }
+/* ---- 飛行機の便を入力する ---- */
+function usesFlight(){
+  try{ const tr=myTrip(); if(tr&&tr.out.some(it=>it.seg&&it.seg.flight)) return true;
+       if(tr&&tr.backList.some(b=>b.seg&&b.seg.flight)) return true; }catch(e){}
+  try{ const p=(typeof APP!=="undefined")&&APP.project&&(APP.project.starts||{})[APP.user&&APP.user.uid];
+       if(p&&p.long==="air") return true; }catch(e){}
+  return false;
+}
+function flRow(dir,label){
+  const f=((S&&S.flight)||{})[dir]||{};
+  const al=airlineOf(f.no);
+  return `<div class="flrow"><div class="flhd">${label}</div>
+    <div class="row">
+      <div class="field"><label for="fl-${dir}-no">便名</label><input type="text" id="fl-${dir}-no" data-flight="${dir}.no" placeholder="例：NH771" value="${esc(flNo(f.no))}" autocomplete="off" autocapitalize="characters" spellcheck="false"></div>
+      <div class="field"><label for="fl-${dir}-dep">出発</label><input type="time" id="fl-${dir}-dep" data-flight="${dir}.dep" value="${esc(f.dep||"")}"></div>
+      <div class="field"><label for="fl-${dir}-arr">到着 <small>（任意）</small></label><input type="time" id="fl-${dir}-arr" data-flight="${dir}.arr" value="${esc(f.arr||"")}"></div>
+      ${(f.no||f.dep)?`<button type="button" class="btn small ghost" data-act="flClear" data-v="${dir}">消す</button>`:""}
+    </div>
+    ${al?`<p class="note" style="margin-top:4px">${esc(al.name)}の便です。${al.url?`<a href="${al.url}" target="_blank" rel="noopener">公式サイトで${esc(flNo(f.no)||"この便")}の時刻を調べる</a>`:""}</p>`
+        :f.no?`<p class="note" style="margin-top:4px">航空会社が判別できませんでした。時刻は手で入れてください。</p>`:""}
+  </div>`;
+}
+function flightHTML(){
+  if(!usesFlight()) return "";
+  const fo=fl("out"), fb=fl("ret");
+  let h=`<h2 class="sub">飛行機の便 <small>決まっていれば入力してください</small></h2>
+  <p class="note">便名と出発時刻を入れると、<b>その便に合わせた予定表</b>になります（空港には出発の${FLY_CHK}分前に着くように計算します）。決まっていなければ空のままで大丈夫です。</p>
+  <div class="flbox">${flRow("out","行き（出発日）")}${flRow("ret","帰り（最終日）")}</div>`;
+  if(fo||fb) h+=`<p class="note">${fo?`行きは <b>${esc(flNo(fo.no)||"入力した便")} ${esc(fo.dep)}発</b>`:""}${fo&&fb?"／":""}${fb?`帰りは <b>${esc(flNo(fb.no)||"入力した便")} ${esc(fb.dep)}発</b>`:""} で予定表をつくります。</p>`;
+  else h+=`<p class="note">便が未定のあいだは、<b>目安の時間帯</b>で予定表をつくります（実際の便は「便を探す」から確認してください）。</p>`;
+  return h;
+}
 function picIcon(n){ return `<img class="picic" src="img/${n}.png" alt="" width="256" height="256" loading="lazy" decoding="async">`; }
 function stepMove(){
   return `<section class="panel">${head(2,"観光地はどうやって回りますか？","移動手段にあわせて、移動時間と回る順番を計算します。")}
@@ -1582,6 +1650,7 @@ function stepMove(){
     <button type="button" class="choice" data-trans="auto" aria-pressed="${S.transport==="auto"}">${picIcon("ic-move-undecided")}<div><b>まだ決めていない</b><span>日ごとに、電車・バスと車のどちらが回りやすいかを比べて選びます</span></div></button>
   </div>
   <p class="note" style="margin-top:8px">予定表の画面で、日ごとに電車・バスと車を切り替えることもできます（例：1日目は電車、2日目はレンタカー）。</p>
+  ${flightHTML()}
   ${rentalHTML()}
   <h2 class="sub">旅のペース</h2><div class="chips">${["ゆったり","標準","たくさん回る"].map(v=>`<button type="button" class="chip" data-pace="${v}" aria-pressed="${S.pace===v}">${v}</button>`).join("")}</div>
   <p class="note" style="margin-top:8px">ゆったり：滞在時間を長めに／たくさん回る：滞在時間を短めにします。</p></section>`;
@@ -1672,7 +1741,7 @@ function splitDaysW(H,stops,n,caps){
 }
 // 日ごとの観光時間（指定がなければ共通の時間）
 function dayTime(di){ const o=(S.dayTimes||{})[di]; return {start:(o&&o.start)||S.start||"09:00", end:(o&&o.end)||S.end||"18:00", custom:!!o, off:!!(o&&o.off)}; }
-function dayCap(di){ const t=dayTime(di); if(t.off) return 0; let a=t2m(t.start), b=t2m(t.end); const tr=(typeof APP!=="undefined"&&APP.project)?tripMemo():null; if(tr){ if(di===0) a=Math.max(a,tr.arrive); if(di===S.days-1) b-=tr.backMin; } return Math.max(0,b-a); }
+function dayCap(di){ const t=dayTime(di); if(t.off) return 0; let a=t2m(t.start), b=t2m(t.end); const tr=(typeof APP!=="undefined"&&APP.project)?tripMemo():null; if(tr){ if(di===0) a=Math.max(a,tr.arrive); if(di===S.days-1){ b = tr.endBy!=null ? Math.min(b,tr.endBy) : b-tr.backMin; } } return Math.max(0,b-a); }
 function paceK(){return S.pace==="ゆったり"?1.25:S.pace==="たくさん回る"?0.8:1}
 function pathLen(A,arr,B){let t=0,p=A;arr.forEach(x=>{t+=hav(p,x);p=x});return t+hav(p,B)}
 function orderPath(A,B,arr){
@@ -1688,7 +1757,7 @@ function centroid(g){return {lat:g.reduce((a,x)=>a+x.lat,0)/g.length,lng:g.reduc
 function schedule(H,seq,hasLunchRest,from,t0,to,di){
   const DT=dayTime(di||0);
   let endM=t2m(DT.end); const sightM=t2m(DT.start), startM=t0?t2m(t0):sightM;
-  if(to&&to.tripHub){ const tr=tripMemo(); if(tr) endM-=tr.backMin; }
+  if(to&&to.tripHub){ const tr=tripMemo(); if(tr) endM = tr.endBy!=null ? Math.min(endM,tr.endBy) : endM-tr.backMin; }
   const items=[]; let t=startM, prev=from||H, lunch=!!hasLunchRest, km=0, lunchT=null, late=null, sightsEnd=null;
   if(!from && seq.length && seq[0].meal){ const w=MEALWIN[seq[0].meal]; const tr=leg(H,seq[0]).min; const dep=Math.round((w.target-tr)/5)*5; t = seq[0].meal==="朝" ? Math.max(6*60, Math.min(startM,dep)) : Math.max(startM,dep); }
   const startT=t;
@@ -1782,22 +1851,22 @@ let viewDay = 0; let VB=null; let hlStop=null;
 function stepResult(){
   const plan=buildPlan(); window.__plan=plan;
   if(viewDay>=plan.days.length) viewDay=0;
-  if(!plan.stops.length) return `<section class="panel">${head(6,"予定表をつくれませんでした","行きたい場所か、おすすめのスポットを1つ以上選んでください。")}<button class="btn primary" type="button" data-go="4">おすすめを選ぶ</button></section>`;
+  if(!plan.stops.length) return `<section class="panel">${head(7,"予定表をつくれませんでした","行きたい場所か、おすすめのスポットを1つ以上選んでください。")}<button class="btn primary" type="button" data-go="4">おすすめを選ぶ</button></section>`;
   const MODEJ={car:"車",transit:"電車・バス"};
   const ms=[...new Set(plan.days.filter(d=>d.ord.length).map(d=>d.mode))];
   const tr= ms.length<=1 ? (MODEJ[ms[0]||"transit"]+(S.transport==="auto"?"（おまかせ）":"")) : plan.days.filter(d=>d.ord.length).map(d=>`${d.di+1}日目 ${MODEJ[d.mode]}`).join("／");
   const unresolved=S.wishes.filter(w=>w.status!=="ok"&&!w.anchor);
-  let h=`<div class="eyebrow">STEP 7 / 7　予定表</div><h1 class="q">${esc(S.pref)}${cityLabel()?"・"+esc(cityLabel()):""}　${stayLabel(S.days)}の旅</h1>
+  let h=`<div class="eyebrow">STEP 8 / 8　予定表</div><h1 class="q">${esc(S.pref)}${cityLabel()?"・"+esc(cityLabel()):""}　${stayLabel(S.days)}の旅</h1>
   <div class="sum"><span>出発 <b>${fmtDate(S.date,0)}</b></span><span>移動 <b>${tr}</b></span><span>スポット <b>${plan.stops.length}か所</b></span><span>宿泊 <b>${esc(plan.H.name)}</b></span></div>`;
   let nb="";  // 補足（ページ下部に表示）
   if(plan.trip) nb+=`<div class="banner"><span>${ICON.home} あなたの出発地（${esc(plan.trip.label)}）から出発して、${esc(plan.trip.label)}に帰るまでの予定です。一緒に行く人の画面には、その人の出発地からの予定が表示されます。${APP.project&&APP.project.meet&&APP.project.meet.choice?"":`<button type="button" class="linkbtn" data-app="ptab" data-v="overview">合流の仕方を選ぶ</button>`}</span></div>`;
   else if(typeof APP!=="undefined"&&APP.project) nb+=`<div class="banner"><span>自分の出発地（自宅や最寄り駅）を登録すると、家を出てから帰るまでの予定にできます。<button type="button" class="linkbtn" data-app="setStart" data-v="${esc(APP.user.uid)}">出発地を登録</button></span></div>`;
-  if(plan.H.area && S.hotelMode==="decided") nb+=`<div class="banner warn"><span>ホテルの位置を確認できなかったため、回りやすい場所を仮の出発地にしています。<button type="button" class="linkbtn" data-go="5">ホテルの位置を指定する</button></span></div>`;
+  if(plan.H.area && S.hotelMode==="decided") nb+=`<div class="banner warn"><span>ホテルの位置を確認できなかったため、回りやすい場所を仮の出発地にしています。<button type="button" class="linkbtn" data-go="6">ホテルの位置を指定する</button></span></div>`;
   else if(S.hotelMode==="undecided"&&S.hotelPick>=0&&S.hotelCands[S.hotelPick]){ const cur=S.hotelCands[S.hotelPick];
     nb+=`<div class="banner hotelpick"><span>ホテルは未定のため、回るルートに合う<b>「${esc(cur.name)}」</b>を仮の宿にしています。1泊の目安は${esc(hotelYen(cur.kind))}です。<a href="${rakutenHotelURL(cur.name)}" target="_blank" rel="noopener">楽天トラベル</a>・<a href="${jalanHotelURL(cur.name)}" target="_blank" rel="noopener">じゃらん</a>・<a href="${gHotelURL(cur.name+" "+S.pref)}" target="_blank" rel="noopener">料金・空室</a></span>
-    <span class="chips">${S.hotelCands.slice(0,5).map((c,i)=>`<button type="button" class="chip small" data-hpick="${i}" aria-pressed="${S.hotelPick===i}">${esc(c.name)}</button>`).join("")}<button type="button" class="linkbtn" data-go="5">条件を変える</button></span></div>`; }
+    <span class="chips">${S.hotelCands.slice(0,5).map((c,i)=>`<button type="button" class="chip small" data-hpick="${i}" aria-pressed="${S.hotelPick===i}">${esc(c.name)}</button>`).join("")}<button type="button" class="linkbtn" data-go="6">条件を変える</button></span></div>`; }
   else if(plan.H.area&&busy.wh) nb+=`<div class="banner"><span><span class="spin"></span>ルートに合う実際のホテルを探しています…</span></div>`;
-  else if(plan.H.area) nb+=`<div class="banner"><span>ホテルが未定のため、回りやすい「宿泊エリア」を出発地にしています。<button type="button" class="linkbtn" data-go="5">ホテルを選ぶ</button></span></div>`;
+  else if(plan.H.area) nb+=`<div class="banner"><span>ホテルが未定のため、回りやすい「宿泊エリア」を出発地にしています。<button type="button" class="linkbtn" data-go="6">ホテルを選ぶ</button></span></div>`;
   if(unresolved.length) nb+=`<div class="banner warn"><span>位置を確認できなかったため予定に入れていない場所：${unresolved.map(w=>esc(w.name)).join("、")}　<button type="button" class="linkbtn" data-go="3">場所を確認する</button></span></div>`;
   h+=`<div class="tabs" role="tablist"><button type="button" class="chip" role="tab" data-vday="-1" aria-pressed="${viewDay===-1}">全日程</button>${plan.days.map((d,i)=>`<button type="button" class="chip" role="tab" data-vday="${i}" aria-pressed="${viewDay===i}"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${DAYC[i%DAYC.length]};margin-right:6px"></span>${i+1}日目 ${fmtDate(S.date,i)}</button>`).join("")}</div>
   <div class="res">
@@ -1923,7 +1992,7 @@ function selectStop(id,scroll){
   if(hasL()) Object.entries(lPins).forEach(([k,el])=>el&&el.classList.toggle("big",k===hlStop)); else drawMap();
   if(scroll&&hlStop){const li=document.querySelector(`#tl li[data-stop="${CSS.escape(hlStop)}"]`); if(li) li.scrollIntoView({block:"center",behavior:"smooth"}); }
 }
-let rsT; window.addEventListener("resize",()=>{clearTimeout(rsT);rsT=setTimeout(()=>{if(S&&S.step===6&&!hasL()){VB=null;drawMap()}},150)});
+let rsT; window.addEventListener("resize",()=>{clearTimeout(rsT);rsT=setTimeout(()=>{if(S&&S.step===7&&!hasL()){VB=null;drawMap()}},150)});
 
 /* ============ 詳細モーダル ============ */
 let FOODPICK=null;
@@ -1940,7 +2009,7 @@ function openDetail(name){
     <a class="btn" href="${L.gmap}" target="_blank" rel="noopener">${ICON.pin}Googleマップで場所を見る</a>
   </div>
   <p class="note">ボタンを押すと、新しいタブで検索結果が開きます。</p>
-  <div class="row" style="justify-content:flex-end;margin-top:8px">${S.step===4&&!S.wishes.some(w=>norm(w.name)===norm(s.name))?`<button type="button" class="btn ${inPlan?"":"primary"}" data-pick="${esc(s.name)}" data-close="1">${inPlan?"予定から外す":"＋ 予定に追加"}</button>`:""}<button type="button" class="btn" data-close="1">閉じる</button></div>`;
+  <div class="row" style="justify-content:flex-end;margin-top:8px">${(S.step===4||S.step===5)&&!S.wishes.some(w=>norm(w.name)===norm(s.name))?`<button type="button" class="btn ${inPlan?"":"primary"}" data-pick="${esc(s.name)}" data-close="1">${inPlan?"予定から外す":"＋ 予定に追加"}</button>`:""}<button type="button" class="btn" data-close="1">閉じる</button></div>`;
   $("#modal").hidden=false; hydrateImages(); ensureCredit(imgKey(s)); $("#sheet").querySelector("a")?.focus();
   if(!infoOf(s)) detailInfo(s).then(inf=>{ const el=$("#dInfo"); if(el && $("#mTitle")?.textContent===s.name) el.innerHTML = inf? infoLine(inf) : `<div class="info"><span>住所は見つかりませんでした。下のボタンで検索できます。</span></div>`; });
 }
@@ -2141,6 +2210,29 @@ async function detailInfo(s){
   }catch(e){}
   return null;
 }
+// 行くお店が決まっているとき：名前から住所と位置を調べて予定に入れる
+function addMyShop(){
+  const v=(($("#myShop")&&$("#myShop").value)||"").trim();
+  if(!v){ msg.myshop="お店の名前を入力してください。"; render(); return; }
+  const slot=S.myMeal||"昼";
+  if(S.wishes.some(w=>w.food&&norm(w.name)===norm(v))){ msg.myshop="すでに予定に入っています。"; render(); return; }
+  return webRun("myshop", async()=>{
+    let r=await lookup(v);
+    try{ const br=await branchSearch(v,false); if(br.length) r=mergeCands(r,br); }catch(e){}
+    r=pickByRoute(r,v,"food");
+    const id=newId();
+    if(!r.length){
+      S.wishes.push({id,q:v,name:v,lat:null,lng:null,stay:MEALWIN[slot].stay,status:"pending",src:"mine",anchor:"",food:true,meal:slot,day:0});
+      msg.myshop="場所が見つかりませんでした。予定には入れましたので、「行きたい場所」の画面で位置を指定してください。";
+    } else {
+      const c=r[0];
+      S.wishes.push({id,q:v,name:c.name||v,lat:c.lat,lng:c.lng,stay:MEALWIN[slot].stay,status:"ok",src:"mine",anchor:"",
+        addr:c.addr,extra:c.extra,kind:c.kind,osm:c.osm,type:c.type,food:true,meal:slot,day:0,cands:r.slice(0,6)});
+      msg.myshop=`「${c.name||v}」を${MEALNAME[slot]}に追加しました。`;
+    }
+    DRAFT.myShop=""; const el=$("#myShop"); if(el) el.value="";
+  });
+}
 function webHotelFind(){
   const v=(($("#hotelName")&&$("#hotelName").value)||S.hotelName||"").trim();
   if(!v){ msg.whf="ホテル名を入力してください。"; render(); return; }
@@ -2302,7 +2394,7 @@ function webHotels(){
     msg.wh=`${hs.length}件見つかりました。${car?"車で回るので、駐車場のある宿を優先しています。":"公共交通機関で回るので、駅に近い宿を優先しています。"}`;
     save(); render();
     if(KEYS.rakuten) rakutenRates();
-    for(const h of hs){ if(!h.addr){ try{ const x=await nomi(`/reverse?format=jsonv2&accept-language=ja&zoom=18&lat=${h.lat}&lon=${h.lng}`); if(x&&x.display_name){ h.addr=jpAddr(x); save(); if(S&&S.step===5) render(); } }catch(e){} } }
+    for(const h of hs){ if(!h.addr){ try{ const x=await nomi(`/reverse?format=jsonv2&accept-language=ja&zoom=18&lat=${h.lat}&lon=${h.lng}`); if(x&&x.display_name){ h.addr=jpAddr(x); save(); if(S&&S.step===6) render(); } }catch(e){} } }
   });
 }
 // 車の経路：OSRM（1日分をまとめて1回で取得）
@@ -2323,7 +2415,7 @@ async function osrmRoutes(){
     msg.osrm="車の移動時間を道路の経路で計算しました。";
   }catch(e){ msg.osrm="道路の経路を取得できなかったため、目安の時間で表示しています。"; }
   busy.osrm=false;
-  if(S&&S.step===6) render();
+  if(S&&S.step===7) render();
 }
 /* ================= 地図の共通部品：シンプルな地図・しずく型のアイコン・写真つきの吹き出し ================= */
 // APIキーの要らない無料の地図（国土地理院の淡色地図）
@@ -2480,9 +2572,9 @@ async function walkRoutes(){
       if(!r.ok) throw 0; const j=await r.json(); const g=j.routes&&j.routes[0]&&j.routes[0].geometry;
       if(g&&g.coordinates.length>1){ legGeom[k]=g.coordinates.map(c=>[c[1],c[0]]); n++; } else walkFail[k]=1;
     }catch(e){ walkFail[k]=1; }
-    if(n&&n%4===0&&S&&S.step===6) drawRouteLayer();
+    if(n&&n%4===0&&S&&S.step===7) drawRouteLayer();
   }
-  walkBusy=false; if(n&&S&&S.step===6) drawRouteLayer();
+  walkBusy=false; if(n&&S&&S.step===7) drawRouteLayer();
 }
 const walkFail={};
 
@@ -2618,7 +2710,7 @@ function pumpImg(){
     findImage(IMGREG[k]).then(r=>{ IMG[k]=r||{none:true,t:Date.now()}; }).catch(()=>{ /* 通信失敗時は保存せず、次回また試す */ })
       .finally(()=>{ imgActive--; delete imgWait[k]; if(IMG[k]) imgSave(); paintKey(k);
         // 料理の写真が見つからなかったお店は一覧から消す
-        if(wasFood&&IMG[k]&&IMG[k].none){ clearTimeout(foodHideT); foodHideT=setTimeout(()=>{ if(S&&S.step===4) render(); },400); }
+        if(wasFood&&IMG[k]&&IMG[k].none){ clearTimeout(foodHideT); foodHideT=setTimeout(()=>{ if(S&&S.step===5) render(); },400); }
         pumpImg(); });
   }
 }
@@ -2888,7 +2980,7 @@ function scoreFood(e,slot,center,R){
 async function loadFood(force){
   if(busy.food) return; const key=foodKey();
   if(!force && S.food && S.food.key===key) return;
-  busy.food=true; msg.food=""; if(S&&S.step===4) render();
+  busy.food=true; msg.food=""; if(S&&S.step===5) render();
   try{
     const c=foodCenters(); const poly=routePoly(); let els=[];
     for(const rad of [1500,4000]){
@@ -2905,7 +2997,7 @@ async function loadFood(force){
     });
     S.food=res; msg.food = els.length? "" : "この周辺では飲食店の登録が見つかりませんでした。下のリンクから探してください。";
   }catch(e){ msg.food=netErr(e); }
-  busy.food=false; save(); if(S&&S.step===4) render();
+  busy.food=false; save(); if(S&&S.step===5) render();
 }
 // 食べログ（評価は自動では取れないため、リンクで確認してもらう）
 /* ---- 外部の評価（任意の無料APIキー） ---- */
@@ -2994,7 +3086,7 @@ function foodSection(){
   const slot=S.foodTab||"昼"; const at=areaTag(); const c=foodCenters(); const tg={朝:"モーニング",昼:"ランチ",夜:"ディナー"}[slot];
   const kw={朝:"モーニング",昼:"ランチ",夜:"ディナー 居酒屋"}[slot]; const ctr=c[slot];
   const cnt=m=>S.wishes.filter(w=>w.food&&w.meal===m).length;
-  let h=`<h2 class="sub">食事のおすすめ <small>朝・昼・夜で選べます</small></h2>
+  let h=`<h2 class="sub">お店を探す <small>まだ決まっていないとき</small></h2>
   <div class="mtabs" role="tablist">${MEALS.map(m=>`<button type="button" class="chip" role="tab" data-foodtab="${m}" aria-pressed="${slot===m}">${MEALNAME[m]}${cnt(m)?` <small>${cnt(m)}件追加済み</small>`:""}</button>`).join("")}</div>
   <div class="snslinks">
     <a class="btn small" href="https://www.instagram.com/explore/tags/${enc(at+tg)}/" target="_blank" rel="noopener">${ICON.ig}#${esc(at+tg)} を見る</a>
@@ -3191,10 +3283,13 @@ document.addEventListener("click",async e=>{
   if(d.act==="reloadFood") return loadFood(true);
   if(d.webone){ const q=($("#wq-"+d.webone)?.value||"").trim(); return webFind(d.webone,q); }
   if(d.wcand){ const [id,i]=d.wcand.split("|"); const w=S.wishes.find(x=>x.id===id); if(w&&w.cands[+i]){ applyWeb(w,w.cands[+i]); save(); render(); } return; }
+  if(d.act==="addMyShop") return addMyShop();
+  if(d.mymeal){ S.myMeal=d.mymeal; save(); render(); return; }
   if(d.act==="webHotel") return webHotelFind();
   if(d.act==="webHotels") return webHotels();
   if(d.act==="keyOpen"){ APP.keyOpen = APP.keyOpen===d.v ? "" : d.v; render(); return; }
   if(d.act==="saveRk"){ const v=($("#rkId")?.value||"").trim(); setKey("rakutenId",v); msg.rk=""; if(v){ S.hotelCands&&S.hotelCands.forEach(h=>{h.rate=null;h.rkURL=null}); render(); rakutenRates(); } else { (S.hotelCands||[]).forEach(h=>{h.rate=null;h.rkURL=null}); sortHotels(); save(); render(); } return; }
+  if(d.act==="flClear"){ if(S.flight) delete S.flight[d.v]; save(); render(); return; }
   if(d.act==="saveGp"){ const v=($("#gpKey")?.value||"").trim(); setKey("gplacesKey",v); for(const k in gpCache) delete gpCache[k]; render(); if(v) loadGRates(foodShown()); return; }
   if(d.hdec!==undefined){ const c=S.hotelDecCands[+d.hdec]; if(c){ S.hotelName=c.name; S.hotelLoc={lat:c.lat,lng:c.lng}; S.hotelAnchor=""; S.hotelInfo=c; save(); render(); } return; }
   if(d.aione){ const hint=($("#hint-"+d.aione)?.value||"").trim(); return aiWish([d.aione],hint); }
@@ -3212,6 +3307,14 @@ document.addEventListener("click",async e=>{
 });
 document.addEventListener("change",e=>{
   const t=e.target;
+  // 飛行機の便（行き／帰り）
+  if(t.dataset&&t.dataset.flight){
+    const [dir,key]=t.dataset.flight.split(".");
+    S.flight=S.flight||{}; S.flight[dir]=S.flight[dir]||{};
+    S.flight[dir][key]= key==="no" ? t.value.trim().toUpperCase().replace(/\s+/g,"") : t.value;
+    if(!S.flight[dir].no&&!S.flight[dir].dep&&!S.flight[dir].arr) delete S.flight[dir];
+    save(); render(); return;
+  }
   if(t.id==="cityOther"){ S.cityOther=t.value.trim(); save(); }
   if(t.id==="date"){ S.date=t.value; save(); }
   if(t.id==="tStart"){ S.start=t.value||"09:00"; save(); if(S.perDay) render(); }
@@ -3240,7 +3343,7 @@ document.addEventListener("submit",e=>{
 });
 document.addEventListener("mouseover",e=>{ const li=e.target.closest("#tl li[data-stop]"); if(li && hlStop!==li.dataset.stop){ hlStop=null; selectStop(li.dataset.stop,false); } });
 $("#backBtn").onclick=()=>go(S.step-1);
-$("#nextBtn").onclick=()=>{ const ok=canNext(); if(ok!==true){flash(ok);return} if(S&&S.step===5&&!stopsAll().length){flash("行きたい場所かおすすめを1つ以上選んでください");return} if(S&&S.step===5){viewDay=0;hlStop=null} go(S.step+1); };
+$("#nextBtn").onclick=()=>{ const ok=canNext(); if(ok!==true){flash(ok);return} if(S&&S.step===6&&!stopsAll().length){flash("行きたい場所かおすすめを1つ以上選んでください");return} if(S&&S.step===6){viewDay=0;hlStop=null} go(S.step+1); };
 $("#resetBtn").onclick=()=>{ S=blank(); viewDay=0; save(); render(); };
 
 function planText(){
@@ -3323,6 +3426,9 @@ const TLINES = [
  ["空港バス（那覇）",[["那覇空港",0]]]
 ];
 const AIRHUB = new Set(["HND","NRT","ITM","KIX","NGO","CTS","FUK","OKA"]);
+// 国内線：保安検査・搭乗手続きのため、出発の60分前までに空港に着いている必要がある
+const FLY_CHK=60;   // 空港に着いてから離陸までに空ける時間（分）
+const FLY_OUT=20;   // 到着してから空港を出るまで（手荷物受取など）
 const VIRT={}; // メンバーの出発地など、路線データにない合流候補
 function tnPt(id){ const v=TN[id]; if(!v) return LRAIL.nodes[id]||VIRT[id]||null; return {id,name:id,lat:v[0],lng:v[1],air:v[2]||null}; }
 function allNodeIds(){ return Object.keys(TN).concat(Object.keys(LRAIL.nodes)); }
@@ -3395,7 +3501,7 @@ function tGraph(){
   aps.forEach(a=>aps.forEach(b=>{ if(a===b) return; const A=tnPt(a),B=tnPt(b); const d=hav(A,B);
     if(d<300) return; if(!AIRHUB.has(A.air)&&!AIRHUB.has(B.air)) return;
     if((A.air==="HND"&&B.air==="NRT")||(A.air==="NRT"&&B.air==="HND")||(A.air==="ITM"&&B.air==="KIX")||(A.air==="KIX"&&B.air==="ITM")) return;
-    adj[a].push({to:b,min:Math.round(60+30+d*0.075+20),fly:Math.round(30+d*0.075),line:"飛行機（"+A.air+"→"+B.air+"）",flight:true}); }));
+    adj[a].push({to:b,min:Math.round(FLY_CHK+30+d*0.075+FLY_OUT),fly:Math.round(30+d*0.075),line:"飛行機（"+A.air+"→"+B.air+"）",flight:true,chk:FLY_CHK,out:FLY_OUT}); }));
   return TGRAPH=adj;
 }
 function accessMin(d,mode){
@@ -3563,8 +3669,8 @@ const FIREBASE_CONFIG = {
 };
 const FBV = "10.12.2";
 const CLIENT_ID = Math.random().toString(36).slice(2);
-const PLAN_KEYS = ["dayMode","honten","dayTimes","perDay","rental","people","rooms","pref","city","cityOther","days","date","start","end","wishes","picks","ai","hotelMode","hotelName","hotelLoc","hotelAnchor","hotelInfo","hotelDecCands","cond","hotelCands","hotelPick","transport","pace","example"];
-const UI_KEYS = ["step","visited","foodTab","food","foodS","foodSort","rentCands","rentKey","moreSpots"];
+const PLAN_KEYS = ["dayMode","honten","dayTimes","perDay","rental","people","rooms","pref","city","cityOther","days","date","start","end","wishes","picks","ai","hotelMode","hotelName","hotelLoc","hotelAnchor","hotelInfo","hotelDecCands","cond","hotelCands","hotelPick","transport","pace","example","flight","myMeal"];
+const UI_KEYS = ["step","visited","foodTab","food","foodS","foodSort","rentCands","rentKey","moreSpots","moreNear","moreFood"];
 const STATUS = ["計画中","予約済み","旅行中","完了"];
 const MEMBER_C = ["#2356F6","#FF5A5F","#0E9F6E","#7A5AF8","#F08C00","#0891B2","#DB2777","#65A30D"];
 const TODO_SUGGEST = ["新幹線・飛行機を予約する","ホテルを予約する","レンタカーを予約する","集合時間と場所を全員に連絡する","持ち物を確認する","お店を予約する"];
@@ -3835,7 +3941,7 @@ function countdown(p){
   const diff=Math.round((d-today)/86400000);
   if(diff>0) return {t:`あと${diff}日`,c:"info"}; if(diff>-(pl.days||1)) return {t:"旅行中",c:"hot"}; return {t:"終了",c:"muted"};
 }
-function planProgress(pl){ pl=pl||{}; const ck=[!!pl.pref,(pl.wishes||[]).length+(pl.picks||[]).length>0,!!pl.hotelMode,!!pl.transport]; return {done:ck.filter(Boolean).length,total:ck.length}; }
+function planProgress(pl){ pl=pl||{}; const ck=[!!pl.pref,(pl.wishes||[]).length+(pl.picks||[]).length>0,(pl.wishes||[]).some(w=>w.food),!!pl.hotelMode,!!pl.transport]; return {done:ck.filter(Boolean).length,total:ck.length}; }
 function pbarHTML(){
   const p=APP.project; if(!p) return "";
   const mem=Object.entries(p.memberInfo||{});
@@ -3905,7 +4011,7 @@ function homeHTML(){
     const names=[...Object.values(p.memberInfo||{}).map(v=>v.name),...Object.entries(p.starts||{}).filter(([k])=>!(p.memberInfo||{})[k]).map(([k,v])=>v.name)];
     const own=p.ownerUid===APP.user.uid;
     const top=topSpotOf(pl);
-    return `<article class="pcard"><button type="button" class="pcard-main" data-app="open" data-v="${esc(p.id)}">${prefIcon(pl.pref)?`<div class="pc-photo pc-pref"><img src="${prefIcon(pl.pref)}" alt="${esc(pl.pref)}" width="288" height="492" loading="lazy" decoding="async">${top?`<span class="pc-cap">${esc(top.name)}</span>`:""}</div>`
+    return `<article class="pcard"><button type="button" class="pcard-main" data-app="open" data-v="${esc(p.id)}">${prefWide(pl.pref)?`<div class="pc-photo pc-pref"><img src="${prefWide(pl.pref)}" alt="${esc(pl.pref)}" width="640" height="360" loading="lazy" decoding="async">${top?`<span class="pc-cap">${esc(top.name)}</span>`:""}</div>`
       :top?`<div class="pc-photo">${imgSlot(top,"pc")}<span class="pc-cap">${esc(top.name)}</span></div>`
       :`<div class="pc-photo pc-none"><img src="img/ic-japan.png" alt="" width="320" height="320" loading="lazy" decoding="async"><span>行き先を決めると写真が入ります</span></div>`}
       <div class="row" style="gap:6px"><span class="pill info">${esc(p.status||"計画中")}</span>${cd?`<span class="pill ${cd.c==="hot"?"hot":cd.c==="info"?"ok":"warn"}">${cd.t}</span>`:""}</div>
@@ -4146,6 +4252,23 @@ function revSeg(sg){
   return {...sg,from:sg.to,to:sg.from};
 }
 const LONGLINE=/新幹線|特急|ライナー|しまかぜ|ひのとり|ラピート|サンダーバード|はるか/;
+/* ---- 飛行機の便（決まっている場合） ---- */
+const AIRLINES=[
+  [/^(NH|ANA)\s*-?\s*\d+/i,"ANA（全日空）","https://www.ana.co.jp/ja/jp/domestic/checkin/flightstatus/"],
+  [/^(JL|JAL)\s*-?\s*\d+/i,"JAL（日本航空）","https://www.jal.co.jp/jp/ja/dom/status/"],
+  [/^(MM)\s*-?\s*\d+/i,"Peach","https://www.flypeach.com/jp/lp/flight-status"],
+  [/^(GK|JJP)\s*-?\s*\d+/i,"ジェットスター","https://www.jetstar.com/jp/ja/flight-status"],
+  [/^(BC|SKY)\s*-?\s*\d+/i,"スカイマーク","https://www.skymark.co.jp/ja/flight_info/"],
+  [/^(6J|SNA)\s*-?\s*\d+/i,"ソラシドエア","https://www.solaseedair.jp/flight/"],
+  [/^(7G|SFJ)\s*-?\s*\d+/i,"スターフライヤー","https://www.starflyer.jp/flight_info/"],
+  [/^(JH|FDA)\s*-?\s*\d+/i,"FDA（フジドリーム）","https://www.fujidream.co.jp/flight/"],
+  [/^(IJ|SJO)\s*-?\s*\d+/i,"スプリング・ジャパン","https://jp.ch.com/flight-status"],
+  [/^(JW|APJ)\s*-?\s*\d+/i,"バニラ／ほか",""],
+];
+function flNo(no){ const n=String(no||"").trim().toUpperCase().replace(/[\s\-]+/g,""); const m=n.match(/^([A-Z0-9]{2,3})(\d{1,4})$/); return m?m[1]+m[2]:n; }
+function airlineOf(no){ const n=flNo(no); const h=AIRLINES.find(([re])=>re.test(n)); return h?{name:h[1],url:h[2]}:null; }
+function fl(dir){ const f=(S&&S.flight)||{}; const v=f[dir]; return (v&&v.dep)?v:null; }
+function flMin(hhmm){ const m=String(hhmm||"").match(/^(\d{1,2}):?(\d{2})$/); return m?(+m[1])*60+(+m[2]):null; }
 function myTrip(key){
   if(typeof APP==="undefined"||!APP.project||!APP.user) return null;
   const p=APP.project, me=key||APP.user.uid, st=(p.starts||{})[me];
@@ -4213,7 +4336,24 @@ function myTrip(key){
     byPublic=!(st.mode==="car"&&segsAll.every(sg=>sg.kind==="access"));
   }
   backList.push({end:true,label});
-  return {hub:{...hubPt,place:hubPt.name,meet:true,tripHub:true,time:m2t(hubT).padStart(5,"0"),note:""},out,backList,byPublic,label,me:st,opt:o};
+  // 行きの便が決まっているときは、その出発時刻に合わせて行きの予定をずらす
+  let flWarn="";
+  const fo=fl("out");
+  if(fo){
+    const fi=out.findIndex(it=>it.type==="trip"&&it.seg&&it.seg.flight);
+    const want=flMin(fo.dep);
+    if(fi>=0&&want!=null){
+      const sg=out[fi].seg;
+      const chk=sg.chk||FLY_CHK, arr=flMin(fo.arr);
+      if(arr!=null){ const fly=(arr<want?arr+1440:arr)-want; sg.fly=fly; sg.min=chk+fly+(sg.out||FLY_OUT); }
+      const delta=(want-chk)-out[fi].t;
+      out.forEach(it=>{ it.t+=delta; });
+      hubT+=delta;
+      sg.fixed=flNo(fo.no);
+      if(out[0].t<0) flWarn="この便に乗るには前日から移動する必要があります。";
+    }
+  }
+  return {hub:{...hubPt,place:hubPt.name,meet:true,tripHub:true,time:m2t(hubT).padStart(5,"0"),note:""},out,backList,byPublic,label,me:st,opt:o,flWarn};
 }
 // メンバー全員の出発地と、合流するまで（1日目の上に表示・地図にも描く）
 function crewTrips(){
@@ -4244,7 +4384,32 @@ function tripBackItems(trip,tEnd){
     else if(b.end) out.push({type:"tripend",t,label:b.label});
     else { out.push({type:"trip",t,seg:b.seg,together:b.together}); t+=b.seg.min; }
   });
+  // 帰りの便が決まっているときは、その出発時刻に合わせる
+  const fb=fl("ret");
+  if(fb){
+    const fi=out.findIndex(it=>it.type==="trip"&&it.seg&&it.seg.flight);
+    const want=flMin(fb.dep);
+    if(fi>=0&&want!=null){
+      const sg=out[fi].seg, chk=sg.chk||FLY_CHK, arr=flMin(fb.arr);
+      if(arr!=null){ const fly=(arr<want?arr+1440:arr)-want; sg.fly=fly; sg.min=chk+fly+(sg.out||FLY_OUT); }
+      const delta=(want-chk)-out[fi].t;
+      out.forEach(it=>{ it.t+=delta; });
+      sg.fixed=flNo(fb.no);
+    }
+  }
   return out;
+}
+// 帰りの便に間に合うように、最終日を終える時刻
+function backEndBy(){
+  const fb=fl("ret"); if(!fb) return null;
+  const want=flMin(fb.dep); if(want==null) return null;
+  let tr=null; try{ tr=myTrip(); }catch(e){}
+  if(!tr) return null;
+  let pre=0;
+  for(const b of tr.backList){ if(b.seg&&b.seg.flight) break; if(b.seg) pre+=b.seg.min; }
+  const fseg=tr.backList.find(b=>b.seg&&b.seg.flight);
+  const chk=(fseg&&fseg.seg.chk)||FLY_CHK;
+  return want-chk-pre-10;
 }
 function dayDate(di){ const d=new Date((S.date||isoToday(0))+"T00:00:00"); d.setDate(d.getDate()+(di||0)); return d; }
 function yahooURL(from,to,di,t,arrive){
@@ -4330,8 +4495,23 @@ function tripItemHTML(it,trip,di){
   if(it.type==="split") return `<li class="trip"><div class="t">${m2t(it.t)}</div><div class="stop" style="--c:var(--hot)"><div class="nm"><span class="pill warn">解散</span>${esc(it.place)}で${esc(it.with)}と別れる</div>${it.note?`<div class="sm">${esc(it.note)}</div>`:""}</div></li>`;
   const f=tripSegInfo(it.seg,trip.label,mode,di,it.t);
   const car=/車/.test(f.sub)&&!/電車/.test(f.sub);
+  // 飛行機は「空港に着く → 搭乗手続き → 離陸 → 着陸 → 空港を出る」を分けて出す
+  if(it.seg.flight){
+    const sg=it.seg, chk=sg.chk||FLY_CHK, ob=sg.out||FLY_OUT;
+    const atAir=it.t, dep=it.t+chk, arr=dep+(sg.fly||Math.max(30,sg.min-chk-ob)), leave=atAir+sg.min;
+    const fx=sg.fixed?`<span class="pill ok">${esc(sg.fixed)}</span>`:"";
+    return `<li class="trip"><div class="t">${m2t(atAir)}</div><div class="stop tripseg" style="--c:var(--muted)"><div class="nm"><span class="sgi">${f.ic}</span>${esc(f.title)}${fx}${it.together?'<span class="pill info">みんなで</span>':""}</div>
+    <ol class="flysteps">
+      <li><b>${m2t(atAir)}</b><span>${esc(String(sg.from))}に到着</span><small>出発の${chk}分前までに空港へ（保安検査・搭乗手続き）</small></li>
+      <li><b>${m2t(dep)}</b><span>出発</span>${sg.fixed?"":'<small class="est">目安の時刻です</small>'}</li>
+      <li><b>${m2t(arr)}</b><span>${esc(String(sg.to))}に着陸</span><small>飛行時間 約${fmtMin(sg.fly||0)}</small></li>
+      <li><b>${m2t(leave)}</b><span>空港を出る</span><small>手荷物の受け取りなどに${ob}分</small></li>
+    </ol>
+    ${fareOf(it.seg,mode)?`<div class="ttime"><span class="fare">${esc(fareText(fareOf(it.seg,mode)))}</span></div>`:""}
+    <div class="sm">${sg.fixed?"入力した便の時刻でつくっています。":"便が決まったら「移動手段」の画面で入力すると、その時刻に合わせた予定になります。"}${f.link?` <a href="${f.link}" target="_blank" rel="noopener">${f.lk||"便を探す"}</a>`:""}</div>${bookHTML(it.seg,di,it.t)}</div></li>`;
+  }
   return `<li class="trip"><div class="t">${m2t(it.t)}</div><div class="stop tripseg" style="--c:var(--muted)"><div class="nm"><span class="sgi">${f.ic}</span>${esc(f.title)}${it.together?'<span class="pill info">みんなで</span>':""}</div>
-    <div class="ttime"><b>${m2t(it.t)}${car?"出発":"発"}</b><span>→</span><b>${m2t(it.t+it.seg.min)}${car?"到着":"着"}</b><small>${esc(f.sub)}・約${fmtMin(it.seg.min)}</small>${fareOf(it.seg,mode)?`<span class="fare">${esc(fareText(fareOf(it.seg,mode)))}${it.seg.flight?"":"（目安）"}</span>`:""}</div>
+    <div class="ttime"><b>${m2t(it.t)}${car?"出発":"発"}</b><span>→</span><b>${m2t(it.t+it.seg.min)}${car?"到着":"着"}</b><small>${esc(f.sub)}・約${fmtMin(it.seg.min)}</small>${fareOf(it.seg,mode)?`<span class="fare">${esc(fareText(fareOf(it.seg,mode)))}（目安）</span>`:""}</div>
     <div class="sm">${f.train?"時刻は目安です。この時刻で乗換案内を開くと、乗る電車を確認できます。":""}${f.link?` <a href="${f.link}" target="_blank" rel="noopener">${f.lk||"経路"}</a>`:""}</div>${bookHTML(it.seg,di,it.t)}</div></li>`;
 }
 // 1日目の観光開始を日ごとに指定したときは、その時刻に現地に着くようにする
@@ -4343,7 +4523,7 @@ function chosenOpt(){ const M=meetingPlan(); if(!M||!M.options||!M.options.lengt
 function meetTimeStr(p){ let o=null; try{ o=chosenOpt(); }catch(e){} return o? m2t(meetFor(o,p)) : ((p&&p.meet&&p.meet.time)||"10:00"); }
 // 旅の行き帰りの情報（1回の描画のあいだは覚えておく）
 let TRIPMEMO={seq:-1,v:null}; let RENDERSEQ=0;
-function tripMemo(){ if(TRIPMEMO.seq===RENDERSEQ) return TRIPMEMO.v; let v=null; try{ const tr=myTrip(); if(tr){ const back=tr.backList.reduce((a,b)=>a+(b.seg?b.seg.min:0),0)+10; v={arrive:t2m(tr.hub.time),backMin:back,label:tr.label,hub:tr.hub.place||tr.hub.name}; } }catch(e){} TRIPMEMO={seq:RENDERSEQ,v}; return v; }
+function tripMemo(){ if(TRIPMEMO.seq===RENDERSEQ) return TRIPMEMO.v; let v=null; try{ const tr=myTrip(); if(tr){ const back=tr.backList.reduce((a,b)=>a+(b.seg?b.seg.min:0),0)+10; v={arrive:t2m(tr.hub.time),backMin:back,label:tr.label,hub:tr.hub.place||tr.hub.name,endBy:backEndBy(),flWarn:tr.flWarn||""}; } }catch(e){} TRIPMEMO={seq:RENDERSEQ,v}; return v; }
 function meetStartNode(){
   const p=APP.project; if(!p||!p.meet||!p.meet.useForDay1||!p.meet.point) return null;
   const pt=p.meet.point; return {name:"集合："+pt.name,place:pt.name,lat:pt.lat,lng:pt.lng,meet:true,time:meetTimeStr(p),note:"合流プランで決めた集合場所"};
@@ -4423,7 +4603,7 @@ function parseCfg(t){ t=String(t||"").trim(); if(!t) return null; const m=t.matc
 
 /* ---------- 描画（全体） ---------- */
 // 入力中の文字が、裏での再描画で消えないように覚えておく
-const DRAFT={}; const DRAFT_IDS=["foodQ","destQ","wishIn","askStQ","smQ","hotelName","qsQ","rkId","gpKey"];
+const DRAFT={}; const DRAFT_IDS=["foodQ","destQ","wishIn","askStQ","smQ","hotelName","qsQ","rkId","gpKey","myShop"];
 document.addEventListener("input",e=>{ const t=e.target; if(t&&DRAFT_IDS.includes(t.id)) DRAFT[t.id]=t.value; });
 function render(){
   RENDERSEQ++;
@@ -4438,7 +4618,7 @@ function render0(){
   const planMode = APP.view==="project" && (APP.ptab==="plan"||APP.ptab==="result") && S;
   $("#pbar").innerHTML = APP.view==="project" ? pbarHTML() : "";
   $("#stepper").hidden=!planMode; $("#navbar").hidden=!planMode; $("#resetBtn").hidden=!planMode;
-  if(planMode){ if(APP.ptab==="result") S.step=6; renderPlan(); if(APP.ptab==="plan"&&S.step===6){ APP.ptab="result"; $("#pbar").innerHTML=pbarHTML(); } else if(APP.ptab==="result"&&S.step!==6){ APP.ptab="plan"; $("#pbar").innerHTML=pbarHTML(); } return; }
+  if(planMode){ if(APP.ptab==="result") S.step=7; renderPlan(); if(APP.ptab==="plan"&&S.step===7){ APP.ptab="result"; $("#pbar").innerHTML=pbarHTML(); } else if(APP.ptab==="result"&&S.step!==7){ APP.ptab="plan"; $("#pbar").innerHTML=pbarHTML(); } return; }
   document.querySelectorAll(".foot").forEach(f=>f.hidden=true);
   $("#wrap").classList.toggle("wide", APP.view==="project");
   const html = APP.view==="home"?homeHTML() : APP.view==="profile"?profileHTML() : APP.view==="join"?joinHTML() : APP.view==="project"?overviewHTML() : `<div class="empty" style="margin-top:30px"><span class="spin"></span>読み込んでいます…</div>`;
@@ -4470,7 +4650,7 @@ document.addEventListener("click",async e=>{
     case "dup": { const p=APP.projects.find(x=>x.id===v)||P; if(p) duplicateProject(p); break; }
     case "del": { const p=APP.projects.find(x=>x.id===v)||P; confirmBox(`「${p?p.title:"この旅行"}」を削除しますか？メンバー全員の画面からも消えます。`,async()=>{ try{ await Store.remove(v); if(APP.pid===v){ APP.view="home"; APP.pid=null; APP.project=null; S=null; if(unsubProj){unsubProj();unsubProj=null;} } toast("削除しました"); render(); }catch(er){ toast(fbErr(er)); } },"削除する"); break; }
     case "leave": confirmBox("この旅行から退出しますか？",async()=>{ try{ await Store.leave(v); if(APP.pid===v){ if(unsubProj){unsubProj();unsubProj=null;} APP.view="home"; APP.pid=null; APP.project=null; S=null; } toast("退出しました"); render(); }catch(er){ toast(fbErr(er)); } },"退出する"); break;
-    case "ptab": APP.ptab=v; if(v==="result"&&S){ S.step=6; } else if(v==="plan"&&S&&S.step===6){ S.step=5; } if(v==="result"){ viewDay=0; hlStop=null; } render(); window.scrollTo(0,0); break;
+    case "ptab": APP.ptab=v; if(v==="result"&&S){ S.step=7; } else if(v==="plan"&&S&&S.step===7){ S.step=6; } if(v==="result"){ viewDay=0; hlStop=null; } render(); window.scrollTo(0,0); break;
     case "share": openShare(); break;
     case "copyInvite": try{ await navigator.clipboard.writeText($("#sheet").dataset.text); $("#shMsg").textContent="招待メッセージをコピーしました。"; }catch(er){ const i=$("#invUrl"); i.select(); $("#shMsg").textContent="コピーできなかったため、上のリンクを選択しました。長押しでコピーしてください。"; } break;
     case "nativeShare": try{ await navigator.share({title:"たびルート",text:$("#sheet").dataset.text}); }catch(er){} break;
