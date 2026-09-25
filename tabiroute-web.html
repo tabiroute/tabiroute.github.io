@@ -3,6 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- Google AdSense -->
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6192657050526212" crossorigin="anonymous"></script>
 <title>旅行プラン自動作成アプリ たびルート｜旅程表・旅のしおりを無料で作成</title>
 <meta name="description" content="行き先と行きたい場所を選ぶだけで、旅行の予定表（旅程表）と回る順番のルート地図を自動で作成。全国47都道府県の人気観光スポット、朝・昼・夜のお店、ホテルも提案。LINEで友達と共有し、新幹線や飛行機でどこで合流するかも提案する無料の旅行計画アプリです。">
 <!-- ▼ サイトのURLを変えたときは、このページ内の https://tabiroute.github.io/ をすべて書き換えてください -->
@@ -1962,7 +1964,8 @@ function flightHTML(){
   h+=`<h2 class="sub">${esc(nm)}の便 <small>決まっていれば入力してください</small></h2>
   <p class="note">${lm==="air"?"便名":"列車名"}と出発時刻を入れると、<b>その便に合わせた予定表</b>になります（${where}には出発の${chk}分前に着くように計算します）。決まっていなければ空のままで大丈夫です。</p>
   <div class="flbox">${flRow("out","行き（出発日）")}${flRow("ret","帰り（最終日）")}</div>
-  ${airHTML()}`;
+  ${airHTML()}
+  ${transitPanelHTML()}`;
   if(msg.flp) h+=`<p class="status" style="margin-top:6px">${esc(msg.flp)}</p>`;
   if(fo||fb) h+=`<p class="note">${fo?`行きは <b>${esc((lm==="air"?flNo(fo.no):fo.no)||"入力した便")} ${esc(fo.dep)}発</b>`:""}${fo&&fb?"／":""}${fb?`帰りは <b>${esc((lm==="air"?flNo(fb.no):fb.no)||"入力した便")} ${esc(fb.dep)}発</b>`:""} で予定表をつくります。</p>`;
   else h+=`<p class="note">便が未定のあいだは、<b>目安の時間帯</b>で予定表をつくります。上のリンクから実際の時刻を調べて入力してください。</p>`;
@@ -2219,8 +2222,9 @@ function buildPlan(){
     else { const a=planFor("transit"), b=planFor("car"); a.mode="transit"; b.mode="car"; pick=a.cost<=b.cost?a:b; alt=pick===a?b:a; }
     const {seq,r}=pick;
     const out={di,ord:seq,items:r.items,endT:r.t,startT:r.startT,over:r.over,late:r.late,km:r.km,from,to,hotel:He,mode:pick.mode,auto:!fixed,manual:!!(S.dayMode&&S.dayMode[di]),alt:alt?{mode:alt.mode,cost:Math.round(alt.cost),mine:Math.round(pick.cost)}:null};
-    if(trip&&di===0) out.tripOut=trip.out;
-    if(trip&&di===last) out.tripBack=tripBackItems(trip,r.t);
+    if(trip) tcKick();
+    if(trip&&di===0){ const o=trip.out; out.tripOut=tItems("out",trip.label,o)||o; }
+    if(trip&&di===last){ const o=tripBackItems(trip,r.t); out.tripBack=tItems("ret",trip.label,o)||o; }
     return out;
   });
   return {H,days,stops,trip,split:!!(S.hotelSplit&&nNights()>0),nightHotels:Array.from({length:nNights()},(_,ni)=>hotelPoint(stops,ni))};
@@ -3562,7 +3566,8 @@ function jsonp(url,ms){ return new Promise((res,rej)=>{
   setTimeout(()=>fin({e:new Error("timeout")}),ms||9000);
 }); }
 const KEYS={get rakuten(){ try{return localStorage.getItem("tabiroute.rakutenId")||""}catch(e){return ""} },
-            get gplaces(){ try{return localStorage.getItem("tabiroute.gplacesKey")||""}catch(e){return ""} }};
+            get gplaces(){ try{return localStorage.getItem("tabiroute.gplacesKey")||""}catch(e){return ""} },
+            get transit(){ try{return (localStorage.getItem("tabiroute.transitApi")||"").replace(/\/+$/,"")}catch(e){return ""} }};
 function setKey(k,v){ try{ v?localStorage.setItem("tabiroute."+k,v):localStorage.removeItem("tabiroute."+k) }catch(e){} }
 function stars(v){ const n=Math.max(0,Math.min(5,+v||0)); const full=Math.round(n*2)/2;
   let o=""; for(let i=1;i<=5;i++) o += full>=i?"★":(full>=i-.5?"⯨":"☆"); return o; }
@@ -3599,6 +3604,18 @@ function popBadge(o,kind){
 }
 function rateBadge(r,c,src){ if(r==null) return "";
   return `<span class="rate" title="${esc(src||"")}の評価"><b>${(+r).toFixed(2)}</b><i>${stars(r)}</i>${c?`<small>${c}件</small>`:""}${src?`<em>${esc(src)}</em>`:""}</span>`; }
+function transitPanelHTML(){
+  const open=APP.keyOpen==="transit", on=transitOn();
+  const st=TQ.busy?"調べています…":(msg.tc||(on?(TQ.plan==="standard"?"実際のダイヤで予定表をつくっています。":"つながりました。"):""));
+  return `<div class="keybox"><button type="button" class="linkbtn" data-act="keyOpen" data-v="transit">${open?"▾":"▸"} 実際の電車の時刻を自動で入れる設定${on?'<span class="pill ok">設定済み</span>':"（任意）"}</button>
+  ${open?`<div class="keyin">
+    <p class="note">自分で立てた<b>乗換プロキシ</b>（Cloudflare Workers）のURLを入れると、行き・帰りの経路を<b>駅すぱあと API</b>で調べて、<b>実際に走っている電車の時刻</b>で予定表をつくります。空のままなら、これまでどおり目安の時刻＋乗換案内リンクで動きます。</p>
+    <div class="row"><input type="text" id="tqUrl" placeholder="例：https://tabiroute-transit.あなた.workers.dev" value="${esc(KEYS.transit)}" aria-label="乗換プロキシのURL" autocomplete="off" spellcheck="false"><button type="button" class="btn small primary" data-act="saveTq">保存</button></div>
+    ${st?`<p class="status">${esc(st)}</p>`:""}
+    <p class="note">立て方は、配布した <b>worker</b> フォルダの <b>README</b> に書いてあります。アクセスキーはCloudflare側に置くので、この画面には入れません。<br>
+    ※ 駅すぱあと API の<b>フリープラン</b>では時刻を取得できません（経路探索は「駅すぱあと for Web」のURLを返す仕様で、時刻表情報は非対応）。実際の時刻が必要な場合は<b>スタンダードプラン</b>（90日間の無料評価版あり）が必要です。</p>
+    </div>`:""}</div>`;
+}
 function keyPanelHTML(which){
   const open=APP.keyOpen===which;
   return `<div class="keybox"><button type="button" class="linkbtn" data-act="keyOpen" data-v="${which}">${open?"▾":"▸"} 評価を表示する設定（無料・任意）</button>
@@ -3609,6 +3626,106 @@ function keyPanelHTML(which){
     : `<div class="keyin"><p class="note">食べログは外部サイトに点数を公開していないため、点数を自動で取り込むことができません。下の「食べログ」ボタンから、その店の評価をすぐに確認できます。<br>Google Places APIキー（無料枠あり）を入れると、かわりに<b>Googleの口コミ評価</b>を表示できます。キーはこの端末にだけ保存されます。</p>
        <div class="row"><input type="text" id="gpKey" placeholder="Google Places APIキー" value="${esc(KEYS.gplaces)}" aria-label="Google Places APIキー" autocomplete="off"><button type="button" class="btn small primary" data-act="saveGp">保存</button></div>
        <p class="note"><a href="https://console.cloud.google.com/apis/library/places.googleapis.com" target="_blank" rel="noopener">Google CloudでPlaces API（New）を有効にしてキーを作る</a></p></div>`):""}</div>`;
+}
+/* ==========================================================================
+   実際に走っている電車を取りに行く（自分で立てた乗換プロキシがあるときだけ）
+   - プロキシのURLを入れると、行き・帰りの経路を「駅すぱあと API」で調べて、
+     実際の発車時刻・乗る路線・乗り換え時間・運賃で予定表をつくります。
+   - URLが空のとき、またはプロキシが「時刻は取れない」と答えたときは、
+     これまでどおり目安の時刻＋乗換案内リンク＋手入力で動きます。
+   ========================================================================== */
+const TQ={ req:{}, busy:0, err:"", plan:null };
+function transitOn(){ return !!KEYS.transit; }
+async function tGet(path,params){
+  const api=KEYS.transit; if(!api) return null;
+  const qs=Object.entries(params||{}).filter(([k,v])=>v!==undefined&&v!==null&&v!=="").map(([k,v])=>k+"="+enc(v)).join("&");
+  const u=api+path+(qs?"?"+qs:"");
+  if(TQ.req[u]!==undefined) return TQ.req[u];
+  try{
+    const r=await fetchT(u,{headers:{Accept:"application/json"}},12000);
+    const j=await r.json();
+    TQ.req[u]=j; if(j&&j.plan) TQ.plan=j.plan;
+    return j;
+  }catch(e){ TQ.req[u]=null; TQ.err=netErr(e); return null; }
+}
+// 行き＝自宅から「飛行機・新幹線に乗る空港／駅」まで、帰り＝降りた空港／駅から自宅まで
+function tCourseKey(dir){
+  let tr=null; try{ tr=myTrip(); }catch(e){}
+  if(!tr) return null;
+  const home=tr.label||"", last=Math.max(0,(S.days||1)-1);
+  if(!home) return null;
+  if(dir==="out"){
+    const fi=tr.out.findIndex(x=>x.type==="trip"&&x.seg&&isRide(x.seg));
+    if(fi<0) return null;
+    const sg=tr.out[fi].seg;
+    const to=sg.flight? String(sg.from||"") : stName(sg.from||"");
+    if(!to||norm(to)===norm(home)) return null;
+    return {dir,from:home,to,date:isoOf(dayDate(0)),time:m2t(tr.out[fi].t),type:"arrival",fi};
+  }
+  let bi=null; try{ bi=tripBackItems(tr,t2m((dayTime(last)||{}).end||"17:00")); }catch(e){ return null; }
+  const fi=bi.findIndex(x=>x.type==="trip"&&x.seg&&isRide(x.seg));
+  if(fi<0) return null;
+  const sg=bi[fi].seg;
+  const from=sg.flight? String(sg.to||"") : stName(sg.to||"");
+  if(!from||norm(from)===norm(home)) return null;
+  return {dir,from,to:home,date:isoOf(dayDate(last)),time:m2t(bi[fi].t+(sg.min||0)),type:"departure",fi};
+}
+function tStore(){ if(!S.tc||typeof S.tc!=="object") S.tc={}; return S.tc; }
+// 予定表を開いたときに、行き・帰りを1回ずつ調べる（同じ条件なら調べ直しません）
+let TCKICK=0;
+function tcKick(force){
+  if(!transitOn()||!S) return;
+  if(!force && Date.now()-TCKICK<1500) return;
+  TCKICK=Date.now();
+  setTimeout(()=>{ ["out","ret"].forEach(d=>{ try{ loadTCourse(d); }catch(e){} }); },0);
+}
+function tCourse(dir){
+  const k=tCourseKey(dir); if(!k) return null;
+  const id=[k.from,k.to,k.date,k.time,k.type].join("|");
+  const v=tStore()[dir];
+  return (v&&v.id===id&&v.legs&&v.legs.length)? v : null;
+}
+async function loadTCourse(dir){
+  if(!transitOn()) return;
+  const k=tCourseKey(dir); if(!k) return;
+  const id=[k.from,k.to,k.date,k.time,k.type].join("|");
+  const cur=tStore()[dir]; if(cur&&cur.id===id) return;
+  TQ.busy++; render();
+  const j=await tGet("/course",{from:k.from,to:k.to,date:k.date.replace(/-/g,""),time:k.time.replace(":",""),type:k.type,plane:"0"});
+  TQ.busy--;
+  if(j&&j.mode==="times"&&j.courses&&j.courses.length){
+    const c=j.courses[0];
+    tStore()[dir]={id,legs:c.legs||[],fare:c.fare||null,at:Date.now()};
+    msg.tc="";
+  } else {
+    tStore()[dir]={id,legs:[],url:(j&&j.url)||"",at:Date.now()};
+    msg.tc=(j&&j.note)||"このアクセスキーでは時刻を取れませんでした。目安の時刻で表示しています。";
+  }
+  save(); render();
+}
+// 実際の経路を、予定表の行の形に直して、飛行機・新幹線の行とつなげる
+function tItems(dir,label,orig){
+  try{
+    const c=tCourse(dir); if(!c||!orig||!orig.length) return null;
+    const k=tCourseKey(dir); if(!k||k.fi==null||k.fi<0) return null;
+    const legs=[]; let prev=null;
+    for(const l of c.legs){
+      if(!l||!l.dep||!l.arr) return null;
+      let t=t2m(l.dep), a=t2m(l.arr); if(a<t) a+=1440;
+      if(prev!=null){ while(t<prev){ t+=1440; a+=1440; } if(prev<t) legs.push({type:"xfer",t:prev,min:t-prev,place:l.from||"",real:true,back:dir==="ret"}); }
+      legs.push({type:"trip",t,back:dir==="ret",real:{dep:t,arr:a},tsrc:true,fare:(legs.length?null:(c.fare||null)),
+        seg:{kind:"ride",from:l.from||"",to:l.to||"",line:l.line||l.train||"電車",min:Math.max(1,a-t),plain:true}});
+      prev=a;
+    }
+    if(!legs.length) return null;
+    if(dir==="out"){
+      // 便に間に合うか確かめる（乗り換え案内の答えが遅い便だったとき用）
+      const need=orig[k.fi]&&orig[k.fi].t, lastLeg=[...legs].reverse().find(x=>x.type==="trip");
+      if(need!=null&&lastLeg&&lastLeg.real&&lastLeg.real.arr>need+0.5){ lastLeg.late=true; lastLeg.lateMin=Math.round(lastLeg.real.arr-need); }
+      return [{type:"tripstart",t:legs[0].t,label},...legs,...orig.slice(k.fi)];
+    }
+    return [...orig.slice(0,k.fi+1),...legs,{type:"tripend",t:prev,label}];
+  }catch(e){ return null; }
 }
 /* ---- Googleの口コミ評価（キーがあるときだけ） ---- */
 const gpCache={}; let gpBusy=0;
@@ -3876,6 +3993,12 @@ document.addEventListener("click",async e=>{
   if(d.act==="rpaste2"){ const v=($("#pasteBox")?.value||""); if(applyRide(d.v,parseRide(v))) APP.pasteFor=null; return; }
   if(d.act==="rpx"){ APP.pasteFor=null; msg.flp=""; render(); return; }
   if(d.act==="flClear"){ if(S.flight) delete S.flight[d.v]; save(); render(); return; }
+  if(d.act==="saveTq"){ const v=($("#tqUrl")?.value||"").trim().replace(/\/+$/,"");
+    try{ localStorage.setItem("tabiroute.transitApi",v); }catch(e){}
+    for(const k in TQ.req) delete TQ.req[k]; TQ.plan=null; msg.tc=""; if(S) S.tc={};
+    save(); render();
+    if(v){ const j=await tGet("/ping",{}); msg.tc = j&&j.ok ? (j.times?"つながりました。実際のダイヤで予定表をつくります。":"つながりましたが、このアクセスキーでは時刻を取得できません（フリープランなど）。目安の時刻で表示します。") : "つながりませんでした。URLを確認してください。"; render(); tcKick(true); }
+    return; }
   if(d.act==="saveGp"){ const v=($("#gpKey")?.value||"").trim(); setKey("gplacesKey",v); for(const k in gpCache) delete gpCache[k]; render(); if(v) loadGRates(foodShown()); return; }
   if(d.hdec!==undefined){ const c=S.hotelDecCands[+d.hdec]; if(c){ S.hotelName=c.name; S.hotelLoc={lat:c.lat,lng:c.lng}; S.hotelAnchor=""; S.hotelInfo=c; save(); render(); } return; }
   if(d.aione){ const hint=($("#hint-"+d.aione)?.value||"").trim(); return aiWish([d.aione],hint); }
@@ -5541,7 +5664,7 @@ function tripItemHTML(it,trip,di){
   if(it.type==="tripend") return `<li class="trip"><div class="t">${m2t(it.t)}</div><div class="stop" style="--c:var(--ink)"><div class="nm">${ICON.home} ${esc(it.label)} に到着・おつかれさまでした</div></div></li>`;
   if(it.type==="merge") return `<li class="trip"><div class="t">${m2t(it.t)}</div><div class="stop" style="--c:var(--hot)"><div class="nm"><span class="pill meal">合流</span>${esc(it.place)}で${esc(it.with)}と合流</div></div></li>`;
   if(it.type==="split") return `<li class="trip"><div class="t">${m2t(it.t)}</div><div class="stop" style="--c:var(--hot)"><div class="nm"><span class="pill warn">解散</span>${esc(it.place)}で${esc(it.with)}と別れる</div>${it.note?`<div class="sm">${esc(it.note)}</div>`:""}</div></li>`;
-  if(it.type==="xfer") return `<li class="trip"><div class="t">${m2t(it.t)}</div><div class="stop xferrow" style="--c:var(--muted)"><div class="nm">${ICON.walk}${esc(it.place||"")}で乗り換え<b>${it.min}分</b></div><div class="sm">${it.min>=9?"会社・のりばが変わるため、歩く時間を入れています。":"のりばの移動ときっぷの時間です。"}</div></div></li>`;
+  if(it.type==="xfer") return `<li class="trip"><div class="t">${m2t(it.t)}</div><div class="stop xferrow" style="--c:var(--muted)"><div class="nm">${ICON.walk}${esc(it.place||"")}で乗り換え<b>${it.min}分</b></div><div class="sm">${it.real?"実際のダイヤでの乗り継ぎ時間です。":(it.min>=9?"会社・のりばが変わるため、歩く時間を入れています。":"のりばの移動ときっぷの時間です。")}</div></div></li>`;
   const f=tripSegInfo(it.seg,trip.label,mode,di,it.t);
   const car=/車/.test(f.sub)&&!/電車/.test(f.sub);
   // 新幹線・特急で便が決まっているときは、駅に着く時刻から出す
@@ -5574,12 +5697,12 @@ function tripItemHTML(it,trip,di){
     <div class="flfind2">${f.link?`<a href="${f.link}" target="_blank" rel="noopener">${ICON.search}${f.lk||"便を探す"}</a>`:""}<a href="${gflightsURL(sg,di)}" target="_blank" rel="noopener">Googleフライトで料金を見る</a></div>
     ${sg.fixed?"":'<div class="sm">時刻表で便名と時刻を控えて、「移動手段」の画面で入れると、その便に合わせた予定になります。</div>'}${bookHTML(it.seg,di,it.t)}</div></li>`;
   }
-  const rk=rideKey(it), rr=it.real;
-  return `<li class="trip"><div class="t">${m2t(it.t)}</div><div class="stop tripseg" style="--c:var(--muted)"><div class="nm"><span class="sgi">${f.ic}</span>${esc(f.title)}${it.together?'<span class="pill info">みんなで</span>':""}${rr?'<span class="pill ok">実際の電車</span>':""}</div>
-    <div class="ttime"><b>${m2t(it.t)}${car?"出発":"発"}</b><span>→</span><b>${m2t(it.t+it.seg.min)}${car?"到着":"着"}</b><small>${esc(f.sub)}・約${fmtMin(it.seg.min)}</small>${fareOf(it.seg,mode)?`<span class="fare">${esc(fareText(fareOf(it.seg,mode)))}（目安）</span>`:""}</div>
+  const rk=rideKey(it), rr=it.real, ts=!!it.tsrc;
+  return `<li class="trip"><div class="t">${m2t(it.t)}</div><div class="stop tripseg" style="--c:var(--muted)"><div class="nm"><span class="sgi">${f.ic}</span>${esc(f.title)}${it.together?'<span class="pill info">みんなで</span>':""}${rr?`<span class="pill ok">${ts?"実際のダイヤ":"実際の電車"}</span>`:""}</div>
+    <div class="ttime"><b>${m2t(it.t)}${car?"出発":"発"}</b><span>→</span><b>${m2t(it.t+it.seg.min)}${car?"到着":"着"}</b><small>${esc(f.sub)}・約${fmtMin(it.seg.min)}</small>${it.fare!=null?`<span class="fare">${esc(yen(it.fare))}</span>`:(fareOf(it.seg,mode)?`<span class="fare">${esc(fareText(fareOf(it.seg,mode)))}（目安）</span>`:"")}</div>
     ${it.late?`<div class="sm warnline">このままでは次の乗り物に${it.lateMin?`${it.lateMin}分`:""}間に合いません。1本前の電車にしてください。</div>`:""}
-    <div class="sm">${rr?"乗換案内で調べた実際の電車の時刻です。":(f.train?"時刻は目安です。乗換案内で実際の電車を調べて、下から入れられます。":"")}${f.link?` <a href="${f.link}" target="_blank" rel="noopener">${f.lk||"経路"}</a>`:""}</div>
-    ${f.train?`<div class="ridepaste"><button type="button" class="btn small ${rr?"ghost":"primary"}" data-act="ridePaste" data-v="${esc(rk)}">${ICON.copy||""}${rr?"別の電車に変える":"実際の電車の時刻を入れる"}</button>${rr?`<button type="button" class="btn small ghost" data-act="rideClear" data-v="${esc(rk)}">目安に戻す</button>`:""}</div>`:""}
+    <div class="sm">${ts?"駅すぱあと APIで調べた、実際に走っている電車の時刻です。":(rr?"乗換案内で調べた実際の電車の時刻です。":(f.train?"時刻は目安です。乗換案内で実際の電車を調べて、下から入れられます。":""))}${f.link?` <a href="${f.link}" target="_blank" rel="noopener">${f.lk||"経路"}</a>`:""}</div>
+    ${f.train&&!ts?`<div class="ridepaste"><button type="button" class="btn small ${rr?"ghost":"primary"}" data-act="ridePaste" data-v="${esc(rk)}">${ICON.copy||""}${rr?"別の電車に変える":"実際の電車の時刻を入れる"}</button>${rr?`<button type="button" class="btn small ghost" data-act="rideClear" data-v="${esc(rk)}">目安に戻す</button>`:""}</div>`:""}
     ${APP.ridePasteFor===rk?`<div class="flpbox"><label for="ridePasteBox">乗換案内の結果をコピーして、ここに貼り付けてください（例：<b>12:19発 12:51着</b>）</label>
       <textarea id="ridePasteBox" rows="3" placeholder="例：12:19 → 12:51"></textarea>
       <div class="row"><button type="button" class="btn small primary" data-act="ridePaste2" data-v="${esc(rk)}">この時刻にする</button>
@@ -5675,7 +5798,7 @@ function parseCfg(t){ t=String(t||"").trim(); if(!t) return null; const m=t.matc
 
 /* ---------- 描画（全体） ---------- */
 // 入力中の文字が、裏での再描画で消えないように覚えておく
-const DRAFT={}; const DRAFT_IDS=["foodQ","destQ","wishIn","askStQ","smQ","hotelName","qsQ","rkId","gpKey","myShop"];
+const DRAFT={}; const DRAFT_IDS=["foodQ","destQ","wishIn","askStQ","smQ","hotelName","qsQ","rkId","gpKey","tqUrl","myShop"];
 document.addEventListener("input",e=>{ const t=e.target; if(t&&DRAFT_IDS.includes(t.id)) DRAFT[t.id]=t.value;
   if(t&&t.dataset&&t.dataset.jnote&&APP.project){ const k=t.dataset.jnote, v=t.value;
     clearTimeout(jnT); jnT=setTimeout(()=>{ pupdate({["journal."+k]:v}); },700); }
