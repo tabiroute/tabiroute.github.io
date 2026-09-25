@@ -897,6 +897,13 @@ html{overflow-x:clip}
 .pc-pref{display:block;position:relative;background:#eef3fa}
 .pc-pref img{width:100%;height:100%;object-fit:cover;object-position:center;display:block}
 
+.flfind2{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:4px;font-size:12.5px}
+.flfind2 a{font-weight:700}
+.flfind2 svg{width:13px;height:13px;vertical-align:-2px;margin-right:2px}
+.ridepaste{margin-top:8px;display:flex;flex-wrap:wrap;gap:6px}
+.xferrow .nm{color:var(--muted);font-weight:700;display:flex;align-items:center;gap:6px}
+.xferrow .nm svg{width:16px;height:16px}
+.xferrow .nm b{color:var(--ink)}
 .flbox{display:grid;gap:10px;margin-top:8px}
 .airrow{display:grid;grid-template-columns:1fr;gap:10px;margin-top:8px}
 .airrow select{width:100%;min-width:0;box-sizing:border-box;font:inherit;font-size:14px;border:1px solid var(--line);border-radius:10px;padding:9px 10px;background:var(--surface);min-height:42px}
@@ -1931,6 +1938,7 @@ function flRow(dir,label){
     ${f.no?`<p class="note flfind">${al&&al.name?esc(al.name)+"の便です。":""}
       <a href="${air?al.g:tl.g}" target="_blank" rel="noopener">${ICON.search}${esc(air?flNo(f.no):f.no)}の時刻を調べる</a>
       ${air&&al&&al.fa?`<a href="${al.fa}" target="_blank" rel="noopener">運航状況を見る</a>`:""}
+      ${air&&flySchedURL()?`<a href="${flySchedURL()}" target="_blank" rel="noopener">この区間の時刻表を見る</a>`:""}
       ${!air?`<a href="${tl.jr}" target="_blank" rel="noopener">時刻表を見る</a>`:""}</p>`:""}
     <div class="flpaste">
       <button type="button" class="btn small primary" data-act="rpaste" data-v="${dir}">${ICON.copy||""}コピーした時刻を貼り付ける</button>
@@ -3855,6 +3863,15 @@ document.addEventListener("click",async e=>{
   if(d.act==="saveRk"){ const v=($("#rkId")?.value||"").trim(); setKey("rakutenId",v); msg.rk=""; if(v){ S.hotelCands&&S.hotelCands.forEach(h=>{h.rate=null;h.rkURL=null}); render(); rakutenRates(); } else { (S.hotelCands||[]).forEach(h=>{h.rate=null;h.rkURL=null}); sortHotels(); save(); render(); } return; }
   if(d.longmode){ setLongMode(d.longmode); return; }
   if(d.act==="airClear"){ S.air={}; save(); render(); return; }
+  if(d.act==="ridePaste"){ msg.ride=""; let txt=""; try{ txt=await navigator.clipboard.readText(); }catch(er){ txt=""; }
+    const v=txt?parseRide(txt):null;
+    if(v&&v.dep&&v.arr){ setRealRide(d.v,{dep:v.dep,arr:v.arr}); APP.ridePasteFor=null; msg.ride=""; render(); return; }
+    APP.ridePasteFor=d.v; render(); setTimeout(()=>$("#ridePasteBox")?.focus(),30); return; }
+  if(d.act==="ridePaste2"){ const v=parseRide($("#ridePasteBox")?.value||"");
+    if(!v.dep||!v.arr){ msg.ride="出発と到着の時刻を読み取れませんでした。「12:19 → 12:51」のように、時刻が2つ入った部分をコピーしてください。"; render(); return; }
+    setRealRide(d.v,{dep:v.dep,arr:v.arr}); APP.ridePasteFor=null; msg.ride=""; render(); return; }
+  if(d.act==="ridePx"){ APP.ridePasteFor=null; msg.ride=""; render(); return; }
+  if(d.act==="rideClear"){ setRealRide(d.v,null); render(); return; }
   if(d.act==="rpaste"){ APP.pasteFor=null; return pasteRide(d.v); }
   if(d.act==="rpaste2"){ const v=($("#pasteBox")?.value||""); if(applyRide(d.v,parseRide(v))) APP.pasteFor=null; return; }
   if(d.act==="rpx"){ APP.pasteFor=null; msg.flp=""; render(); return; }
@@ -4252,7 +4269,7 @@ const FIREBASE_CONFIG = {
 };
 const FBV = "10.12.2";
 const CLIENT_ID = Math.random().toString(36).slice(2);
-const PLAN_KEYS = ["dayMode","honten","dayTimes","perDay","rental","people","rooms","pref","city","cityOther","days","date","start","end","wishes","picks","ai","hotelMode","hotelName","hotelLoc","hotelAnchor","hotelInfo","hotelDecCands","cond","hotelCands","hotelPick","transport","pace","example","flight","air","myMeal","longMode","rentMode","rentAt","rentBook","hotelSplit","nights"];
+const PLAN_KEYS = ["dayMode","honten","dayTimes","perDay","rental","people","rooms","pref","city","cityOther","days","date","start","end","wishes","picks","ai","hotelMode","hotelName","hotelLoc","hotelAnchor","hotelInfo","hotelDecCands","cond","hotelCands","hotelPick","transport","pace","example","flight","air","rideT","myMeal","longMode","rentMode","rentAt","rentBook","hotelSplit","nights"];
 const UI_KEYS = ["step","visited","foodTab","food","foodS","foodSort","rentCands","rentKey","moreSpots","moreNear","moreFood"];
 const STATUS = ["計画中","予約済み","旅行中","完了"];
 const MEMBER_C = ["#2356F6","#FF5A5F","#0E9F6E","#7A5AF8","#F08C00","#0891B2","#DB2777","#65A30D"];
@@ -4920,7 +4937,7 @@ function segHTML(s,person,di,t){
     if(isSt(person.label) && !P.air && person.mode!=="car") return `<li><span class="sgi">${ICON.train}</span><span>${esc(person.label)} → ${esc(stName(s.to))}<small>電車 約${fmtMin(s.min)}${t!=null?`・${m2t(t)}発`:""}</small></span><a href="${wayURL(person.label,stName(s.to),di||0,t)}" target="_blank" rel="noopener">${wayLabel(t)}</a></li>`;
     return `<li><span class="sgi">${person.mode==="car"?ICON.car:ICON.train}</span><span>${esc(person.label||"出発地")} → ${esc(stName(s.to))}<small>${person.mode==="car"?"車":"電車・バス"} 約${fmtMin(s.min)}${t!=null&&person.mode!=="car"?`・${m2t(t)}発`:""}</small></span><a href="${person.mode==="car"?gmapDir(person.label||(person.lat+","+person.lng),stName(s.to),"driving"):wayURL(person.label||"現在地",stName(s.to),di||0,t)}" target="_blank" rel="noopener">${person.mode==="car"?"経路":wayLabel(t)}</a></li>`; }
   if(s.kind==="transfer") return `<li><span class="sgi">${ICON.train}</span><span>${esc(stName(s.from))} → ${esc(stName(s.to))}<small>電車・バス 約${fmtMin(s.min)}${t!=null?`・${m2t(t)}発`:""}</small></span><a href="${wayURL(stName(s.from),stName(s.to),di||0,t)}" target="_blank" rel="noopener">${wayLabel(t)}</a></li>`;
-  if(s.flight) return `<li><span class="sgi">${ICON.plane}</span><span>${esc(s.from)} → ${esc(s.to)}<small>飛行機 約${fmtMin(s.fly)}（搭乗手続き・移動を含め約${fmtMin(s.min)}）</small></span><a href="${gflURL(s,di||0)}" target="_blank" rel="noopener">便を探す</a></li>`;
+  if(s.flight) return `<li><span class="sgi">${ICON.plane}</span><span>${esc(s.from)} → ${esc(s.to)}<small>飛行機 約${fmtMin(s.fly)}（搭乗手続き・移動を含め約${fmtMin(s.min)}）</small></span><a href="${gflURL(s,di||0)}" target="_blank" rel="noopener">飛んでいる便の時刻表</a></li>`;
   return `<li><span class="sgi">${/新幹線/.test(s.line)?ICON.shinkansen:ICON.train}</span><span>${esc(stName(s.from))} → ${esc(stName(s.to))}<small>${esc(s.line)} 約${fmtMin(s.min)}${t!=null?`・${m2t(t)}発`:""}</small></span><a href="${wayURL(stName(s.from),stName(s.to),di||0,t)}" target="_blank" rel="noopener">${wayLabel(t)}</a></li>`;
 }
 function meetOptionHTML(o,M,i,chosenKey,shownKey){
@@ -5012,6 +5029,82 @@ function revSeg(sg){
   return {...sg,from:sg.to,to:sg.from};
 }
 const LONGLINE=/新幹線|特急|ライナー|しまかぜ|ひのとり|ラピート|サンダーバード|はるか/;
+/* ---- 乗り換えにかかる時間 ---- */
+// 同じ「なんば」でも、近鉄・阪神の大阪難波と南海のなんばは歩いて10分ほどかかります。
+// 大きな駅・会社がちがう乗り換えは、実際に歩く時間を入れておきます。
+const XWALK={"大阪難波":10,"なんば":10,"難波":10,"梅田":10,"大阪":10,"東京":10,"新宿":10,"渋谷":9,"池袋":9,
+ "名古屋":9,"京都":9,"天王寺":9,"博多":9,"横浜":8,"品川":8,"上野":8,"仙台":8,"札幌":8,"三宮":10,"神戸":10,
+ "新大阪":8,"鶴橋":6,"大和西大寺":6,"橿原神宮前":6,"高松":8,"松山":8,"小倉":8,"金沢":8,"新潟":8};
+function xferMin(prev,next){
+  if(!prev||!next) return 0;
+  if(prev.flight||next.flight) return 0;                 // 空港は搭乗手続き・手荷物の時間で別に見ています
+  if(prev.kind==="access"&&next.kind==="access") return 0;
+  const lp=String(prev.line||""), lx=String(next.line||"");
+  if(lp&&lp===lx) return 0;                              // 同じ路線に乗り続けるなら乗り換えなし
+  const st=String(next.from||prev.to||"").replace(/駅$/,"");
+  let m=XWALK[st]||5;
+  if(LONGLINE.test(lx)) m+=5;                            // 特急・新幹線は特急券を買う時間とホームまでの移動
+  return m;
+}
+/* ---- 実際に走っている電車の時刻（乗換案内からコピーして貼り付ける） ---- */
+// 無料で使える範囲では時刻表そのものを取り込めないため、
+// 乗換案内で出た「12:19→12:51」をそのまま貼り付けて、本物の電車に合わせます。
+function rideKey(it){
+  const sg=(it&&it.seg)||{};
+  return (it&&it.back?"ret":"out")+"|"+(sg.from||"@start")+">"+(sg.to||"@end")+"|"+(sg.line||sg.kind||"");
+}
+function rideTable(){ if(!S.rideT||typeof S.rideT!=="object") S.rideT={}; return S.rideT; }
+function realRide(it){ const v=rideTable()[rideKey(it)]; return (v&&v.dep)?v:null; }
+function setRealRide(k,v){ const T=rideTable(); if(v) T[k]=v; else delete T[k]; save(); }
+// あとの予定（飛行機など）から逆にたどって、実際の電車に合わせる
+function snapRides(list,back){
+  try{
+    // ① うしろから：間に合う時刻に合わせる（貼り付けた電車があればその時刻を使う）
+    let limit=null;
+    for(let i=list.length-1;i>=0;i--){
+      const it=list[i];
+      if(it.type==="xfer"){ if(limit!=null) limit-=it.min; continue; }
+      if(it.type!=="trip"||!it.seg) continue;
+      const sg=it.seg;
+      if(sg.flight||sg.fixed){ limit=it.t; continue; }
+      const r=realRide(it);
+      if(r){
+        let dep=t2m(r.dep), arr=t2m(r.arr||r.dep); if(arr<dep) arr+=1440;
+        if(limit!=null){ while(dep>limit+720){ dep-=1440; arr-=1440; } }
+        if(dep<-300||dep>2400){ if(limit!=null){ it.t=limit-(sg.min||0); limit=it.t; } continue; }
+        it.real={dep,arr};
+        it.seg=Object.assign({},sg,{min:Math.max(1,arr-dep)});   // 元の経路データは書き換えない
+        it.t=dep; limit=dep;
+      } else if(limit!=null){ it.t=limit-(sg.min||0); limit=it.t; }
+    }
+    // ② 前から：前の区間が終わる前に次が出発しないようにそろえる
+    let end=null, lastRide=null;
+    for(let i=0;i<list.length;i++){
+      const it=list[i];
+      if(it.type==="xfer"){ if(end!=null){ it.t=end; end+=it.min; } continue; }
+      if(it.type!=="trip"||!it.seg) continue;
+      const fixed=!!(it.seg.flight||it.seg.fixed);
+      if(end!=null&&it.t<end-0.5){
+        if(fixed){ const d=Math.round(end-it.t); if(lastRide){ lastRide.late=true; lastRide.lateMin=d; } }
+        else it.t=end;
+      }
+      end=it.t+(it.seg.min||0);
+      if(!fixed) lastRide=it;
+    }
+    // ③ 出発・到着・解散の行を、前後の時刻にそろえる
+    let t=null;
+    for(let i=0;i<list.length;i++){
+      const it=list[i];
+      if(it.type==="trip"&&it.seg){ t=it.t+(it.seg.min||0); continue; }
+      if(it.type==="xfer") continue;
+      if(it.type==="tripstart"){ let nx=null; for(let k=i+1;k<list.length;k++){ const c=list[k]; if(c.type==="xfer"||(c.type==="trip"&&c.seg)){ nx=c; break; } } if(nx) it.t=nx.t; continue; }
+      if(back&&t!=null&&(it.type==="split"||it.type==="tripend")) it.t=t;
+    }
+  }catch(e){}
+  return list;
+}
+function xferList(segs){ return (segs||[]).map((sg,i)=>xferMin((segs||[])[i-1],sg)); }
+function xferSpan(segs){ const a=segs||[]; return a.reduce((x,s)=>x+(s.min||0),0)+xferList(a).reduce((x,b)=>x+b,0); }
 /* ---- 飛行機の便（決まっている場合） ---- */
 // 便名の2文字コード → 航空会社名と、便ごとのページに使う3文字コード
 const AIRLINES=[
@@ -5114,6 +5207,12 @@ function airPick(which){
   return v;
 }
 function setAir(which,v){ S.air={...((S&&S.air)||{})}; if(v) S.air[which]=v; else delete S.air[which]; save(); }
+// 選んだ空港どうしの時刻表（実際に飛んでいる便がそのまま載っています）
+function flySchedURL(){
+  const d=airPick("dep"), a=airPick("arr"); if(!d||!a) return "";
+  const pr=flyPair(flyCity(d),flyCity(a)); if(!pr) return "";
+  return `https://flyteam.jp/city_route/${pr}/flight_schedule`;
+}
 function airHTML(){
   if(longMode()!=="air") return "";
   const dep=airOpts("dep"), arr=airOpts("arr");
@@ -5177,8 +5276,6 @@ function myTrip(key){
     const node=o.type==="enroute" ? (inGroup?(arrivalNode(o)||o.point):(o.final||arrivalNode(o)||o.point)) : o.point;
     hubPt={name:stName(node.id),lat:node.lat,lng:node.lng};
     const groupDep=o.type==="enroute"?meet-o.shared:null;
-    let t=(inGroup?groupDep-10:meet)-per.t;
-    out.push({type:"tripstart",t,label});
     let mine=(per.segs||[]).filter(sg=>!(sg.kind==="access"&&hav(st,tnPt(sg.to)||st)<0.6));
     // 飛行機・新幹線・特急で着いた空港／駅から観光を始める（そこから先の在来線・バスは当日の移動に含める）
     if(!inGroup){
@@ -5189,11 +5286,20 @@ function myTrip(key){
       }
     }
     hubT=meet-hubDrop;
-    mine.forEach(sg=>{ out.push({type:"trip",t,seg:sg}); t+=sg.min; });
+    // 乗り換えの時間を入れて、着く時刻から逆算する
+    const xf=xferList(mine);
+    let t=(inGroup?groupDep-10:hubT)-xferSpan(mine);
+    out.push({type:"tripstart",t,label});
+    mine.forEach((sg,i)=>{
+      if(xf[i]>0){ out.push({type:"xfer",t,min:xf[i],place:stName(sg.from||(mine[i-1]&&mine[i-1].to)||"")}); t+=xf[i]; }
+      out.push({type:"trip",t,seg:sg}); t+=sg.min; });
     if(inGroup){
       const grp=M.members.filter((m,i)=>i!==j&&o.with[i]);
       out.push({type:"merge",t:groupDep-10,place:stName(o.point.id),with:nm(grp)});
-      let t2=groupDep; (o.tailPath||[]).forEach(sg=>{ out.push({type:"trip",t:t2,seg:sg,together:true}); t2+=sg.min; });
+      const tp=o.tailPath||[], xt=xferList(tp);
+      let t2=groupDep; tp.forEach((sg,i)=>{
+        if(xt[i]>0){ out.push({type:"xfer",t:t2,min:xt[i],place:stName(sg.from||(tp[i-1]&&tp[i-1].to)||"")}); t2+=xt[i]; }
+        out.push({type:"trip",t:t2,seg:sg,together:true}); t2+=sg.min; });
       const rest=M.members.filter((m,i)=>i!==j&&!o.with[i]);
       if(rest.length) out.push({type:"merge",t:hubT,place:hubPt.name,with:nm(rest)});
       if(rest.length) backList.push({split:true,place:hubPt.name,with:nm(rest)});
@@ -5226,6 +5332,7 @@ function myTrip(key){
       if(out[0].t<0) flWarn="この便に乗るには前日から移動する必要があります。";
     }
   }
+  snapRides(out,false);
   return {hub:{...hubPt,place:hubPt.name,meet:true,tripHub:true,time:m2t(hubT).padStart(5,"0"),note:""},out,backList,byPublic,label,me:st,opt:o,flWarn};
 }
 // メンバー全員の出発地と、合流するまで（1日目の上に表示・地図にも描く）
@@ -5251,11 +5358,13 @@ function crewHTML(crew){
   ${(()=>{ const tf=tripFare(window.__plan&&window.__plan.trip); return tf&&tf.total>0?`<div class="crew-f">行き帰りの交通費の目安（あなた）：片道 <b>${esc(yen(tf.out))}</b>・往復 <b>${esc(yen(tf.total))}</b><span class="note">（距離からの概算です。実際の料金は予約サイトで確認してください）</span></div>`:""; })()}</div>`;
 }
 function tripBackItems(trip,tEnd){
-  let t=tEnd+10; const out=[];
+  let t=tEnd+10; const out=[]; let prev=null;
   trip.backList.forEach(b=>{
     if(b.split) out.push({type:"split",t,place:b.place,with:b.with,note:b.note});
     else if(b.end) out.push({type:"tripend",t,label:b.label});
-    else { out.push({type:"trip",t,seg:b.seg,together:b.together}); t+=b.seg.min; }
+    else { const x=xferMin(prev,b.seg);
+      if(x>0){ out.push({type:"xfer",t,min:x,place:stName(b.seg.from||(prev&&prev.to)||""),back:true}); t+=x; }
+      out.push({type:"trip",t,seg:b.seg,together:b.together,back:true}); t+=b.seg.min; prev=b.seg; }
   });
   // 帰りの便が決まっているときは、その出発時刻に合わせる
   const fb=fl("ret");
@@ -5271,6 +5380,7 @@ function tripBackItems(trip,tEnd){
       sg.chk=chk;
     }
   }
+  snapRides(out,true);
   return out;
 }
 // 時刻を合わせる区間（飛行機、または新幹線・特急）
@@ -5319,13 +5429,33 @@ function placeWay(x){
 function gmapDir(from,to,tm){ return `https://www.google.com/maps/dir/?api=1&origin=${enc(String(from||""))}&destination=${enc(String(to||""))}&travelmode=${tm||"transit"}`; }
 // 「便を探す」：空港コード（ITM／KOJ）と、行きの日・帰りの日を入れて開く
 function isoOf(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
-function tripLastDate(){ const d=new Date((S.date||isoToday(0))+"T00:00:00"); d.setDate(d.getDate()+Math.max(1,(S.days||1))); return d; }
-function gflURL(sg,di,back){
+// 旅の最終日（S.days は「日数」。1泊2日なら S.days=2 で、最終日は出発日の翌日）
+function tripLastDate(){ const d=new Date((S.date||isoToday(0))+"T00:00:00"); d.setDate(d.getDate()+Math.max(1,(S.days||1))-1); return d; }
+// Googleフライトは、プライベートブラウズだと開いたあとに入力が消えてしまうことがあるため、
+// 「便を探す」は、実際に飛んでいる便名と時刻がそのまま載っている時刻表のページを開きます。
+// 複数の空港がある都市は、都市のコードにまとめます（伊丹・関西・神戸＝OSA、羽田・成田＝TYO）
+const FLYCITY={HND:"TYO",NRT:"TYO",ITM:"OSA",KIX:"OSA",UKB:"OSA",CTS:"SPK"};
+const FLYRANK=["tyo","osa","ngo","spk","fuk","oka"];   // 大きい都市が前に来る並び
+function flyCity(node){ const P=tnPt(node); const c=(P&&P.air)||""; return (FLYCITY[c]||c||"").toLowerCase(); }
+function flyPair(a,b){
+  if(!a||!b||a===b) return "";
+  const ra=FLYRANK.indexOf(a), rb=FLYRANK.indexOf(b);
+  const A=ra<0?9:ra, B=rb<0?9:rb;
+  return (A<B||(A===B&&a<b)) ? a+"_"+b : b+"_"+a;
+}
+// 実際に飛んでいる便（便名・出発・到着・運航日）がそのまま載っている時刻表
+function gflURL(sg,di){
+  const pr=flyPair(flyCity(sg.from),flyCity(sg.to));
+  if(pr) return `https://flyteam.jp/city_route/${pr}/flight_schedule`;
+  const d=dayDate(di||0);
+  return `https://www.google.com/search?q=${enc(`${String(sg.from||"")} ${String(sg.to||"")} ${d.getMonth()+1}月${d.getDate()}日 飛行機 時刻`)}&hl=ja`;
+}
+// Googleフライト（往復の日付つき）。予約リンクの一覧から開きます。
+function gflightsURL(sg,di){
   const a=tnPt(sg.from), b=tnPt(sg.to); const fa=(a&&a.air)||String(sg.from).replace(/空港$/,""), fb=(b&&b.air)||String(sg.to).replace(/空港$/,"");
-  const out=back? tripLastDate() : dayDate(di||0);
-  let q=`Flights from ${fa} to ${fb} on ${isoOf(out)}`;
-  if(!back && (S.days||1)>=1){ q+=` through ${isoOf(tripLastDate())}`; }   // 往復の日付まで入れる
-  return `https://www.google.com/travel/flights?q=${enc(q)}&hl=ja&curr=JPY`;
+  const go=dayDate(di||0), bk=tripLastDate();
+  const q=(isoOf(bk)>isoOf(go))? `Flights from ${fa} to ${fb} on ${isoOf(go)} through ${isoOf(bk)}` : `Flights from ${fa} to ${fb} on ${isoOf(go)}`;
+  return `https://www.google.com/travel/flights?q=${enc(q)}&curr=JPY`;
 }
 function yahooURL(from,to,di,t,arrive){
   const d=dayDate(di); const ov=Math.floor(t/1440); if(ov) d.setDate(d.getDate()+ov);
@@ -5365,8 +5495,9 @@ function bookLinks(sg,di,t){
   if(sg.flight){
     const a=tnPt(sg.from), b=tnPt(sg.to); const fa=a&&a.air, fb=b&&b.air;
     if(fa&&fb){
-      out.push(["格安","スカイスキャナーで比べる",`https://www.skyscanner.jp/transport/flights/${fa.toLowerCase()}/${fb.toLowerCase()}/${ymd}/`]);
-      out.push(["格安","Googleフライトで比べる",gflURL(sg,di||0)]);
+      const bk=tripLastDate(); const ymd2=isoOf(bk).slice(2).replace(/-/g,"");
+      out.push(["格安","スカイスキャナーで比べる",`https://www.skyscanner.jp/transport/flights/${fa.toLowerCase()}/${fb.toLowerCase()}/${ymd}/${ymd2>ymd?ymd2+"/":""}?adultsv2=1&cabinclass=economy`]);
+      out.push(["格安","Googleフライトで比べる",gflightsURL(sg,di||0)]);
       out.push(["格安","ジェットスター",`https://www.jetstar.com/jp/ja/home`]);
       out.push(["格安","ピーチ",`https://www.flypeach.com/jp`]);
       out.push(["大手","ANA",`https://www.ana.co.jp/ja/jp/domestic/`]);
@@ -5399,7 +5530,7 @@ function tripSegInfo(sg,label,mode,di,t){
     link:mode==="car"?gmapDir(label,S2(sg.to),"driving"):wayURL(label,S2(sg.to),di,t),lk:mode==="car"?"経路":wayLabel(t),train:mode!=="car"};
   if(sg.kind==="homeward") return {ic:mode==="car"?ICON.car:ICON.train,title:`${S2(sg.from)} → ${label}`,sub:mode==="car"?"車":"電車・バス",
     link:mode==="car"?gmapDir(S2(sg.from),label,"driving"):wayURL(S2(sg.from),label,di,t),lk:mode==="car"?"経路":wayLabel(t),train:mode!=="car"};
-  if(sg.flight) return {ic:ICON.plane,title:`${sg.from} → ${sg.to}`,sub:`飛行機 約${fmtMin(sg.fly)}（空港での手続き・移動を含む）`,link:gflURL(sg,di,sg.kind==="homeward"||!!sg.back),lk:"便を探す"};
+  if(sg.flight) return {ic:ICON.plane,title:`${sg.from} → ${sg.to}`,sub:`飛行機 約${fmtMin(sg.fly)}（空港での手続き・移動を含む）`,link:gflURL(sg,di),lk:"飛んでいる便の時刻表"};
   const bus=/バス/.test(sg.line||"");
   return {ic:/新幹線/.test(sg.line||"")?ICON.shinkansen:ICON.train,title:`${S2(sg.from)} → ${S2(sg.to)}`,sub:sg.line||(sg.kind==="transfer"?"電車・バス":""),
     link: wayURL(S2(sg.from),S2(sg.to),di,t), lk: wayLabel(t), train:true};
@@ -5410,6 +5541,7 @@ function tripItemHTML(it,trip,di){
   if(it.type==="tripend") return `<li class="trip"><div class="t">${m2t(it.t)}</div><div class="stop" style="--c:var(--ink)"><div class="nm">${ICON.home} ${esc(it.label)} に到着・おつかれさまでした</div></div></li>`;
   if(it.type==="merge") return `<li class="trip"><div class="t">${m2t(it.t)}</div><div class="stop" style="--c:var(--hot)"><div class="nm"><span class="pill meal">合流</span>${esc(it.place)}で${esc(it.with)}と合流</div></div></li>`;
   if(it.type==="split") return `<li class="trip"><div class="t">${m2t(it.t)}</div><div class="stop" style="--c:var(--hot)"><div class="nm"><span class="pill warn">解散</span>${esc(it.place)}で${esc(it.with)}と別れる</div>${it.note?`<div class="sm">${esc(it.note)}</div>`:""}</div></li>`;
+  if(it.type==="xfer") return `<li class="trip"><div class="t">${m2t(it.t)}</div><div class="stop xferrow" style="--c:var(--muted)"><div class="nm">${ICON.walk}${esc(it.place||"")}で乗り換え<b>${it.min}分</b></div><div class="sm">${it.min>=9?"会社・のりばが変わるため、歩く時間を入れています。":"のりばの移動ときっぷの時間です。"}</div></div></li>`;
   const f=tripSegInfo(it.seg,trip.label,mode,di,it.t);
   const car=/車/.test(f.sub)&&!/電車/.test(f.sub);
   // 新幹線・特急で便が決まっているときは、駅に着く時刻から出す
@@ -5438,11 +5570,21 @@ function tripItemHTML(it,trip,di){
       <li><b>${m2t(leave)}</b><span>空港を出る</span><small>手荷物の受け取りなどに${ob}分</small></li>
     </ol>
     ${fareOf(it.seg,mode)?`<div class="ttime"><span class="fare">${esc(fareText(fareOf(it.seg,mode)))}</span></div>`:""}
-    <div class="sm">${sg.fixed?"入力した便の時刻でつくっています。":"便が決まったら「移動手段」の画面で入力すると、その時刻に合わせた予定になります。"}${f.link?` <a href="${f.link}" target="_blank" rel="noopener">${f.lk||"便を探す"}</a>`:""}</div>${bookHTML(it.seg,di,it.t)}</div></li>`;
+    <div class="sm">${sg.fixed?"入力した便の時刻でつくっています。":"便が決まったら「移動手段」の画面で入力すると、その時刻に合わせた予定になります。"}</div>
+    <div class="flfind2">${f.link?`<a href="${f.link}" target="_blank" rel="noopener">${ICON.search}${f.lk||"便を探す"}</a>`:""}<a href="${gflightsURL(sg,di)}" target="_blank" rel="noopener">Googleフライトで料金を見る</a></div>
+    ${sg.fixed?"":'<div class="sm">時刻表で便名と時刻を控えて、「移動手段」の画面で入れると、その便に合わせた予定になります。</div>'}${bookHTML(it.seg,di,it.t)}</div></li>`;
   }
-  return `<li class="trip"><div class="t">${m2t(it.t)}</div><div class="stop tripseg" style="--c:var(--muted)"><div class="nm"><span class="sgi">${f.ic}</span>${esc(f.title)}${it.together?'<span class="pill info">みんなで</span>':""}</div>
+  const rk=rideKey(it), rr=it.real;
+  return `<li class="trip"><div class="t">${m2t(it.t)}</div><div class="stop tripseg" style="--c:var(--muted)"><div class="nm"><span class="sgi">${f.ic}</span>${esc(f.title)}${it.together?'<span class="pill info">みんなで</span>':""}${rr?'<span class="pill ok">実際の電車</span>':""}</div>
     <div class="ttime"><b>${m2t(it.t)}${car?"出発":"発"}</b><span>→</span><b>${m2t(it.t+it.seg.min)}${car?"到着":"着"}</b><small>${esc(f.sub)}・約${fmtMin(it.seg.min)}</small>${fareOf(it.seg,mode)?`<span class="fare">${esc(fareText(fareOf(it.seg,mode)))}（目安）</span>`:""}</div>
-    <div class="sm">${f.train?"時刻は目安です。この時刻で乗換案内を開くと、乗る電車を確認できます。":""}${f.link?` <a href="${f.link}" target="_blank" rel="noopener">${f.lk||"経路"}</a>`:""}</div>${bookHTML(it.seg,di,it.t)}</div></li>`;
+    ${it.late?`<div class="sm warnline">このままでは次の乗り物に${it.lateMin?`${it.lateMin}分`:""}間に合いません。1本前の電車にしてください。</div>`:""}
+    <div class="sm">${rr?"乗換案内で調べた実際の電車の時刻です。":(f.train?"時刻は目安です。乗換案内で実際の電車を調べて、下から入れられます。":"")}${f.link?` <a href="${f.link}" target="_blank" rel="noopener">${f.lk||"経路"}</a>`:""}</div>
+    ${f.train?`<div class="ridepaste"><button type="button" class="btn small ${rr?"ghost":"primary"}" data-act="ridePaste" data-v="${esc(rk)}">${ICON.copy||""}${rr?"別の電車に変える":"実際の電車の時刻を入れる"}</button>${rr?`<button type="button" class="btn small ghost" data-act="rideClear" data-v="${esc(rk)}">目安に戻す</button>`:""}</div>`:""}
+    ${APP.ridePasteFor===rk?`<div class="flpbox"><label for="ridePasteBox">乗換案内の結果をコピーして、ここに貼り付けてください（例：<b>12:19発 12:51着</b>）</label>
+      <textarea id="ridePasteBox" rows="3" placeholder="例：12:19 → 12:51"></textarea>
+      <div class="row"><button type="button" class="btn small primary" data-act="ridePaste2" data-v="${esc(rk)}">この時刻にする</button>
+      <button type="button" class="btn small ghost" data-act="ridePx">やめる</button></div>${msg.ride?`<p class="status">${esc(msg.ride)}</p>`:""}</div>`:""}
+    ${bookHTML(it.seg,di,it.t)}</div></li>`;
 }
 // 1日目の観光開始を日ごとに指定したときは、その時刻に現地に着くようにする
 // 出発してから全員がそろうまでにかかる、いちばん長い時間（分）
