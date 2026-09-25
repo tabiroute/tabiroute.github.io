@@ -898,6 +898,9 @@ html{overflow-x:clip}
 .pc-pref img{width:100%;height:100%;object-fit:cover;object-position:center;display:block}
 
 .flbox{display:grid;gap:10px;margin-top:8px}
+.airrow{display:grid;grid-template-columns:1fr;gap:10px;margin-top:8px}
+.airrow select{width:100%;min-width:0;box-sizing:border-box;font:inherit;font-size:14px;border:1px solid var(--line);border-radius:10px;padding:9px 10px;background:var(--surface);min-height:42px}
+@media(min-width:560px){ .airrow{grid-template-columns:1fr 1fr} }
 .flrow{border:1px solid var(--line);border-radius:14px;padding:12px;background:var(--surface)}
 .flhd{font-weight:800;font-size:13.5px;margin-bottom:6px}
 .flrow .row{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:end}
@@ -929,6 +932,7 @@ html{overflow-x:clip}
 .rx-in .panel,.rx-in section.panel{border:0;padding:0;box-shadow:none;background:none;margin:0}
 
 .warnline{margin-top:6px;color:var(--warn,#b45309);font-weight:700}
+.nearby{font-weight:700;color:var(--accent);font-size:12px}
 .flfind{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center;margin-top:6px}
 .flfind a{font-weight:700}
 .flfind svg{width:14px;height:14px;vertical-align:-2px;margin-right:2px}
@@ -1111,7 +1115,7 @@ html{overflow-x:clip}
   <p>たびルートで提案している各地の定番スポットです。予定表をつくるときに、そのまま行き先に追加できます。</p>
   <h3>北海道・東北</h3><dl class="prefs"><div><dt>北海道</dt><dd>小樽運河・函館山展望台・白金青い池・旭山動物園・ファーム富田</dd></div><div><dt>青森県</dt><dd>弘前公園・奥入瀬渓流・十和田湖・ねぶたの家 ワ・ラッセ・八甲田ロープウェー</dd></div><div><dt>岩手県</dt><dd>中尊寺・浄土ヶ浜・毛越寺・小岩井農場・盛岡城跡公園</dd></div><div><dt>宮城県</dt><dd>松島 瑞巌寺・仙台城跡・秋保大滝・蔵王 御釜・定義如来 西方寺</dd></div><div><dt>秋田県</dt><dd>角館武家屋敷通り・乳頭温泉郷 鶴の湯・田沢湖・男鹿真山伝承館・千秋公園</dd></div><div><dt>山形県</dt><dd>銀山温泉・山寺（立石寺）・蔵王温泉・羽黒山五重塔・上杉神社</dd></div><div><dt>福島県</dt><dd>大内宿・鶴ヶ城・五色沼・花見山公園・塔のへつり</dd></div></dl><h3>関東</h3><dl class="prefs"><div><dt>茨城県</dt><dd>国営ひたち海浜公園・大洗磯前神社（神磯の鳥居）・偕楽園・袋田の滝・筑波山</dd></div><div><dt>栃木県</dt><dd>日光東照宮・華厳の滝・中禅寺湖・大谷資料館・那須どうぶつ王国</dd></div><div><dt>群馬県</dt><dd>草津温泉 湯畑・伊香保温泉 石段街・富岡製糸場・谷川岳ロープウェイ・高崎白衣大観音</dd></div><div><dt>埼玉県</dt><dd>小江戸川越 蔵造りの町並み・川越氷川神社・長瀞ライン下り・秩父神社・鉄道博物館</dd></div><div><dt>千葉県</dt><dd>東京ディズニーリゾート・鋸山・成田山新勝寺・濃溝の滝・佐原の町並み</dd></div><div><dt>東京都</dt><dd>浅草寺・渋谷スクランブル交差点・東京スカイツリー・東京タワー・明治神宮</dd></div><div><dt>神奈川県</dt><dd>江の島・鎌倉大仏（高徳院）・横浜中華街・鶴岡八幡宮・横浜赤レンガ倉庫</dd></div></dl><h3>中部</h3><dl class="prefs"><div><dt>新潟県</dt><dd>清津峡渓谷トンネル・彌彦神社・佐渡金山・萬代橋・GALA湯沢</dd></div><div><dt>富山県</dt><dd>立山黒部アルペンルート 室堂・富岩運河環水公園・五箇山 相倉合掌造り集落・雨晴海岸・高岡大仏</dd></div><div><dt>石川県</dt><dd>兼六園・ひがし茶屋街・金沢21世紀美術館・近江町市場・白米千枚田</dd></div><div><dt>福井県</dt><dd>東尋坊・福井県立恐竜博物館・永平寺・一乗谷朝倉氏遺跡・丸岡城</dd></div><div><dt>山梨県</dt><dd>新倉山浅間公園（忠霊塔）・河口湖 大石公園・忍野八海・昇仙峡・富士急ハイランド</dd></div><div><dt>長野県</dt><dd>上高地 河童橋・松本城・善光寺・地獄谷野猿公苑・旧軽井沢銀座</dd></div><div><dt>岐阜県</dt><dd>白川郷 荻町合掌造り集落・飛騨高山 古い町並・モネの池・下呂温泉・新穂高ロープウェイ</dd></div><div><dt>静岡県</dt><dd>三保松原・城ヶ崎海岸 門脇つり橋・白糸の滝・日本平夢テラス・来宮神社</dd></div><div><dt>愛知県</dt><dd>名古屋城・熱田神宮・大須商店街・犬山城・博物館明治村</dd></div></dl><h3>近畿</h3><dl class="prefs"><div><dt>三重県</dt><dd>伊勢神宮 内宮・おかげ横丁・夫婦岩（二見興玉神社）・なばなの里・鳥羽水族館</dd></div><div><dt>滋賀県</dt><dd>白鬚神社・メタセコイア並木・彦根城・びわ湖テラス・ラ コリーナ近江八幡</dd></div><div><dt>京都府</dt><dd>伏見稲荷大社・清水寺・嵐山 竹林の小径・金閣寺・八坂神社・祇園</dd></div><div><dt>大阪府</dt><dd>道頓堀・ユニバーサル・スタジオ・ジャパン・大阪城・通天閣・新世界・海遊館</dd></div><div><dt>兵庫県</dt><dd>姫路城・北野異人館街・メリケンパーク・城崎温泉・竹田城跡</dd></div><div><dt>奈良県</dt><dd>奈良公園・東大寺・春日大社・興福寺・ならまち</dd></div><div><dt>和歌山県</dt><dd>那智の滝・高野山 奥之院・アドベンチャーワールド・円月島・金剛峯寺</dd></div></dl><h3>中国</h3><dl class="prefs"><div><dt>鳥取県</dt><dd>鳥取砂丘・水木しげるロード・白壁土蔵群・三徳山三佛寺 投入堂・大山</dd></div><div><dt>島根県</dt><dd>出雲大社・稲佐の浜・松江城・足立美術館・石見銀山</dd></div><div><dt>岡山県</dt><dd>倉敷美観地区・岡山後楽園・岡山城・備中松山城・吉備津神社</dd></div><div><dt>広島県</dt><dd>厳島神社・原爆ドーム・平和記念公園・尾道 千光寺・大久野島・弥山</dd></div><div><dt>山口県</dt><dd>角島大橋・元乃隅神社・錦帯橋・秋芳洞・萩城下町</dd></div></dl><h3>四国</h3><dl class="prefs"><div><dt>徳島県</dt><dd>大塚国際美術館・鳴門の渦潮（渦の道）・祖谷のかずら橋・大歩危峡・眉山</dd></div><div><dt>香川県</dt><dd>父母ヶ浜・金刀比羅宮・栗林公園・地中美術館・高屋神社（天空の鳥居）</dd></div><div><dt>愛媛県</dt><dd>道後温泉本館・松山城・下灘駅・来島海峡展望館・内子の町並み</dd></div><div><dt>高知県</dt><dd>桂浜・ひろめ市場・高知城・仁淀川 にこ淵・四万十川 佐田沈下橋</dd></div></dl><h3>九州・沖縄</h3><dl class="prefs"><div><dt>福岡県</dt><dd>太宰府天満宮・中洲屋台・糸島 桜井二見ヶ浦・門司港レトロ・宮地嶽神社</dd></div><div><dt>佐賀県</dt><dd>御船山楽園・武雄市図書館・祐徳稲荷神社・大魚神社の海中鳥居・唐津城</dd></div><div><dt>長崎県</dt><dd>ハウステンボス・グラバー園・稲佐山展望台・軍艦島・大浦天主堂</dd></div><div><dt>熊本県</dt><dd>熊本城・黒川温泉・阿蘇 草千里ヶ浜・大観峰・鍋ヶ滝</dd></div><div><dt>大分県</dt><dd>別府地獄めぐり・由布院 金鱗湖・湯の坪街道・九重“夢”大吊橋・宇佐神宮</dd></div><div><dt>宮崎県</dt><dd>高千穂峡・青島神社・鵜戸神宮・天岩戸神社・サンメッセ日南</dd></div><div><dt>鹿児島県</dt><dd>桜島・仙巌園・霧島神宮・天文館・指宿 砂むし温泉</dd></div><div><dt>沖縄県</dt><dd>沖縄美ら海水族館・古宇利大橋・国際通り・首里城公園・万座毛</dd></div></dl>
 </section>
-  <p class="foot" id="foot">人気順は、SNSでよく投稿・検索される定番スポットをもとにした参考順位です（Instagramのリアルタイムの投稿数ではありません）。車の移動時間は道路の経路から計算し、電車・バスの移動時間は距離からの目安です。実際の所要時間は各区間の「経路」リンク（Googleマップ）で確認してください。</p>
+  <p class="foot" id="foot">人気順は、SNSでよく投稿・検索される定番スポットをもとにした参考順位です（Instagramのリアルタイムの投稿数ではありません）。車の移動時間は道路の経路から計算し、電車・バスの移動時間は距離からの目安です。実際の所要時間は各区間のリンク（電車・バスは「乗換案内」、車は「経路」）で確認してください。</p>
   <p class="foot">地図：<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">国土地理院</a>／場所・住所・ホテル情報：© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>（Nominatim・Overpass API）、国土地理院 地名検索／車の経路：<a href="https://project-osrm.org/" target="_blank" rel="noopener">OSRM</a>／写真：<a href="https://commons.wikimedia.org/" target="_blank" rel="noopener">Wikimedia Commons</a>（撮影者とライセンスは写真の上にマウスを置くか「詳細を見る」で表示）</p>
   <footer class="sitefoot"><a href="privacy.html">プライバシーポリシー</a><span>地図：国土地理院／地図データ：© OpenStreetMap contributors／写真：Wikimedia Commons</span></footer>
 </div>
@@ -1811,6 +1815,12 @@ function rentQueries(pt){
   out.push("レンタカー","car rental");
   return [...new Set(out)].slice(0,5);
 }
+// 店名に受け取り場所が入っていなければ足す（「オリックスレンタカー 鹿児島空港」のように絞り込む）
+function rentNear(name,near){
+  const n=String(name||""), b=String(near||"").replace(/(空港|駅)$/,"");
+  return !!(near&&!n.includes(near)&&(!b||!n.includes(b)));
+}
+function rentQ(name,near){ return rentNear(name,near)? String(name)+" "+String(near) : String(name); }
 function rentURLs(place){
   const s=stayInfo(); const q=`${place||""} レンタカー ${s.in.getMonth()+1}月${s.in.getDate()}日`;
   return [
@@ -1885,9 +1895,10 @@ function rentalHTML(){
   }
   if(busy.rent) h+=`<div class="empty"><span class="spin"></span>「${esc((pt&&pt.name)||"受け取り場所")} レンタカー」で営業所を探しています…</div>`;
   else if(S.rentCands&&S.rentCands.length){
-    h+=`<div class="list">`+S.rentCands.map(c=>`<div class="item"><div class="main"><div class="name">${esc(c.name)}</div><div class="note">${esc(c.brand||"")}${c.brand?"・":""}受け取り場所から約${c.dist.toFixed(1)}km${c.addr?"・"+esc(c.addr):""}</div></div>
-      <a class="btn small ghost" href="https://www.google.com/maps/search/${enc(c.name+" "+(c.addr||S.pref))}" target="_blank" rel="noopener">${ICON.map}地図</a>
-      <a class="btn small" href="https://www.google.com/search?q=${enc(c.name+" レンタカー 予約 "+(cityLabel()||S.pref))}" target="_blank" rel="noopener">${ICON.search}予約を調べる</a>
+    const near=(pt&&pt.name)||cityLabel()||S.pref;   // 「鹿児島空港」など。店舗を1つに絞るために検索語へ必ず入れる
+    h+=`<div class="list">`+S.rentCands.map(c=>`<div class="item"><div class="main"><div class="name">${esc(c.name)}${rentNear(c.name,near)?` <small class="nearby">${esc(near)}店</small>`:""}</div><div class="note">${esc(c.brand||"")}${c.brand?"・":""}${esc(near)}から約${c.dist.toFixed(1)}km${c.addr?"・"+esc(c.addr):""}</div></div>
+      <a class="btn small ghost" href="https://www.google.com/maps/search/${enc(rentQ(c.name,near))}" target="_blank" rel="noopener">${ICON.map}地図</a>
+      <a class="btn small" href="https://www.google.com/search?q=${enc(rentQ(c.name,near)+" 予約")}" target="_blank" rel="noopener">${ICON.search}予約を調べる</a>
       ${(S.rentMode==="done")?`<button type="button" class="btn small ${(S.rentBook&&S.rentBook.co===c.name)?"primary":""}" data-rentpick="${esc(c.name)}">${(S.rentBook&&S.rentBook.co===c.name)?"✓ この店":"この店にする"}</button>`:""}</div>`).join("")+`</div>`;
   } else h+=`<div class="row"><button type="button" class="btn primary" data-act="loadRent" ${busy.rent?"disabled":""}>${ICON.search}「${esc((pt&&pt.name)||"受け取り場所")} レンタカー」で探す</button><span class="status">${esc(msg.rent||"")}</span></div>`;
   h+=`<h3 class="sub3">予約サイトで比べる</h3><div class="snslinks">${rentURLs(pt&&pt.name).map(([l,u])=>`<a class="btn small ghost" href="${u}" target="_blank" rel="noopener">${esc(l)}</a>`).join("")}</div>
@@ -1942,7 +1953,8 @@ function flightHTML(){
   const nm=RIDEJ[lm], chk=lm==="air"?FLY_CHK:RAILCHK, where=lm==="air"?"空港":"駅";
   h+=`<h2 class="sub">${esc(nm)}の便 <small>決まっていれば入力してください</small></h2>
   <p class="note">${lm==="air"?"便名":"列車名"}と出発時刻を入れると、<b>その便に合わせた予定表</b>になります（${where}には出発の${chk}分前に着くように計算します）。決まっていなければ空のままで大丈夫です。</p>
-  <div class="flbox">${flRow("out","行き（出発日）")}${flRow("ret","帰り（最終日）")}</div>`;
+  <div class="flbox">${flRow("out","行き（出発日）")}${flRow("ret","帰り（最終日）")}</div>
+  ${airHTML()}`;
   if(msg.flp) h+=`<p class="status" style="margin-top:6px">${esc(msg.flp)}</p>`;
   if(fo||fb) h+=`<p class="note">${fo?`行きは <b>${esc((lm==="air"?flNo(fo.no):fo.no)||"入力した便")} ${esc(fo.dep)}発</b>`:""}${fo&&fb?"／":""}${fb?`帰りは <b>${esc((lm==="air"?flNo(fb.no):fb.no)||"入力した便")} ${esc(fb.dep)}発</b>`:""} で予定表をつくります。</p>`;
   else h+=`<p class="note">便が未定のあいだは、<b>目安の時間帯</b>で予定表をつくります。上のリンクから実際の時刻を調べて入力してください。</p>`;
@@ -2267,7 +2279,9 @@ function dayHTML(d,H){
     else if(it.type==="end") h+=`<li><div class="t">${m2t(it.t)}</div><div class="stop" style="--c:var(--ink)"><div class="nm">${ICON.bed.replace("<svg",'<svg width="18" height="18"')} ${esc(it.label)} に到着</div></div></li>`;
     else if(it.type==="leg"){const ic=it.mode==="walk"?ICON.walk:it.mode==="car"?ICON.car:ICON.train;const lb=it.mode==="walk"?"徒歩":it.mode==="car"?"車":"電車・バス";
       const gm = it.mode==="walk"?"walking":mm;
-      h+=`<li><div></div><div class="leg" style="border-left-color:${c}">${ic}${lb} <b class="lt">${m2t(it.t)}${it.mode==="transit"?"発":"出発"}→${m2t(it.t+it.min)}${it.mode==="transit"?"着":"到着"}</b> ${it.real?"":"約"}${it.min}分（${it.km.toFixed(1)}km）${it.real?'<span class="pill ok">道路経路</span>':""}${it.buf?`<span class="pill">＋余裕${it.buf}分</span>`:""}<a href="${gdir(it.from,it.to,null,gm)}" target="_blank" rel="noopener">経路</a></div></li>`;}
+      h+=`<li><div></div><div class="leg" style="border-left-color:${c}">${ic}${lb} <b class="lt">${m2t(it.t)}${it.mode==="transit"?"発":"出発"}→${m2t(it.t+it.min)}${it.mode==="transit"?"着":"到着"}</b> ${it.real?"":"約"}${it.min}分（${it.km.toFixed(1)}km）${it.real?'<span class="pill ok">道路経路</span>':""}${it.buf?`<span class="pill">＋余裕${it.buf}分</span>`:""}${it.mode==="transit"
+        ?`<a href="${wayURL(placeWay(it.from),placeWay(it.to),d.di,it.t)}" target="_blank" rel="noopener">乗換案内（この時刻）</a><a href="${gdir(it.from,it.to,null,"transit")}" target="_blank" rel="noopener">地図</a>`
+        :`<a href="${gdir(it.from,it.to,null,gm)}" target="_blank" rel="noopener">経路</a>`}</div></li>`;}
     else if(it.type==="free") h+=`<li class="lunch"><div class="t">${m2t(it.t)}</div><div class="stop"><div class="nm">自由時間</div><div class="sm">${fmtMin(it.dur)}・観光は${esc(it.until)}から（ホテルに荷物を預ける、駅の周辺を歩くなど）</div></div></li>`;
     else if(it.type==="wait") h+=`<li class="lunch"><div class="t">${m2t(it.t)}</div><div class="stop"><div class="nm">自由時間</div><div class="sm">${it.dur}分・${it.meal==="夜"?"ホテルで休憩、買い物や散策など":"周辺の散策など"}（${MEALNAME[it.meal]}のお店の時間まで）</div></div></li>`;
     else if(it.type==="lunch") h+=`<li class="lunch"><div class="t">${m2t(it.t)}</div><div class="stop"><div class="nm">昼食</div><div class="sm">${it.near?esc(it.near)+"の周辺で・":""}60分</div></div></li>`;
@@ -3350,11 +3364,11 @@ const LOCAL={
 "徳島市":["徳島ラーメン","阿波尾鶏","すだち"],"高松市":["讃岐うどん","骨付鳥","あなご"],"松山市":["鯛めし","じゃこ天","焼豚玉子飯"],"高知市":["カツオのたたき","屋台餃子","鍋焼きラーメン"],
 "福岡市":["博多ラーメン","もつ鍋","水炊き","明太子","焼き鳥"],"北九州市":["焼きうどん","ふぐ","資さんうどん"],"久留米市":["久留米ラーメン","焼き鳥"],
 "佐賀市":["シシリアンライス","佐賀牛"],"唐津市":["呼子のイカ","唐津バーガー"],
-"長崎市":["ちゃんぽん","皿うどん","トルコライス","カステラ"],"佐世保市":["佐世保バーガー","レモンステーキ"],
-"熊本市":["馬刺し","熊本ラーメン","太平燕","からしれんこん"],"阿蘇市":["あか牛丼","だご汁"],
+"長崎市":["ちゃんぽん","皿うどん","トルコライス","カステラ","卓袱","角煮まんじゅう"],"佐世保市":["佐世保バーガー","レモンステーキ"],
+"熊本市":["馬刺し","熊本ラーメン","太平燕","からしれんこん","馬肉","郷土料理"],"阿蘇市":["あか牛丼","だご汁"],
 "大分市":["とり天","関あじ"],"別府市":["とり天","地獄蒸し","冷麺"],"由布市":["とり天","スイーツ"],
-"宮崎市":["チキン南蛮","地鶏炭火焼","冷や汁"],"鹿児島市":["黒豚","鶏飯","白熊","さつま揚げ"],"指宿市":["温たまらん丼","そうめん流し"],
-"那覇市":["沖縄そば","ステーキ","居酒屋","ブルーシールアイス"],"北谷町":["タコライス","ハンバーガー","ステーキ"],"名護市":["沖縄そば","アグー豚","パイナップル"],"石垣市":["石垣牛","八重山そば","マグロ"],"宮古島市":["宮古そば","マンゴー","海鮮"],
+"宮崎市":["チキン南蛮","地鶏炭火焼","冷や汁","宮崎牛","レタス巻き"],"鹿児島市":["黒豚","鶏飯","白熊","さつま揚げ","鹿児島ラーメン","黒豚とんかつ","黒豚しゃぶ","きびなご","地鶏","薩摩料理"],"指宿市":["温たまらん丼","そうめん流し"],
+"那覇市":["沖縄そば","ステーキ","居酒屋","ブルーシールアイス","ゴーヤーチャンプルー","海ぶどう","アグー豚","琉球料理"],"北谷町":["タコライス","ハンバーガー","ステーキ"],"名護市":["沖縄そば","アグー豚","パイナップル"],"石垣市":["石垣牛","八重山そば","マグロ"],"宮古島市":["宮古そば","マンゴー","海鮮"],
 };
 // その土地の名物（市区町村が分かればそちらを優先）
 function localFoods(){
@@ -3454,6 +3468,23 @@ function foodCenters(){
 }
 function foodKey(){ const c=foodCenters(); return S.pref+"|"+c.L.lat.toFixed(3)+","+c.L.lng.toFixed(3)+"|"+c.H.lat.toFixed(3)+","+c.H.lng.toFixed(3)+"|"+stopsAll().filter(x=>!x.meal).length+"|"+(S.honten!==false?1:0); }
 function dedupeBrand(list){ const seen=new Set(); return list.filter(x=>{ const b=x.brand||brandBase(null,x.name); if(!b) return true; if(seen.has(b)) return false; seen.add(b); return true; }); }
+/* ---- 「観光で行く名物のお店」だけを残すための判定 ---- */
+// 全国どこにであるチェーン店（旅先で選ぶ理由がないので外す）
+const CHAINRE=/はなまるうどん|丸亀製麺|ゆで太郎|小諸そば|富士そば|名代富士そば|ガスト|サイゼリヤ|ジョナサン|バーミヤン|夢庵|デニーズ|ロイヤルホスト|ジョイフル|ココス|COCO'?S|びっくりドンキー|ステーキガスト|フォルクス|マクドナルド|McDonald|モスバーガー|ロッテリア|ケンタッキー|KFC|フレッシュネス|バーガーキング|ドムドム|サブウェイ|吉野家|すき家|松屋|なか卯|てんや|かつや|松のや|かつさと|リンガーハット|日高屋|幸楽苑|来来亭|天下一品|一蘭|一風堂|町田商店|魁力屋|餃子の王将|大阪王将|日本一のだるま|CoCo壱|ココイチ|カレーハウス|くら寿司|スシロー|はま寿司|かっぱ寿司|元気寿司|魚べい|銚子丸|やよい軒|大戸屋|まいどおおきに食堂|白木屋|魚民|笑笑|目利きの銀次|montea|和民|ワタミ|鳥貴族|串カツ田中|磯丸水産|スターバックス|STARBUCKS|ドトール|タリーズ|サンマルク|エクセルシオール|コメダ珈琲|星乃珈琲|プロント|ベローチェ|カフェ・?ド・?クリエ|ミスタードーナツ|ミスド|クリスピー|不二家|シャトレーゼ|31アイス|サーティワン|ゴンチャ|快活|ジョリーパスタ|イタリアン・?トマト|鎌倉パスタ|洋麺屋五右衛門|養老乃瀧|庄や|土間土間|ドミノ・?ピザ|ピザーラ|ピザハット|ほっともっと|オリジン弁当|Hotto ?Motto/i;
+// 旅先の名物とは関係の薄い外国料理（その土地の名物に入っていれば残す）
+const FOREIGNCU=/^(indian|thai|vietnamese|mexican|american|turkish|nepalese|nepali|brazilian|german|spanish|greek|moroccan|peruvian|mediterranean|pizza|burger|sandwich|international|fusion|kebab|russian|indonesian|malaysian|filipino)$/;
+const FOREIGNNM=/インドカレー|インド料理|ネパール|ナマステ|タイ料理|ベトナム|メキシカン|ケバブ|トルコ料理|ブラジリアン|スペイン料理|ドイツ料理|ハンバーガー|ピザ|ピッツァ|パスタ専門/;
+// 和食・郷土料理系のジャンル（旅先で食べる価値がある）
+const JPNCU=/^(ramen|soba|udon|noodle|sushi|japanese|tempura|tonkatsu|teishoku|donburi|regional|local|kaiseki|unagi|yakitori|yakiniku|izakaya|okonomiyaki|takoyaki|seafood|fish|oden|kushikatsu|shabu_shabu|sukiyaki|crab|tofu|gyudon|chicken|fried_chicken|dessert|confectionery|tea|wagashi)$/;
+const JPNNM=/郷土料理|郷土|割烹|料亭|懐石|寿司|鮨|そば|蕎麦|うどん|ラーメン|らぁ麺|らーめん|中華そば|海鮮|市場|漁港|地鶏|焼肉|焼き鳥|焼鳥|丼|定食|食堂|茶屋|甘味|和菓子|団子|餅|だんご/;
+function foodRel(nm,cu,t){
+  const chain=CHAINRE.test(nm);
+  const cus=String(cu||"").split(/[;,]/).map(x=>x.trim()).filter(Boolean);
+  const foreign=(cus.length&&cus.every(x=>FOREIGNCU.test(x)))||FOREIGNNM.test(nm);
+  const jpn=cus.some(x=>JPNCU.test(x))||JPNNM.test(nm);
+  const famous=!!(t&&(t.wikidata||t.wikipedia));
+  return {chain,foreign,jpn,famous};
+}
 function scoreFood(e,slot,center,R){
   const t=e.tags||{}; const nm=t["name:ja"]||t.name||""; const am=t.amenity||t.shop||""; const cu=String(t.cuisine||"");
   let sc=0; const tm=MEALWIN[slot].target;
@@ -3463,10 +3494,17 @@ function scoreFood(e,slot,center,R){
   if(slot==="昼"){ if(am==="restaurant") sc+=2; if(am==="cafe") sc+=.8; if(am==="fast_food") sc+=.3; if(/ramen|soba|udon|noodle|sushi|japanese|tempura|curry|teishoku|donburi|regional|local|okonomiyaki|unagi/.test(cu)) sc+=1; if(/pub|bar|izakaya/.test(am)||/居酒屋|バー$|BAR/.test(nm)) sc-=5; }
   if(slot==="夜"){ if(am==="restaurant") sc+=2; if(/pub|izakaya/.test(am)) sc+=2.2; if(am==="bar") sc+=.4; if(/yakiniku|yakitori|sushi|kaiseki|japanese|seafood|izakaya|steak|shabu|sukiyaki|oden|kushikatsu|regional|local/.test(cu)) sc+=1; if(NIGHTRE.test(nm)) sc+=1; if(/cafe|bakery|ice_cream|confectionery/.test(am)) sc-=5; if(am==="fast_food") sc-=2.5; }
   const loc=localFoods(); const city=cityLabel();
-  const cityHit=city&&(LOCAL[city]||[]);
+  const cityHit=(city&&LOCAL[city])||[];
   // その市区町村の名物はいちばん強く、県の名物はその次
-  if(cityHit.length&&cityHit.some(k=>nm.includes(k)||cu.includes(k))) sc+=4;
-  else if(loc.some(k=>nm.includes(k)||cu.includes(k))) sc+=2.4;
+  const hitCity=cityHit.length&&cityHit.some(k=>nm.includes(k)||cu.includes(k)||cuisineLabel(t).includes(k));
+  const hitPref=loc.some(k=>nm.includes(k)||cu.includes(k)||cuisineLabel(t).includes(k));
+  if(hitCity) sc+=6; else if(hitPref) sc+=3.6;
+  const rel=foodRel(nm,cu,t);
+  const localHit=!!(hitCity||hitPref);
+  // 全国チェーンと、その土地と関係のない外国料理は思いきり下げる
+  if(rel.chain&&!hitCity) sc-=20;
+  if(rel.foreign&&!localHit) sc-=20;
+  if(rel.jpn) sc+=1.2;
   const sp=SPECIAL[S.pref]||[];
   if(t.wikidata||t.wikipedia) sc+=2.5;
   const hon=S.honten!==false&&HONTEN.test(nm);
@@ -3475,7 +3513,9 @@ function scoreFood(e,slot,center,R){
   if(t.opening_hours) sc+=.3;
   const P={lat:e.lat||e.center.lat,lng:e.lon||e.center.lon};
   const onR=R&&R.segs.length; const d=onR? detourOf(P,R,slot) : hav(center,P); sc-=d*(onR?0.45:0.7);
-  return {sc,d,op,onR:!!onR,hon};
+  // 観光で行く価値があるか：名物のお店／ウィキペディアに載る有名店／和食・郷土料理のお店
+  const kanko = !rel.chain && !(rel.foreign&&!localHit) && (localHit||rel.famous||rel.jpn);
+  return {sc,d,op,onR:!!onR,hon,kanko,localHit,chain:rel.chain};
 }
 async function loadFood(force){
   if(busy.food) return; const key=foodKey();
@@ -3491,9 +3531,13 @@ async function loadFood(force){
     if(els.length<10){ const n=await nomiEls(["restaurant","cafe"],poly,0.02); els=mergeEls(els,n.filter(e=>{ const t=e.tags||{}; return t.amenity||t.shop; })); }
     const res={key}; const R=routeSegs();
     MEALS.forEach(m=>{
-      res[m]=dedupeBrand(els.map(e=>{ const t=e.tags||{}; const {sc,d,op,onR,hon}=scoreFood(e,m,c[m],R); const lat=e.lat||e.center.lat, lng=e.lon||e.center.lon;
-        return {name:t["name:ja"]||t.name,lat:+lat.toFixed(6),lng:+lng.toFixed(6),addr:tagAddr(t),cuisine:cuisineLabel(t),hours:t.opening_hours||"",open:op,dist:d,extra:extraOf(t),osm:e.type+"/"+e.id,cat:t.amenity?"amenity":"shop",type:t.amenity||t.shop,sc,src:"web",famous:!!(t.wikidata||t.wikipedia),local:localFoods().some(k=>(t.name||"").includes(k)),onR,hon,brand:brandBase(t,t["name:ja"]||t.name)}; })
-        .filter(x=>x.sc>-3).sort((a,b)=>b.sc-a.sc)).slice(0,20);
+      const all=dedupeBrand(els.map(e=>{ const t=e.tags||{}; const {sc,d,op,onR,hon,kanko,localHit,chain}=scoreFood(e,m,c[m],R); const lat=e.lat||e.center.lat, lng=e.lon||e.center.lon;
+        return {name:t["name:ja"]||t.name,lat:+lat.toFixed(6),lng:+lng.toFixed(6),addr:tagAddr(t),cuisine:cuisineLabel(t),hours:t.opening_hours||"",open:op,dist:d,extra:extraOf(t),osm:e.type+"/"+e.id,cat:t.amenity?"amenity":"shop",type:t.amenity||t.shop,sc,src:"web",famous:!!(t.wikidata||t.wikipedia),local:localHit,onR,hon,kanko,chain,brand:brandBase(t,t["name:ja"]||t.name)}; })
+        .filter(x=>x.name&&!x.chain).sort((a,b)=>(b.local?1:0)-(a.local?1:0)||b.sc-a.sc));
+      // 名物・有名店・郷土料理のお店だけにする（少なすぎるときだけ、ほかのお店も足す）
+      const kk=all.filter(x=>x.kanko&&x.sc>-3);
+      res[m]= (kk.length>=5? kk : kk.concat(all.filter(x=>!x.kanko&&x.sc>-3))).slice(0,20);
+      res[m+"_strict"]=kk.length>=5;
     });
     S.food=res; msg.food = els.length? "" : "この周辺では飲食店の登録が見つかりませんでした。下のリンクから探してください。";
   }catch(e){ msg.food=netErr(e); }
@@ -3606,7 +3650,7 @@ function foodSection(){
     <div class="row"><input type="text" id="foodQ" value="${esc((S.foodS&&S.foodS.q)||"")}" placeholder="例：ラーメン、牛タン、赤福" aria-label="食べたいもの" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"><button type="button" class="btn" data-act="foodSearch">${ICON.search}探す</button></div>
     <div class="chips" style="margin-top:6px">${[...new Set([...localFoods().slice(0,5),"ラーメン","寿司","海鮮","焼肉","カフェ","スイーツ"])].slice(0,9).map(k=>`<button type="button" class="chip small" data-foodq="${esc(k)}">${esc(k)}</button>`).join("")}</div>
     <div class="row" style="margin-top:6px"><button type="button" class="chip small" data-act="honten" aria-pressed="${S.honten!==false}">${S.honten!==false?"✓ ":""}本店を優先する</button><span class="note" style="font-size:12px">チェーン店・支店が複数あるときは、回るルートに近いお店を選びます</span></div>
-    <div class="row" style="margin-top:8px"><a class="btn small" href="${tabelogURL(((S.foodS&&S.foodS.q)||{朝:"モーニング",昼:"ランチ",夜:"ディナー"}[slot]),cityLabel()||S.pref,true)}" target="_blank" rel="noopener">${ICON.search}食べログで評価の高い順に見る</a><span class="note" style="font-size:12px">「注目度」はウィキペディア掲載・本店・名物・公式サイトの有無などから計算した、たびルート独自の目安です（口コミ点数ではありません）。食べログの点数はこのボタンから確認してください。</span></div>
+    <div class="row" style="margin-top:8px"><a class="btn small" href="${tabelogURL(((S.foodS&&S.foodS.q)||{朝:"モーニング",昼:"ランチ",夜:"ディナー"}[slot]),cityLabel()||S.pref,true)}" target="_blank" rel="noopener">${ICON.search}食べログで評価の高い順に見る</a><span class="note" style="font-size:12px">その土地の<b>名物・郷土料理のお店</b>と、ウィキペディアに載るような有名店だけを並べています（全国チェーン店と、その土地と関係のない外国料理のお店は外しています）。「注目度」はウィキペディア掲載・本店・名物・公式サイトの有無などから計算した、たびルート独自の目安です（口コミ点数ではありません）。食べログの点数はこのボタンから確認してください。</span></div>
     ${keyPanelHTML("food")}
   </div>${foodSearchHTML(slot)}`;
   if(busy.food) return h+`<div class="empty"><span class="spin"></span>${slot==="昼"?"観光エリア":"宿泊エリア"}の周辺の飲食店を探しています…（10〜30秒ほど）</div>`;
@@ -3810,6 +3854,7 @@ document.addEventListener("click",async e=>{
   if(d.act==="keyOpen"){ APP.keyOpen = APP.keyOpen===d.v ? "" : d.v; render(); return; }
   if(d.act==="saveRk"){ const v=($("#rkId")?.value||"").trim(); setKey("rakutenId",v); msg.rk=""; if(v){ S.hotelCands&&S.hotelCands.forEach(h=>{h.rate=null;h.rkURL=null}); render(); rakutenRates(); } else { (S.hotelCands||[]).forEach(h=>{h.rate=null;h.rkURL=null}); sortHotels(); save(); render(); } return; }
   if(d.longmode){ setLongMode(d.longmode); return; }
+  if(d.act==="airClear"){ S.air={}; save(); render(); return; }
   if(d.act==="rpaste"){ APP.pasteFor=null; return pasteRide(d.v); }
   if(d.act==="rpaste2"){ const v=($("#pasteBox")?.value||""); if(applyRide(d.v,parseRide(v))) APP.pasteFor=null; return; }
   if(d.act==="rpx"){ APP.pasteFor=null; msg.flp=""; render(); return; }
@@ -3834,6 +3879,7 @@ document.addEventListener("change",e=>{
   if(t&&t.dataset&&t.dataset.rentbook){ S.rentBook={...(S.rentBook||{}),[t.dataset.rentbook]:t.value}; save(); render(); return; }
   if(t&&t.dataset&&t.dataset.jslot){ const f=t.files&&t.files[0]; jPick(t.dataset.jslot,f); t.value=""; return; }
   // 飛行機の便（行き／帰り）
+  if(t.dataset&&t.dataset.air){ setAir(t.dataset.air,t.value||""); render(); return; }
   if(t.dataset&&t.dataset.flight){
     const [dir,key]=t.dataset.flight.split(".");
     S.flight=S.flight||{}; S.flight[dir]=S.flight[dir]||{};
@@ -4046,12 +4092,18 @@ function tDijkstra(src,mode,long){
   const FAST=/新幹線|特急|ライナー|しまかぜ|アーバン|ひのとり|ラピート|サンダーバード|はるか/;
   const best={}; const prev={}; const pq=[];
   const push=(k,t,p)=>{ if(best[k]===undefined||t<best[k]){ best[k]=t; prev[k]=p; hPush(pq,[t,k]); } };
-  Object.keys(TN).forEach(n=>{ const P=tnPt(n); if(long==="rail"&&P.air) return; const d=hav(src,P); const lim=P.air?140:(mode==="car"?120:90); if(d<=lim) push(n+"|@",accessMin(d,mode),{kind:"access",d}); });
+  const FD=long==="rail"?null:airPick("dep"), FA=long==="rail"?null:airPick("arr");
+  Object.keys(TN).forEach(n=>{ const P=tnPt(n); if(long==="rail"&&P.air) return;
+    if(P.air&&FD&&n!==FD&&n!==FA) return;                       // 出発する空港を選んだら、ほかの空港へは行かない
+    const d=hav(src,P); const lim=P.air?140:(mode==="car"?120:90); if(d<=lim) push(n+"|@",accessMin(d,mode),{kind:"access",d}); });
   Object.values(LRAIL.nodes).forEach(P=>{ const d=hav(src,P); if(d<=(mode==="car"?15:4)) push(P.id+"|@",accessMin(d,mode),{kind:"access",d}); });
   while(pq.length){
     const [t,k]=hPop(pq); if(t>best[k]) continue;
     const i=k.indexOf("|"); const n=k.slice(0,i), ln=k.slice(i+1);
-    adjOf(n).forEach(e=>{ if(long==="rail"&&e.flight) return; const slow=(long==="air"&&!e.flight&&FAST.test(e.line))? e.min*0.6 : 0; const pen = slow + (ln===e.line?0 : e.line==="乗り換え"?0 : ln==="@"?(e.local?4:0) : 8); push(e.to+"|"+e.line, t+e.min+pen, {kind:"ride",from:k,e}); });
+    adjOf(n).forEach(e=>{ if(long==="rail"&&e.flight) return;
+      if(e.flight&&FD&&n!==FD) return;                          // 指定した空港からしか飛ばない
+      if(e.flight&&FA&&e.to!==FA) return;                       // 指定した空港にしか降りない
+      const slow=(long==="air"&&!e.flight&&FAST.test(e.line))? e.min*0.6 : 0; const pen = slow + (ln===e.line?0 : e.line==="乗り換え"?0 : ln==="@"?(e.local?4:0) : 8); push(e.to+"|"+e.line, t+e.min+pen, {kind:"ride",from:k,e}); });
   }
   const node={}; Object.keys(best).forEach(k=>{ const n=k.slice(0,k.indexOf("|")); if(node[n]===undefined||best[k]<node[n].t) node[n]={t:best[k],k}; });
   return {best,prev,node};
@@ -4200,7 +4252,7 @@ const FIREBASE_CONFIG = {
 };
 const FBV = "10.12.2";
 const CLIENT_ID = Math.random().toString(36).slice(2);
-const PLAN_KEYS = ["dayMode","honten","dayTimes","perDay","rental","people","rooms","pref","city","cityOther","days","date","start","end","wishes","picks","ai","hotelMode","hotelName","hotelLoc","hotelAnchor","hotelInfo","hotelDecCands","cond","hotelCands","hotelPick","transport","pace","example","flight","myMeal","longMode","rentMode","rentAt","rentBook","hotelSplit","nights"];
+const PLAN_KEYS = ["dayMode","honten","dayTimes","perDay","rental","people","rooms","pref","city","cityOther","days","date","start","end","wishes","picks","ai","hotelMode","hotelName","hotelLoc","hotelAnchor","hotelInfo","hotelDecCands","cond","hotelCands","hotelPick","transport","pace","example","flight","air","myMeal","longMode","rentMode","rentAt","rentBook","hotelSplit","nights"];
 const UI_KEYS = ["step","visited","foodTab","food","foodS","foodSort","rentCands","rentKey","moreSpots","moreNear","moreFood"];
 const STATUS = ["計画中","予約済み","旅行中","完了"];
 const MEMBER_C = ["#2356F6","#FF5A5F","#0E9F6E","#7A5AF8","#F08C00","#0891B2","#DB2777","#65A30D"];
@@ -4856,7 +4908,7 @@ function meetingPlan(){
   const p=APP.project; const dest=destPoint(); if(!dest) return null;
   const ppl=allPeople(p).filter(x=>x.start&&x.start.lat!=null).map(x=>({key:x.key,name:x.name,lat:x.start.lat,lng:x.start.lng,mode:x.start.mode||"transit",long:x.start.long||"auto",st:x.start.kind==="station"||!!x.start.st||isSt(x.start.label),label:x.start.label,idx:x.idx}));
   if(!ppl.length) return {none:true,dest};
-  const k=JSON.stringify([ppl,dest,LRAIL.key,LRAIL.state]);
+  const k=JSON.stringify([ppl,dest,LRAIL.key,LRAIL.state,longMode(),airPick("dep"),airPick("arr")]);
   if(MEETCACHE.k!==k){ MEETCACHE={k,v:{...planMeeting(ppl,dest),dest}}; }
   return MEETCACHE.v;
 }
@@ -4865,12 +4917,11 @@ function stName(id){ const P=tnPt(id); if(P&&P.virtual) return P.name; if(P&&P.l
 function segHTML(s,person,di,t){
   if(s.kind==="access"){ const P=tnPt(s.to); const mode=person.mode==="car"?"driving":"transit";
     if(person.lat!=null && hav(person,P)<0.6) return "";
-    if(isSt(person.label) && !P.air && person.mode!=="car") return `<li><span class="sgi">${ICON.train}</span><span>${esc(person.label)} → ${esc(stName(s.to))}<small>電車 約${fmtMin(s.min)}${t!=null?`・${m2t(t)}発`:""}</small></span><a href="${t!=null?yahooURL(person.label,stName(s.to),di||0,t):`https://transit.yahoo.co.jp/search/result?from=${enc(person.label.replace(/駅$/,""))}&to=${enc(stName(s.to).replace(/駅$/,""))}`}" target="_blank" rel="noopener">乗換案内${t!=null?"（この時刻）":""}</a></li>`;
-    return `<li><span class="sgi">${person.mode==="car"?ICON.car:ICON.train}</span><span>${esc(person.label||"出発地")} → ${esc(stName(s.to))}<small>${person.mode==="car"?"車":"電車・バス"} 約${fmtMin(s.min)}</small></span><a href="https://www.google.com/maps/dir/?api=1&origin=${person.lat},${person.lng}&destination=${enc(stName(s.to))}&travelmode=${mode}" target="_blank" rel="noopener">経路</a></li>`; }
-  if(s.kind==="transfer" && isSt(stName(s.from)) && isSt(stName(s.to))) return `<li><span class="sgi">${ICON.train}</span><span>${esc(stName(s.from))} → ${esc(stName(s.to))}<small>電車 約${fmtMin(s.min)}${t!=null?`・${m2t(t)}発`:""}</small></span><a href="${t!=null?yahooURL(stName(s.from),stName(s.to),di||0,t):`https://transit.yahoo.co.jp/search/result?from=${enc(stName(s.from).replace(/駅$/,""))}&to=${enc(stName(s.to).replace(/駅$/,""))}`}" target="_blank" rel="noopener">乗換案内${t!=null?"（この時刻）":""}</a></li>`;
-  if(s.kind==="transfer") return `<li><span class="sgi">${ICON.train}</span><span>${esc(stName(s.from))} → ${esc(stName(s.to))}<small>電車・バス 約${fmtMin(s.min)}</small></span><a href="https://www.google.com/maps/dir/?api=1&origin=${enc(stName(s.from))}&destination=${enc(stName(s.to))}&travelmode=transit" target="_blank" rel="noopener">経路</a></li>`;
-  if(s.flight) return `<li><span class="sgi">${ICON.plane}</span><span>${esc(s.from)} → ${esc(s.to)}<small>飛行機 約${fmtMin(s.fly)}（搭乗手続き・移動を含め約${fmtMin(s.min)}）</small></span><a href="https://www.google.com/travel/flights?q=${enc(s.from+"から"+s.to)}" target="_blank" rel="noopener">便を探す</a></li>`;
-  return `<li><span class="sgi">${/新幹線/.test(s.line)?ICON.shinkansen:ICON.train}</span><span>${esc(stName(s.from))} → ${esc(stName(s.to))}<small>${esc(s.line)} 約${fmtMin(s.min)}</small></span>${/バス/.test(s.line)?`<a href="https://www.google.com/maps/dir/?api=1&origin=${enc(stName(s.from))}&destination=${enc(stName(s.to))}&travelmode=transit" target="_blank" rel="noopener">経路</a>`:`<a href="${t!=null?yahooURL(stName(s.from),stName(s.to),di||0,t):`https://transit.yahoo.co.jp/search/result?from=${enc(stName(s.from).replace(/駅$/,""))}&to=${enc(stName(s.to).replace(/駅$/,""))}`}" target="_blank" rel="noopener">乗換案内${t!=null?"（この時刻）":""}</a>`}</li>`;
+    if(isSt(person.label) && !P.air && person.mode!=="car") return `<li><span class="sgi">${ICON.train}</span><span>${esc(person.label)} → ${esc(stName(s.to))}<small>電車 約${fmtMin(s.min)}${t!=null?`・${m2t(t)}発`:""}</small></span><a href="${wayURL(person.label,stName(s.to),di||0,t)}" target="_blank" rel="noopener">${wayLabel(t)}</a></li>`;
+    return `<li><span class="sgi">${person.mode==="car"?ICON.car:ICON.train}</span><span>${esc(person.label||"出発地")} → ${esc(stName(s.to))}<small>${person.mode==="car"?"車":"電車・バス"} 約${fmtMin(s.min)}${t!=null&&person.mode!=="car"?`・${m2t(t)}発`:""}</small></span><a href="${person.mode==="car"?gmapDir(person.label||(person.lat+","+person.lng),stName(s.to),"driving"):wayURL(person.label||"現在地",stName(s.to),di||0,t)}" target="_blank" rel="noopener">${person.mode==="car"?"経路":wayLabel(t)}</a></li>`; }
+  if(s.kind==="transfer") return `<li><span class="sgi">${ICON.train}</span><span>${esc(stName(s.from))} → ${esc(stName(s.to))}<small>電車・バス 約${fmtMin(s.min)}${t!=null?`・${m2t(t)}発`:""}</small></span><a href="${wayURL(stName(s.from),stName(s.to),di||0,t)}" target="_blank" rel="noopener">${wayLabel(t)}</a></li>`;
+  if(s.flight) return `<li><span class="sgi">${ICON.plane}</span><span>${esc(s.from)} → ${esc(s.to)}<small>飛行機 約${fmtMin(s.fly)}（搭乗手続き・移動を含め約${fmtMin(s.min)}）</small></span><a href="${gflURL(s,di||0)}" target="_blank" rel="noopener">便を探す</a></li>`;
+  return `<li><span class="sgi">${/新幹線/.test(s.line)?ICON.shinkansen:ICON.train}</span><span>${esc(stName(s.from))} → ${esc(stName(s.to))}<small>${esc(s.line)} 約${fmtMin(s.min)}${t!=null?`・${m2t(t)}発`:""}</small></span><a href="${wayURL(stName(s.from),stName(s.to),di||0,t)}" target="_blank" rel="noopener">${wayLabel(t)}</a></li>`;
 }
 function meetOptionHTML(o,M,i,chosenKey,shownKey){
   const meet=meetFor(o);
@@ -5008,6 +5059,10 @@ function parseRide(txt){
   if(arr) out.arr=arr[1].padStart(5,"0");
   if(!out.dep&&all[0]) out.dep=all[0];
   if(!out.arr&&all[1]&&all[1]!==out.dep) out.arr=all[1];
+  // 空港コード（KIX → 関西空港）。Googleの検索結果に出る3文字を拾う
+  const M=iata(); const codes=[...t.matchAll(/\b([A-Z]{3})\b/g)].map(m=>m[1]).filter(c=>M[c]);
+  if(codes.length>=1) out.from=M[codes[0]];
+  if(codes.length>=2&&codes[1]!==codes[0]) out.to=M[codes[1]];
   return out;
 }
 function applyRide(dir,v,quiet){
@@ -5015,7 +5070,14 @@ function applyRide(dir,v,quiet){
   S.flight=S.flight||{}; const cur=S.flight[dir]||{};
   S.flight[dir]={no:v.no||cur.no||"",dep:v.dep||cur.dep||"",arr:v.arr||cur.arr||""};
   rideRemember(S.flight[dir]);
-  msg.flp=`${v.no?v.no+"　":""}${v.dep||""}${v.arr?" → "+v.arr:""} を入れました。`;
+  // 「KIX → KOJ」のように空港が分かったら、使う空港もそろえる（帰りは逆向き）
+  let air="";
+  if(longMode()==="air"&&(v.from||v.to)){
+    const a=dir==="ret"?{dep:v.to,arr:v.from}:{dep:v.from,arr:v.to};
+    if(a.dep){ setAir("dep",a.dep); air+=`　出発は${a.dep}`; }
+    if(a.arr){ setAir("arr",a.arr); air+=`${a.dep?"、":"　"}到着は${a.arr}`; }
+  }
+  msg.flp=`${v.no?v.no+"　":""}${v.dep||""}${v.arr?" → "+v.arr:""} を入れました。${air?air+"にしました。":""}`;
   save(); render(); return true;
 }
 async function pasteRide(dir){
@@ -5029,6 +5091,42 @@ function rideStore(){ try{ return JSON.parse(localStorage.getItem("tabiroute.rid
 function rideRemember(v){ if(!v||!v.no||!v.dep) return; try{ const m=rideStore(); m[flNo(v.no)||v.no]={dep:v.dep,arr:v.arr||""}; localStorage.setItem("tabiroute.rides",JSON.stringify(m)); }catch(e){} }
 function rideRecall(no){ const k=flNo(no)||no; return rideStore()[k]||null; }
 function fl(dir){ const f=(S&&S.flight)||{}; const v=f[dir]; return (v&&v.dep)?v:null; }
+/* ---- 使う空港（便が決まっているときは、その便の空港に合わせる） ---- */
+// IATAコード（KIX など）→ 空港名
+let IATA=null;
+function iata(){ if(IATA) return IATA; IATA={}; Object.keys(TN).forEach(k=>{ const c=TN[k][2]; if(c) IATA[c]=k; }); return IATA; }
+function myStartPt(){
+  try{ const st=(APP.project.starts||{})[APP.user.uid]; if(st&&st.lat!=null) return {lat:st.lat,lng:st.lng,label:st.label||""}; }catch(e){}
+  return null;
+}
+function destPt(){ const p=PREF[S&&S.pref]; return p?{lat:p.lat,lng:p.lng}:null; }
+// 出発地・目的地のまわりにある空港（近い順）
+function airNear(pt,km){
+  if(!pt) return [];
+  return Object.keys(TN).filter(k=>TN[k][2]).map(k=>({name:k,code:TN[k][2],d:hav(pt,tnPt(k))}))
+    .filter(x=>x.d<=(km||220)).sort((a,b)=>a.d-b.d).slice(0,5);
+}
+function airOpts(which){ return which==="dep"? airNear(myStartPt(),260) : airNear(destPt(),260); }
+// いま使う空港（未設定なら null＝おまかせ）
+function airPick(which){
+  const a=(S&&S.air)||{}; const v=a[which];
+  if(!v||!TN[v]||!TN[v][2]) return null;
+  return v;
+}
+function setAir(which,v){ S.air={...((S&&S.air)||{})}; if(v) S.air[which]=v; else delete S.air[which]; save(); }
+function airHTML(){
+  if(longMode()!=="air") return "";
+  const dep=airOpts("dep"), arr=airOpts("arr");
+  if(!dep.length&&!arr.length) return "";
+  const sel=(which,list)=>`<div class="field"><label for="air-${which}">${which==="dep"?"出発する空港":"到着する空港"}</label>
+    <select id="air-${which}" data-air="${which}"><option value="">おまかせ（いちばん早い空港）</option>
+    ${list.map(x=>`<option value="${esc(x.name)}" ${airPick(which)===x.name?"selected":""}>${esc(x.name)}（${esc(x.code)}）${x.d>3?"・約"+Math.round(x.d)+"km":""}</option>`).join("")}</select></div>`;
+  const dp=airPick("dep"), ar=airPick("arr");
+  return `<h2 class="sub">使う空港 <small>便が決まっているときは必ず選んでください</small></h2>
+  <p class="note">同じ「大阪」でも <b>伊丹空港（ITM）</b>と<b>関西空港（KIX）</b>では行き方が変わります。便名を貼り付けると自動で入ることもあります。</p>
+  <div class="row airrow">${dep.length?sel("dep",dep):""}${arr.length?sel("arr",arr):""}</div>
+  ${(dp||ar)?`<p class="note">${dp?`行きは <b>${esc(dp)}</b> から`:""}${dp&&ar?"、":""}${ar?`<b>${esc(ar)}</b> に到着`:""}する前提で予定表をつくります。<button type="button" class="linkbtn" data-act="airClear">おまかせに戻す</button></p>`:""}`;
+}
 // 現地までの行き方："air"＝飛行機／"rail"＝新幹線・特急／"auto"＝おまかせ
 function longMode(){
   if(S&&S.longMode) return S.longMode;
@@ -5199,6 +5297,36 @@ function backEndBy(){
   return want-chk-pre-10;
 }
 function dayDate(di){ const d=new Date((S.date||isoToday(0))+"T00:00:00"); d.setDate(d.getDate()+(di||0)); return d; }
+// 電車・バスの行き方：必ず「出発地・到着地・時刻」を入れて乗換案内を開く（バスも乗換案内で調べられます）
+function wayURL(from,to,di,t){
+  if(from==null||to==null) return "https://transit.yahoo.co.jp/";
+  if(t!=null) return yahooURL(from,to,di,t);
+  return `https://transit.yahoo.co.jp/search/result?from=${enc(String(from).replace(/駅$/,""))}&to=${enc(String(to).replace(/駅$/,""))}&type=1&ticket=ic&expkind=1&ws=3&s=0&al=1&shin=1&ex=1&hb=1&lb=1&sr=1`;
+}
+function wayLabel(t){ return t!=null?"乗換案内（この時刻）":"乗換案内"; }
+// 乗換案内に渡す地点の名前（「宿泊エリア：〜」などは分かる名前に直す）
+function placeWay(x){
+  if(!x) return "";
+  let n=String(x.name||"");
+  const m=n.match(/「(.+?)」/); if(m) n=m[1];                       // 宿泊エリア：鹿児島市「仙巌園」周辺 → 仙巌園
+  n=n.replace(/^宿泊エリア[：:]\s*/,"").replace(/周辺$/,"").trim();
+  if(!n) n=(cityLabel()||S.pref||"");
+  const area=cityLabel()||S.pref||"";
+  // 空港・駅・港はそれだけで場所が決まるので、市区町村は足さない
+  if(n&&area&&!/(空港|駅|港|インター|IC)$/.test(n)&&!/[都道府県市区町村]$/.test(n)&&!n.includes(area)) n=n+" "+area;
+  return n;
+}
+function gmapDir(from,to,tm){ return `https://www.google.com/maps/dir/?api=1&origin=${enc(String(from||""))}&destination=${enc(String(to||""))}&travelmode=${tm||"transit"}`; }
+// 「便を探す」：空港コード（ITM／KOJ）と、行きの日・帰りの日を入れて開く
+function isoOf(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
+function tripLastDate(){ const d=new Date((S.date||isoToday(0))+"T00:00:00"); d.setDate(d.getDate()+Math.max(1,(S.days||1))); return d; }
+function gflURL(sg,di,back){
+  const a=tnPt(sg.from), b=tnPt(sg.to); const fa=(a&&a.air)||String(sg.from).replace(/空港$/,""), fb=(b&&b.air)||String(sg.to).replace(/空港$/,"");
+  const out=back? tripLastDate() : dayDate(di||0);
+  let q=`Flights from ${fa} to ${fb} on ${isoOf(out)}`;
+  if(!back && (S.days||1)>=1){ q+=` through ${isoOf(tripLastDate())}`; }   // 往復の日付まで入れる
+  return `https://www.google.com/travel/flights?q=${enc(q)}&hl=ja&curr=JPY`;
+}
 function yahooURL(from,to,di,t,arrive){
   const d=dayDate(di); const ov=Math.floor(t/1440); if(ov) d.setDate(d.getDate()+ov);
   const h=Math.floor(t/60)%24, m=Math.round(t)%60; const p2=n=>String(n).padStart(2,"0");
@@ -5238,7 +5366,7 @@ function bookLinks(sg,di,t){
     const a=tnPt(sg.from), b=tnPt(sg.to); const fa=a&&a.air, fb=b&&b.air;
     if(fa&&fb){
       out.push(["格安","スカイスキャナーで比べる",`https://www.skyscanner.jp/transport/flights/${fa.toLowerCase()}/${fb.toLowerCase()}/${ymd}/`]);
-      out.push(["格安","Googleフライトで比べる",`https://www.google.com/travel/flights?q=${enc(`Flights from ${fa} to ${fb} on ${iso}`)}`]);
+      out.push(["格安","Googleフライトで比べる",gflURL(sg,di||0)]);
       out.push(["格安","ジェットスター",`https://www.jetstar.com/jp/ja/home`]);
       out.push(["格安","ピーチ",`https://www.flypeach.com/jp`]);
       out.push(["大手","ANA",`https://www.ana.co.jp/ja/jp/domestic/`]);
@@ -5267,12 +5395,14 @@ function tripSegInfo(sg,label,mode,di,t){
   const rail=mode!=="car"&&t!=null;
   if(sg.kind==="access" && rail && isSt(label) && !(tnPt(sg.to)||{}).air) return {ic:ICON.train,title:`${label} → ${S2(sg.to)}`,sub:"電車",link:yahooURL(label,S2(sg.to),di,t),lk:"乗換案内（この時刻）",train:true};
   if(sg.kind==="homeward" && rail && isSt(label) && !(tnPt(sg.from)||{}).air) return {ic:ICON.train,title:`${S2(sg.from)} → ${label}`,sub:"電車",link:yahooURL(S2(sg.from),label,di,t),lk:"乗換案内（この時刻）",train:true};
-  if(sg.kind==="access") return {ic:mode==="car"?ICON.car:ICON.train,title:`${label} → ${S2(sg.to)}`,sub:mode==="car"?"車":"電車・バス",link:`https://www.google.com/maps/dir/?api=1&destination=${enc(S2(sg.to))}&travelmode=${mode==="car"?"driving":"transit"}`};
-  if(sg.kind==="homeward") return {ic:mode==="car"?ICON.car:ICON.train,title:`${S2(sg.from)} → ${label}`,sub:mode==="car"?"車":"電車・バス",link:`https://www.google.com/maps/dir/?api=1&origin=${enc(S2(sg.from))}&travelmode=${mode==="car"?"driving":"transit"}`};
-  if(sg.flight) return {ic:ICON.plane,title:`${sg.from} → ${sg.to}`,sub:`飛行機 約${fmtMin(sg.fly)}（空港での手続き・移動を含む）`,link:`https://www.google.com/travel/flights?q=${enc(sg.from+"から"+sg.to)}`,lk:"便を探す"};
+  if(sg.kind==="access") return {ic:mode==="car"?ICON.car:ICON.train,title:`${label} → ${S2(sg.to)}`,sub:mode==="car"?"車":"電車・バス",
+    link:mode==="car"?gmapDir(label,S2(sg.to),"driving"):wayURL(label,S2(sg.to),di,t),lk:mode==="car"?"経路":wayLabel(t),train:mode!=="car"};
+  if(sg.kind==="homeward") return {ic:mode==="car"?ICON.car:ICON.train,title:`${S2(sg.from)} → ${label}`,sub:mode==="car"?"車":"電車・バス",
+    link:mode==="car"?gmapDir(S2(sg.from),label,"driving"):wayURL(S2(sg.from),label,di,t),lk:mode==="car"?"経路":wayLabel(t),train:mode!=="car"};
+  if(sg.flight) return {ic:ICON.plane,title:`${sg.from} → ${sg.to}`,sub:`飛行機 約${fmtMin(sg.fly)}（空港での手続き・移動を含む）`,link:gflURL(sg,di,sg.kind==="homeward"||!!sg.back),lk:"便を探す"};
   const bus=/バス/.test(sg.line||"");
   return {ic:/新幹線/.test(sg.line||"")?ICON.shinkansen:ICON.train,title:`${S2(sg.from)} → ${S2(sg.to)}`,sub:sg.line||(sg.kind==="transfer"?"電車・バス":""),
-    link: bus||sg.kind==="transfer" ? `https://www.google.com/maps/dir/?api=1&origin=${enc(S2(sg.from))}&destination=${enc(S2(sg.to))}&travelmode=transit` : (t!=null? yahooURL(S2(sg.from),S2(sg.to),di,t) : `https://transit.yahoo.co.jp/search/result?from=${enc(S2(sg.from).replace(/駅$/,""))}&to=${enc(S2(sg.to).replace(/駅$/,""))}`), lk: bus||sg.kind==="transfer"?"経路":t!=null?"乗換案内（この時刻）":"乗換案内", train:!bus&&sg.kind!=="transfer"};
+    link: wayURL(S2(sg.from),S2(sg.to),di,t), lk: wayLabel(t), train:true};
 }
 function tripItemHTML(it,trip,di){
   const mode=(trip.me&&trip.me.mode)||"transit";
