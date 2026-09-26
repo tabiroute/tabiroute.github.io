@@ -1193,7 +1193,7 @@ html{overflow-x:clip}
 </section>
   <p class="foot" id="foot">人気順は、SNSでよく投稿・検索される定番スポットをもとにした参考順位です（Instagramのリアルタイムの投稿数ではありません）。車の移動時間は道路の経路から計算し、電車・バスの移動時間は距離からの目安です。実際の所要時間は各区間のリンク（電車・バスは「乗換案内」、車は「経路」）で確認してください。</p>
   <p class="foot">地図：<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">国土地理院</a>／場所・住所・ホテル情報：© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>（Nominatim・Overpass API）、国土地理院 地名検索／車の経路：<a href="https://project-osrm.org/" target="_blank" rel="noopener">OSRM</a>／写真：<a href="https://commons.wikimedia.org/" target="_blank" rel="noopener">Wikimedia Commons</a>（撮影者とライセンスは写真の上にマウスを置くか「詳細を見る」で表示）</p>
-  <footer class="sitefoot"><a href="privacy.html">プライバシーポリシー</a><span>地図：国土地理院／地図データ：© OpenStreetMap contributors／写真：Wikimedia Commons</span><span class="bver">v5</span></footer>
+  <footer class="sitefoot"><a href="privacy.html">プライバシーポリシー</a><span>地図：国土地理院／地図データ：© OpenStreetMap contributors／写真：Wikimedia Commons</span><span class="bver">v6</span></footer>
 </div>
 
 <div class="navbar" id="navbar" hidden><div class="in">
@@ -4821,7 +4821,7 @@ function jtPage(t,i,r,sheet,per){
   const [w,hh,slots,z]=pg, sf=r?("-"+r):"";
   // 旅程ページでは、予定のない行は空けたままにします
   const lim=(i===2)?((sheet&&sheet.rows)?sheet.rows.length:0):99;
-  let h=`<section class="jtpage" style="aspect-ratio:${w} / ${hh};background-image:url('img/jt-v5/${t[0]}-${i}.webp')">`;
+  let h=`<section class="jtpage" style="aspect-ratio:${w} / ${hh};background-image:url('img/jt-v6/${t[0]}-${i}.webp')">`;
   (slots||[]).forEach((sl,k)=>{
     if(k>=lim) return;
     const [cx,cy,sw,sh,deg]=sl;
