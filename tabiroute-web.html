@@ -190,6 +190,8 @@ input[type=text]{flex:1 1 220px}
 .withimg>.main{flex:1;min-width:0}
 .tl .stop.hasimg{display:flex;gap:10px;align-items:flex-start}
 .tl .stop.hasimg>div:last-child{min-width:0;flex:1}
+.tl .stop.hasimg>.mv:last-child{flex:none}
+.tl .stop.hasimg>div:nth-child(2){min-width:0;flex:1}
 .mealrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px;padding:8px 10px;background:var(--hot-soft);border-radius:9px}
 .mealrow .chip{padding:3px 11px;font-size:13px}
 .mealrow select{padding:4px 8px}
@@ -347,7 +349,7 @@ textarea{font:inherit;color:inherit;width:100%;border:1px solid var(--line);back
 .day h3 .dot{width:12px;height:12px;border-radius:50%}
 .day .dmeta{font-size:12.5px;color:var(--muted);margin-bottom:10px}
 .tl{list-style:none;margin:0;padding:0}
-.tl li{display:grid;grid-template-columns:58px 1fr;gap:10px;align-items:start}
+.tl li{display:grid;grid-template-columns:58px minmax(0,1fr);gap:10px;align-items:start}
 .tl .t{font-variant-numeric:tabular-nums;font-weight:700;font-size:14px;padding-top:6px}
 .tl .stop{border-left:3px solid var(--c);padding:6px 0 6px 12px}
 .tl .stop .nm{font-weight:700;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
@@ -560,7 +562,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);
 .day{border-radius:var(--r-lg);border-color:color-mix(in srgb,var(--line) 70%,transparent);box-shadow:var(--shadow);padding:18px 20px 16px;position:relative;overflow:hidden}
 .day::before{content:"";position:absolute;left:0;top:0;right:0;height:5px;background:var(--c)}
 .day h3{font-size:18px;font-weight:800}
-.tl li{grid-template-columns:54px 1fr}
+.tl li{grid-template-columns:46px minmax(0,1fr)}
 .tl .t{font-family:var(--f-num);font-weight:800;font-size:13.5px}
 .tl .stop{border-left-width:3px;padding:8px 10px 8px 14px;border-radius:0 12px 12px 0;margin:3px 0}
 .tl li[data-stop] .stop{background:var(--surface-2)}
@@ -967,6 +969,15 @@ html{overflow-x:clip}
 .jt{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
 .jtpage{position:relative;background-size:100% 100%;background-repeat:no-repeat;background-color:#FAF6EE;
   border:1px solid #E8E0D2;border-radius:6px;overflow:hidden;box-shadow:0 20px 44px -28px rgba(40,50,70,.45)}
+article.day{content-visibility:auto;contain-intrinsic-size:auto 900px}
+.jtpage,.jpage{content-visibility:auto;contain-intrinsic-size:auto 1000px}
+.mv{display:flex;flex-direction:column;gap:3px;padding-left:6px;flex:none;align-self:center}
+.mvb{width:28px;height:24px;border:1px solid #D6DFEE;background:#fff;border-radius:7px;color:#2356F6;font-size:11px;line-height:1;cursor:pointer;padding:0}
+.mvb:disabled{opacity:.3;cursor:default}
+.mvb:not(:disabled):active{background:#EEF3FF}
+.ordbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:6px 0 8px}
+.ordbar .note{flex:1 1 220px;font-size:12.5px}
+.ordbar svg{width:14px;height:14px;vertical-align:-2px}
 .hstep{display:flex;gap:10px;align-items:flex-start;margin:22px 0 10px}
 .hstep:first-of-type{margin-top:8px}
 .hstep-n{flex:none;width:26px;height:26px;border-radius:50%;background:#2356F6;color:#fff !important;font-weight:700;font-size:13.5px;line-height:1;display:flex;align-items:center;justify-content:center;margin-top:2px}
@@ -1138,6 +1149,7 @@ html{overflow-x:clip}
   body{padding:0;background:#fff}
   .top,.pbar,#stepper,#navbar,.jbar,.sitefoot,.foot,#about,.jadd,.jdel{display:none!important}
   .journal{display:block}
+  .jtpage,.jpage,article.day{content-visibility:visible !important;contain-intrinsic-size:none !important}
   .jtpage{break-after:page;page-break-after:always;border:0;border-radius:0;box-shadow:none;width:100%;
     -webkit-print-color-adjust:exact;print-color-adjust:exact}
   .jtslot .jph{display:none}
@@ -1205,7 +1217,7 @@ html{overflow-x:clip}
 </section>
   <p class="foot" id="foot">人気順は、SNSでよく投稿・検索される定番スポットをもとにした参考順位です（Instagramのリアルタイムの投稿数ではありません）。車の移動時間は道路の経路から計算し、電車・バスの移動時間は距離からの目安です。実際の所要時間は各区間のリンク（電車・バスは「乗換案内」、車は「経路」）で確認してください。</p>
   <p class="foot">地図：<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">国土地理院</a>／場所・住所・ホテル情報：© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>（Nominatim・Overpass API）、国土地理院 地名検索／車の経路：<a href="https://project-osrm.org/" target="_blank" rel="noopener">OSRM</a>／写真：<a href="https://commons.wikimedia.org/" target="_blank" rel="noopener">Wikimedia Commons</a>（撮影者とライセンスは写真の上にマウスを置くか「詳細を見る」で表示）</p>
-  <footer class="sitefoot"><a href="privacy.html">プライバシーポリシー</a><span>地図：国土地理院／地図データ：© OpenStreetMap contributors／写真：Wikimedia Commons</span><span class="bver">v7</span></footer>
+  <footer class="sitefoot"><a href="privacy.html">プライバシーポリシー</a><span>地図：国土地理院／地図データ：© OpenStreetMap contributors／写真：Wikimedia Commons</span><span class="bver">v8</span></footer>
 </div>
 
 <div class="navbar" id="navbar" hidden><div class="in">
@@ -2308,8 +2320,17 @@ function buildPlan(){
     const A=B||from||He, Z=D||to||He;
     const ord=orderPath(A,Z,g.filter(x=>x!==B&&x!==Lm&&x!==D));
     const ks = Lm ? [...Array(ord.length+1).keys()] : [null];
+    const MO=(S.manualOrd&&S.manualOrd[di])||null;   // 自分で並べ替えた順番
     const planFor=mode=>{
       CURMODE=mode; let best=null;
+      if(MO&&MO.length){
+        const pool=[...(B?[B]:[]),...ord,...(Lm?[Lm]:[]),...(D?[D]:[])];
+        const byId=new Map(); pool.forEach(x=>{ if(!byId.has(x.id)) byId.set(x.id,x); });
+        const seq=[]; MO.forEach(id=>{ const x=byId.get(id); if(x&&!seq.includes(x)) seq.push(x); });
+        pool.forEach(x=>{ if(!seq.includes(x)) seq.push(x); });   // あとから増えた場所は最後に
+        const r=schedule(He,seq,!!Lm,from,(from&&from.time)?from.time:null,to,di);
+        best={score:0,seq,r}; CURMODE=null; best.cost=dayCost(best.r,mode,di,trip); return best;
+      }
       ks.forEach(k=>{
         const seq=[...(B?[B]:[]), ...(k===null?ord:ord.slice(0,k)), ...(Lm?[Lm]:[]), ...(k===null?[]:ord.slice(k)), ...(D?[D]:[])];
         const r=schedule(He,seq,!!Lm,from,(from&&from.time)?from.time:null,to,di);
@@ -2324,7 +2345,7 @@ function buildPlan(){
     if(fixed){ pick=planFor(fixed); pick.mode=fixed; }
     else { const a=planFor("transit"), b=planFor("car"); a.mode="transit"; b.mode="car"; pick=a.cost<=b.cost?a:b; alt=pick===a?b:a; }
     const {seq,r}=pick;
-    const out={di,ord:seq,items:r.items,endT:r.t,startT:r.startT,over:r.over,late:r.late,km:r.km,from,to,hotel:He,mode:pick.mode,auto:!fixed,manual:!!(S.dayMode&&S.dayMode[di]),alt:alt?{mode:alt.mode,cost:Math.round(alt.cost),mine:Math.round(pick.cost)}:null};
+    const out={di,ord:seq,items:r.items,endT:r.t,startT:r.startT,over:r.over,late:r.late,km:r.km,from,to,hotel:He,mode:pick.mode,auto:!fixed,manual:!!(S.dayMode&&S.dayMode[di]),hand:!!(MO&&MO.length),alt:alt?{mode:alt.mode,cost:Math.round(alt.cost),mine:Math.round(pick.cost)}:null};
     if(trip) tcKick();
     if(trip&&di===0){ const o=trip.out; out.tripOut=tItems("out",trip.label,o)||o; }
     if(trip&&di===last){ const o=tripBackItems(trip,r.t); out.tripBack=tItems("ret",trip.label,o)||o; }
@@ -2384,6 +2405,8 @@ function dayHTML(d,H){
   <div class="dmeta">${d.ord.length}か所・移動 約${d.km.toFixed(0)}km${dayFare(d)>0?`・現地の移動費 ${esc(yen(dayFare(d)))}（目安）`:""}・${m2t(t0)}〜${m2t(t1)} ${d.over?`<span class="over">　観光が予定の${dayTime(d.di).end}を過ぎます</span>`:""}${d.late?`<span class="over">　${MEALNAME[d.late]}の時間に間に合いません（スポットを減らすか日を変えてください）</span>`:""}</div>`;
   if(!d.ord.length){h+=`<p class="note">${dayTime(d.di).off?"この日は観光しない日に設定しています。":"この日はフリータイムです。スポットを増やすとこの日にも割り振られます。"}</p>${window.__plan&&window.__plan.trip&&(d.tripOut||d.tripBack)?`<ol class="tl">${(d.tripOut||[]).concat(d.tripBack||[]).map(it=>tripItemHTML(it,window.__plan.trip,d.di)).join("")}</ol>`:""}</article>`;return h}
   if(d.di===0&&trip) h+=crewHTML(crewTrips());
+  const nStops=d.items.filter(x=>x.type==="stop").length; let stopIdx=0;
+  h+=`<div class="ordbar"><span class="note">${ICON.spark}回る順番は自動で最短になるよう決めています。▲▼で入れ替えると、その順番で時間と移動を計算し直します。</span>${d.hand?`<button type="button" class="btn small ghost" data-ordreset="${d.di}">自動の順番に戻す</button>`:""}</div>`;
   h+=`<ol class="tl">`;
   if(d.tripOut&&trip) h+=d.tripOut.map(it=>tripItemHTML(it,trip,d.di)).join("");
   d.items.forEach(it=>{
@@ -2400,7 +2423,9 @@ function dayHTML(d,H){
     else if(it.type==="free") h+=`<li class="lunch"><div class="t">${m2t(it.t)}</div><div class="stop"><div class="nm">自由時間</div><div class="sm">${fmtMin(it.dur)}・観光は${esc(it.until)}から（ホテルに荷物を預ける、駅の周辺を歩くなど）</div></div></li>`;
     else if(it.type==="wait") h+=`<li class="lunch"><div class="t">${m2t(it.t)}</div><div class="stop"><div class="nm">自由時間</div><div class="sm">${it.dur}分・${it.meal==="夜"?"ホテルで休憩、買い物や散策など":"周辺の散策など"}（${MEALNAME[it.meal]}のお店の時間まで）</div></div></li>`;
     else if(it.type==="lunch") h+=`<li class="lunch"><div class="t">${m2t(it.t)}</div><div class="stop"><div class="nm">昼食</div><div class="sm">${it.near?esc(it.near)+"の周辺で・":""}60分</div></div></li>`;
-    else if(it.type==="stop") h+=`<li data-stop="${esc(it.s.id)}" class="${hlStop===it.s.id?"hl":""}"><div class="t">${m2t(it.t)}</div><div class="stop hasimg">${imgSlot(it.s,"sm")}<div><div class="nm"><span class="num">${it.n}</span>${esc(it.s.name)}${it.meal?`<span class="pill meal">${MEALNAME[it.meal]}</span>`:it.s.kind==="wish"?'<span class="pill hot">行きたい場所</span>':""}${it.s.conflict?`<span class="pill warn">同じ日の${it.s.conflict}が重なるため通常の立ち寄り</span>`:""}${it.s.approx?'<span class="pill warn">位置は推定</span>':""}</div><div class="sm">${m2t(it.t)}〜${m2t(it.t+it.dur)}（${it.dur}分）・<button type="button" class="linkbtn" style="padding:0;font-size:12.5px" data-detail="${esc(it.s.name)}">詳細を見る</button></div></div></div></li>`;
+    else if(it.type==="stop"){ const si=stopIdx++, lastI=nStops-1;
+      h+=`<li data-stop="${esc(it.s.id)}" class="${hlStop===it.s.id?"hl":""}"><div class="t">${m2t(it.t)}</div><div class="stop hasimg">${imgSlot(it.s,"sm")}<div><div class="nm"><span class="num">${it.n}</span>${esc(it.s.name)}${it.meal?`<span class="pill meal">${MEALNAME[it.meal]}</span>`:it.s.kind==="wish"?'<span class="pill hot">行きたい場所</span>':""}${it.s.conflict?`<span class="pill warn">同じ日の${it.s.conflict}が重なるため通常の立ち寄り</span>`:""}${it.s.approx?'<span class="pill warn">位置は推定</span>':""}</div><div class="sm">${m2t(it.t)}〜${m2t(it.t+it.dur)}（${it.dur}分）・<button type="button" class="linkbtn" style="padding:0;font-size:12.5px" data-detail="${esc(it.s.name)}">詳細を見る</button></div></div>
+      <div class="mv"><button type="button" class="mvb" data-move="${d.di}|${si}|-1" ${si===0?"disabled":""} aria-label="ひとつ前にする">▲</button><button type="button" class="mvb" data-move="${d.di}|${si}|1" ${si===lastI?"disabled":""} aria-label="ひとつ後にする">▼</button></div></div></li>`; }
   });
   if(d.tripBack&&trip) h+=d.tripBack.map(it=>tripItemHTML(it,trip,d.di)).join("");
   h+=`</ol><div class="dayacts"><a class="btn small" href="${gdir(d.from||H,d.to||H,d.ord,d.mode==="car"?"driving":null)}" target="_blank" rel="noopener">${ICON.map}この日のルートをGoogleマップで開く</a></div></article>`;
@@ -4086,6 +4111,15 @@ document.addEventListener("click",async e=>{
   if(d.mymeal){ S.myMeal=d.mymeal; save(); render(); return; }
   if(d.hsplit!==undefined){ S.hotelSplit=d.hsplit==="1"; NIGHTAREA=null; save(); render(); return; }
   if(d.act==="nhFind") return nightHotelFind(+d.v);
+  if(d.move){ const [di,idx,dir]=d.move.split("|").map(Number);
+    const plan=window.__plan||buildPlan(); const day=(plan.days||[])[di]; if(!day) return;
+    const cur=day.items.filter(x=>x.type==="stop").map(x=>x.s.id);
+    const j=idx+dir; if(idx<0||j<0||j>=cur.length) return;
+    const nx=cur.slice(); const tmp=nx[idx]; nx[idx]=nx[j]; nx[j]=tmp;
+    S.manualOrd=S.manualOrd||{}; S.manualOrd[di]=nx; save(); render();
+    setTimeout(()=>{ const el=document.querySelector(`[data-move="${di}|${j}|${dir}"]`)||document.querySelector(`[data-move="${di}|${j}|${-dir}"]`); if(el) el.focus(); },60);
+    return; }
+  if(d.ordreset!==undefined){ const di=+d.ordreset; if(S.manualOrd){ delete S.manualOrd[di]; save(); } render(); return; }
   if(d.nhcand){ const [a,b]=d.nhcand.split("|").map(Number); const ns=nightsArr(); const v=ns[a]; const c=v&&v.cands&&v.cands[b];
     if(c){ v.name=c.name; v.loc={lat:c.lat,lng:c.lng}; v.addr=c.addr; msg["nh"+a]=""; save(); render(); } return; }
   if(d.act==="jcropOK") return jCropUse();
@@ -4436,9 +4470,10 @@ function planMeeting(members,dest,custom){
     opts.push(o); locals.push(o);
   });
   locals.sort((a,b)=>a.score-b.score); const finalMeet=locals[0]||null;
+  let DDEST=null; const destD=()=>DDEST||(DDEST=tDijkstraTo(dest));   // 目的地までの表は1回だけ作る
   // B) 途中の駅・空港で合流して一緒に移動（2人以上）
   if(R.length>=2){
-    const Dd=tDijkstraTo(dest);
+    const Dd=destD();
     allNodeIds().forEach(n=>{
       const c=tnPt(n); if(hav(c,dest)<=30) return;
       const tail=Dd[n]; if(tail==null||tail<40) return;
@@ -4454,7 +4489,7 @@ function planMeeting(members,dest,custom){
   }
   // B2) ほかのメンバーの出発駅で合流（同じ路線の途中の駅など）
   if(R.length>=2){
-    const Dd=tDijkstraTo(dest);
+    const Dd=destD();
     const firstNode=i=>{ const s=solo[i]; if(!s.via) return dest; const p=tPath(R[i].D,s.via); const a=p&&p[0]&&p[0].to; return a?tnPt(a):dest; };
     R.forEach((rj,j)=>{
       if(!(rj.m.st||isSt(rj.m.label))) return;
@@ -4489,12 +4524,42 @@ function planMeeting(members,dest,custom){
     tt+=last; legs.push({to:dest.name,min:last});
     opts.push({type:"car",title:`${dr.m.name}さんの車で迎えに行く`,sub:`${order.map(o=>o.name+"さん").join("→")}の順に迎えて、${dest.name}へ`,driver:dr.m,legs,total:tt,score:tt+25});
   });
+  // D) 駅などで合流して、そこから先は車の人の運転で一緒に行く
+  try{
+    const drv=R.map((r,i)=>r.m.mode==="car"?i:-1).filter(i=>i>=0);
+    if(drv.length&&R.length>=2){
+      const di=drv[0]; const dm=R[di].m;
+      // 合流できそうな場所：これまでの案の地点＋運転する人の近くの駅
+      const pool=[];
+      opts.filter(o=>o.type==="local"||o.type==="enroute").slice(0,8).forEach(o=>{ if(o.point) pool.push(o.point); });
+      nearestHubs(dm,6,false).filter(x=>x.d<=70).forEach(x=>pool.push(x));
+      Object.values(LRAIL.nodes||{}).filter(x=>x.nlines>=2&&hav(x,dm)<=25).sort((a,b)=>hav(a,dm)-hav(b,dm)).slice(0,4).forEach(x=>pool.push(x));
+      const seenC=new Set();
+      pool.forEach(c=>{
+        if(!c||seenC.has(c.id)) return; seenC.add(c.id);
+        if(hav(c,dest)<8) return;                        // 目的地のすぐそば＝現地集合と同じ
+        const carTail=directMin(c,dest,"car"); if(carTail==null) return;
+        const per=R.map((r,j)=>{
+          if(j===di){ const d=hav(r.m,c); if(d>200) return null; const t=accessMin(d,"car"); return t==null?null:{t,segs:[{kind:"access",to:c.id,min:t}],drive:true}; }
+          return routeTo(r,c);
+        });
+        if(per.some(x=>!x)) return;
+        const mx=Math.max(...per.map(x=>x.t));
+        if(mx+carTail > Math.max(...solo.map(x=>x.t))+120) return;   // 遠回りすぎる案は出さない
+        opts.push({type:"carjoin",title:`${stName(c.id)}で合流して、${dm.name}さんの車で行く`,
+          sub:`${dm.name}さんが車で来て、合流したあとは全員その車で移動します（約${fmtMin(carTail)}）`,
+          point:c,per,with:per.map(()=>true),shared:carTail,after:carTail,driver:dm,
+          carTail:[{kind:"car",text:`${dest.name}へ（${dm.name}さんの車）`,min:carTail}],
+          score: mx+carTail + Math.max(0,carTail-90)*0.45 + 10});   // 着く時刻そのもので比べる（長い運転は少し不利に）
+      });
+    }
+  }catch(e){}
   try{ const cu=customMeetOption(R,dest,custom); if(cu) opts.push(cu); }catch(e){}
   // 重複をまとめて上位を返す
   opts.sort((a,b)=>a.score-b.score);
   const seen=new Set(); const top=[];
-  for(const o of opts){ const k=o.type+(o.point?o.point.lat.toFixed(2)+","+o.point.lng.toFixed(2):o.driver.key); if(seen.has(k)) continue; seen.add(k); if(o.type==="enroute"&&top.filter(x=>x.type==="enroute").length>=2) continue; if(o.type==="local"&&top.filter(x=>x.type==="local").length>=2) continue; top.push(o); if(top.length>=4) break; }
-  top.forEach(o=>{ if(o.tailFrom) o.tailPath=tDestPath(o.tailFrom,dest,o.tailAcc); });
+  for(const o of opts){ const k=o.type+(o.point?o.point.lat.toFixed(2)+","+o.point.lng.toFixed(2):o.driver.key); if(seen.has(k)) continue; seen.add(k); if(o.type==="enroute"&&top.filter(x=>x.type==="enroute").length>=2) continue; if(o.type==="local"&&top.filter(x=>x.type==="local").length>=2) continue; if(o.type==="carjoin"&&top.some(x=>x.type==="carjoin")) continue; top.push(o); if(top.length>=5) break; }
+  top.forEach(o=>{ if(o.carTail) o.tailPath=o.carTail; else if(o.tailFrom) o.tailPath=tDestPath(o.tailFrom,dest,o.tailAcc); });
   // 合流地点から先が、その人が乗っている列車と同じなら「乗ったまま合流」
   top.forEach(o=>{
     if(o.type!=="enroute"&&o.type!=="custom") return;
@@ -4555,7 +4620,7 @@ const FIREBASE_CONFIG = {
 };
 const FBV = "10.12.2";
 const CLIENT_ID = Math.random().toString(36).slice(2);
-const PLAN_KEYS = ["dayMode","honten","dayTimes","perDay","rental","people","rooms","pref","city","cityOther","days","date","start","end","wishes","picks","ai","hotelMode","hotelName","hotelLoc","hotelAnchor","hotelInfo","hotelDecCands","cond","hotelCands","hotelPick","transport","pace","example","flight","air","rideT","myMeal","longMode","rentMode","rentAt","rentBook","hotelSplit","nights"];
+const PLAN_KEYS = ["dayMode","honten","dayTimes","perDay","rental","people","rooms","pref","city","cityOther","days","date","start","end","wishes","picks","ai","hotelMode","hotelName","hotelLoc","hotelAnchor","hotelInfo","hotelDecCands","cond","hotelCands","hotelPick","transport","pace","example","flight","air","rideT","myMeal","longMode","rentMode","rentAt","rentBook","hotelSplit","nights","manualOrd"];
 const UI_KEYS = ["step","visited","foodTab","food","foodS","foodSort","rentCands","rentKey","moreSpots","moreNear","moreFood"];
 const STATUS = ["計画中","予約済み","旅行中","完了"];
 const MEMBER_C = ["#2356F6","#FF5A5F","#0E9F6E","#7A5AF8","#F08C00","#0891B2","#DB2777","#65A30D"];
@@ -5552,6 +5617,7 @@ function segHTML(s,person,di,t){
     if(person.lat!=null && hav(person,P)<0.6) return "";
     if(isSt(person.label) && !P.air && person.mode!=="car") return `<li><span class="sgi">${ICON.train}</span><span>${esc(person.label)} → ${esc(stName(s.to))}<small>電車 約${fmtMin(s.min)}${t!=null?`・${m2t(t)}発`:""}</small></span><a href="${wayURL(person.label,stName(s.to),di||0,t)}" target="_blank" rel="noopener">${wayLabel(t)}</a></li>`;
     return `<li><span class="sgi">${person.mode==="car"?ICON.car:ICON.train}</span><span>${esc(person.label||"出発地")} → ${esc(stName(s.to))}<small>${person.mode==="car"?"車":"電車・バス"} 約${fmtMin(s.min)}${t!=null&&person.mode!=="car"?`・${m2t(t)}発`:""}</small></span><a href="${person.mode==="car"?gmapDir(person.label||(person.lat+","+person.lng),stName(s.to),"driving"):wayURL(person.label||"現在地",stName(s.to),di||0,t)}" target="_blank" rel="noopener">${person.mode==="car"?"経路":wayLabel(t)}</a></li>`; }
+  if(s.kind==="car") return `<li><span class="sgi">${ICON.car}</span><span>${esc(s.text||"車で移動")}<small>車 約${fmtMin(s.min)}${t!=null?`・${m2t(t)}ごろ`:""}</small></span></li>`;
   if(s.kind==="transfer") return `<li><span class="sgi">${ICON.train}</span><span>${esc(stName(s.from))} → ${esc(stName(s.to))}<small>電車・バス 約${fmtMin(s.min)}${t!=null?`・${m2t(t)}発`:""}</small></span><a href="${wayURL(stName(s.from),stName(s.to),di||0,t)}" target="_blank" rel="noopener">${wayLabel(t)}</a></li>`;
   if(s.flight) return `<li><span class="sgi">${ICON.plane}</span><span>${esc(s.from)} → ${esc(s.to)}<small>飛行機 約${fmtMin(s.fly)}（搭乗手続き・移動を含め約${fmtMin(s.min)}）</small></span><a href="${gflURL(s,di||0)}" target="_blank" rel="noopener">飛んでいる便の時刻表</a></li>`;
   return `<li><span class="sgi">${/新幹線/.test(s.line)?ICON.shinkansen:ICON.train}</span><span>${esc(stName(s.from))} → ${esc(stName(s.to))}<small>${esc(s.line)} 約${fmtMin(s.min)}${t!=null?`・${m2t(t)}発`:""}</small></span><a href="${wayURL(stName(s.from),stName(s.to),di||0,t)}" target="_blank" rel="noopener">${wayLabel(t)}</a></li>`;
@@ -5566,18 +5632,18 @@ function meetOptionHTML(o,M,i,chosenKey,shownKey){
     let t=meet-o.total-10; const dep=t;
     rows=`<div class="mrow">${avatar(o.driver.name,o.driver.idx)}<div class="mmain"><b>${esc(o.driver.name)}さん</b>（運転）<span class="dep ${dep<5.5*60?"warn":""}">${m2t(Math.max(0,dep))} 出発</span><ul class="segs">`+o.legs.map(l=>{ t+=l.min; return `<li><span class="sgi">${ICON.car}</span><span>${esc(l.to)}${l.to===M.dest.name?"":"さんを迎える"}<small>約${fmtMin(l.min)}・${m2t(t)}ごろ</small></span></li>`; }).join("")+`</ul></div></div>`;
   } else {
-    const tail = (o.type==="enroute"||o.type==="custom")? o.shared : 0;
+    const tail = (o.type==="enroute"||o.type==="custom"||o.type==="carjoin")? o.shared : 0;
     const groupDep = meet - tail; // 合流地点を出る時刻
     rows=M.members.map((m,j)=>{
       const per=o.per[j]; if(!per) return "";
       if(per.here) return `<div class="mrow">${avatar(m.name,m.idx)}<div class="mmain"><b>${esc(m.name)}</b><span class="dep">${m2t(groupDep-10)} までに ${esc(stName(o.point.id))}（出発駅）で待ち合わせ</span></div></div>`;
-      const inGroup = (o.type!=="enroute"&&o.type!=="custom") || (o.with&&o.with[j]);
-      const arriveAt = (o.type==="enroute"||o.type==="custom") && inGroup ? (per.onboard?groupDep:groupDep-10) : meet;
+      const inGroup = (o.type!=="enroute"&&o.type!=="custom"&&o.type!=="carjoin") || (o.with&&o.with[j]);
+      const arriveAt = (o.type==="enroute"||o.type==="custom"||o.type==="carjoin") && inGroup ? (per.onboard?groupDep:groupDep-10) : meet;
       const dep=arriveAt-per.t;
-      const where = (o.type==="enroute"||o.type==="custom") ? (inGroup? stName(o.point.id) : (o.final? stName(o.final.id):M.dest.name)) : stName(o.point.id);
-      return `<div class="mrow">${avatar(m.name,m.idx)}<div class="mmain"><b>${esc(m.name)}</b><span class="dep ${dep<5.5*60?"warn":""}">${dep<0?"前日":m2t(dep)} 出発 → ${m2t(arriveAt)} ${esc(where)}${per.onboard?"（乗ったまま）":"着"}</span>${per.onboard?`<span class="pill info">${esc(stName(per.boardAt))}から乗った${esc(per.line||"列車")}に、そのまま乗っています</span>`:""}${dep<5.5*60?`<span class="pill warn">早朝のため前日移動（前泊）がおすすめ</span>`:""}<ul class="segs">${(()=>{let ct=dep;return per.segs.map(s=>{const st=ct;ct+=s.min||0;return segHTML(s,m,0,st)}).join("")})()}</ul></div></div>`;
+      const where = (o.type==="enroute"||o.type==="custom"||o.type==="carjoin") ? (inGroup? stName(o.point.id) : (o.final? stName(o.final.id):M.dest.name)) : stName(o.point.id);
+      return `<div class="mrow">${avatar(m.name,m.idx)}<div class="mmain"><b>${esc(m.name)}</b><span class="dep ${dep<5.5*60?"warn":""}">${dep<0?"前日":m2t(dep)} 出発 → ${m2t(arriveAt)} ${esc(where)}${per.onboard?"（乗ったまま）":"着"}</span>${per.onboard?`<span class="pill info">${esc(stName(per.boardAt))}から乗った${esc(per.line||"列車")}に、そのまま乗っています</span>`:""}${per.drive?`<span class="pill info">ここから先は、この車でみんなを乗せて移動します</span>`:""}${dep<5.5*60?`<span class="pill warn">早朝のため前日移動（前泊）がおすすめ</span>`:""}<ul class="segs">${(()=>{let ct=dep;return per.segs.map(s=>{const st=ct;ct+=s.min||0;return segHTML(s,m,0,st)}).join("")})()}</ul></div></div>`;
     }).join("");
-    if(o.type==="enroute"||o.type==="custom") rows+=`<div class="mrow together"><span class="av" style="background:var(--hot)">${ICON.users}</span><div class="mmain"><b>${o.onboard?`ここから同じ${/新幹線/.test(o.line||"")?"新幹線":"列車"}で一緒に`:"合流したあと一緒に"}</b><span class="dep">${m2t(groupDep)} ${esc(stName(o.point.id))}発 → ${m2t(meet)} ${esc(arrivalNode(o)?stName(arrivalNode(o).id):M.dest.name)}着</span><ul class="segs">${(()=>{let ct=groupDep;return (o.tailPath||[]).map(s=>{const st=ct;ct+=s.min||0;return segHTML(s,{},0,st)}).join("")})()||`<li><span class="sgi">${ICON.train}</span><span>${esc(M.dest.name)}へ<small>約${fmtMin(o.shared)}</small></span></li>`}</ul></div></div>`;
+    if(o.type==="enroute"||o.type==="custom"||o.type==="carjoin") rows+=`<div class="mrow together"><span class="av" style="background:var(--hot)">${ICON.users}</span><div class="mmain"><b>${o.type==="carjoin"?`ここから ${esc(o.driver.name)}さんの車で一緒に`:o.onboard?`ここから同じ${/新幹線/.test(o.line||"")?"新幹線":"列車"}で一緒に`:"合流したあと一緒に"}</b><span class="dep">${m2t(groupDep)} ${esc(stName(o.point.id))}発 → ${m2t(meet)} ${esc(arrivalNode(o)?stName(arrivalNode(o).id):M.dest.name)}着</span><ul class="segs">${(()=>{let ct=groupDep;return (o.tailPath||[]).map(s=>{const st=ct;ct+=s.min||0;return segHTML(s,{},0,st)}).join("")})()||`<li><span class="sgi">${ICON.train}</span><span>${esc(M.dest.name)}へ<small>約${fmtMin(o.shared)}</small></span></li>`}</ul></div></div>`;
   }
   return `<article class="mopt ${chosen?"on":""}" data-mopt="${esc(key)}"><div class="mopt-hd"><div>${i===0?'<span class="pill hot">おすすめ</span> ':""}${chosen?'<span class="pill ok">決定</span> ':""}<b class="mt">${esc(o.title)}</b><div class="note">${esc(o.sub)}</div></div>
     <div class="row" style="gap:6px">${open?"":`<button type="button" class="btn small ghost" data-app="meetShow" data-v="${esc(key)}">詳しく見る</button>`}<button type="button" class="btn small ${chosen?"primary":""}" data-app="meetChoose" data-v="${esc(key)}">${chosen?"✓ この案に決定":"この案にする"}</button></div></div>${open?rows:`<div class="msum">${summ}</div>`}</article>`;
@@ -6231,7 +6297,7 @@ function tripItemHTML(it,trip,di){
   return `<li class="trip"><div class="t">${m2t(it.t)}</div><div class="stop tripseg" style="--c:var(--muted)"><div class="nm"><span class="sgi">${f.ic}</span>${esc(f.title)}${it.together?'<span class="pill info">みんなで</span>':""}${rr?`<span class="pill ok">${ts?"実際のダイヤ":"実際の電車"}</span>`:""}</div>
     <div class="ttime"><b>${m2t(it.t)}${car?"出発":"発"}</b><span>→</span><b>${m2t(it.t+it.seg.min)}${car?"到着":"着"}</b><small>${esc(f.sub)}・約${fmtMin(it.seg.min)}</small>${it.fare!=null?`<span class="fare">${esc(yen(it.fare))}</span>`:(fareOf(it.seg,mode)?`<span class="fare">${esc(fareText(fareOf(it.seg,mode)))}（目安）</span>`:"")}</div>
     ${it.late?`<div class="sm warnline">このままでは次の乗り物に${it.lateMin?`${it.lateMin}分`:""}間に合いません。1本前の電車にしてください。</div>`:""}
-    <div class="sm">${ts?"駅すぱあと APIで調べた、実際に走っている電車の時刻です。":(rr?"乗換案内で調べた実際の電車の時刻です。":(f.train?"時刻は目安です。乗換案内で実際の電車を調べて、下から入れられます。":""))}${f.link?` <a href="${f.link}" target="_blank" rel="noopener">${f.lk||"経路"}</a>`:""}</div>
+    <div class="sm">${ts?"駅すぱあと APIで調べた、実際に走っている電車の時刻です。":(rr?"乗換案内で調べた実際の電車の時刻です。":(f.train?"時刻は目安です。<b>①「乗換案内（この時刻）」を開く → ②実際の発車時刻を見る → ③下のボタンで入れる</b>の順で、本当の時刻にできます。":""))}${f.link?` <a href="${f.link}" target="_blank" rel="noopener">${f.lk||"経路"}</a>`:""}</div>
     ${f.train&&!ts?`<div class="ridepaste"><button type="button" class="btn small ${rr?"ghost":"primary"}" data-act="ridePaste" data-v="${esc(rk)}">${ICON.copy||""}${rr?"別の電車に変える":"実際の電車の時刻を入れる"}</button>${rr?`<button type="button" class="btn small ghost" data-act="rideClear" data-v="${esc(rk)}">目安に戻す</button>`:""}</div>`:""}
     ${APP.ridePasteFor===rk?`<div class="flpbox"><label for="ridePasteBox">乗換案内の結果をコピーして、ここに貼り付けてください（例：<b>12:19発 12:51着</b>）</label>
       <textarea id="ridePasteBox" rows="3" placeholder="例：12:19 → 12:51"></textarea>
@@ -6332,7 +6398,27 @@ const DRAFT={}; const DRAFT_IDS=["foodQ","destQ","wishIn","askStQ","smQ","hotelN
 document.addEventListener("input",e=>{ const t=e.target; if(t&&DRAFT_IDS.includes(t.id)) DRAFT[t.id]=t.value;
   if(t&&t.dataset&&t.dataset.jnote&&APP.project){ JNP["journal."+t.dataset.jnote]=t.value;
     clearTimeout(jnT); jnT=setTimeout(()=>{ const d=JNP; JNP={}; if(Object.keys(d).length) pupdate(d); },700); }
-  if(t&&t.id==="myShop"&&!(e.isComposing||IMEON)) shopSuggest(t.value); });
+  if(t&&t.id==="myShop"&&!(e.isComposing||IMEON)) shopSuggest(t.value); 
+  autoFind(t,e); });
+/* ---- 入力して手が止まったら、自分で「調べる」を押さなくても位置を調べます ---- */
+let AFT=null, AFLAST={};
+function autoFind(t,e){
+  if(!t||e.isComposing||IMEON) return;
+  const id=t.id||"", ni=t.dataset&&t.dataset.night;
+  const kind = id==="hotelName" ? "hotel" : (ni!==undefined&&ni!=="") ? "night" : null;
+  if(!kind) return;
+  const key=kind+":"+(ni??""); const v=(t.value||"").trim();
+  clearTimeout(AFT);
+  if(v.length<2||AFLAST[key]===v) return;
+  AFT=setTimeout(()=>{
+    if(IMEON) return;
+    const el=kind==="hotel"?$("#hotelName"):$("#nh-"+ni);
+    if(!el||((el.value||"").trim())!==v) return;
+    AFLAST[key]=v;
+    if(kind==="hotel"){ if(!busy.whf) webHotelFind(); }
+    else { if(!busy["nh"+ni]) nightHotelFind(+ni); }
+  },1100);
+}
 function render(){
   if(IMEON){ APP.pendingRender=true; return; }   // 日本語を変換している最中は描き直さない
   RENDERSEQ++;
@@ -6411,7 +6497,11 @@ document.addEventListener("click",async e=>{
       pupdate({"meet.custom":{name:c.name,lat:c.lat,lng:c.lng}}); MEETCACHE={k:null,v:null}; closeModal(); toast(`「${c.name}」で合流する案を追加しました`); break; }
     case "meetShow": APP.meetSel=v; render(); setTimeout(()=>document.querySelector(`.mopt[data-mopt="${CSS.escape(v)}"]`)?.scrollIntoView({block:"nearest",behavior:"smooth"}),50); break;
     case "meetChoose": { const M=meetingPlan(); const o=M.options.find(x=>optKey(x)===v); if(!o) break; const pt=o.type==="car"?null:(o.type==="enroute"?arrivalNode(o):o.point); APP.meetSel=v;
-      pupdate({"meet.choice":v,"meet.title":o.title,"meet.point":pt?{id:pt.id,name:stName(pt.id),lat:pt.lat,lng:pt.lng}:DEL, "meet.useForDay1": pt? (P.meet&&P.meet.useForDay1!==undefined?P.meet.useForDay1:true) : false}); toast("合流プランを決めました"); break; }
+      pupdate({"meet.choice":v,"meet.title":o.title,"meet.point":pt?{id:pt.id,name:stName(pt.id),lat:pt.lat,lng:pt.lng}:DEL, "meet.useForDay1": pt? (P.meet&&P.meet.useForDay1!==undefined?P.meet.useForDay1:true) : false});
+      // 車で合流する案なら、そのあとの観光も車で回る形にする
+      if((o.type==="carjoin"||o.type==="car")&&S&&S.transport!=="car"){ S.transport="car"; if(S.dayMode) S.dayMode={}; save();
+        toast(`合流プランを決めました。${o.driver?o.driver.name+"さんの車で回る":"車で回る"}形に切り替えました`); render(); break; }
+      toast("合流プランを決めました"); break; }
     case "todoAdd": pupdate({todos:[...(P.todos||[]),{id:newId(),text:v,done:false,by:APP.user.uid}]}); break;
     case "todoDel": pupdate({todos:(P.todos||[]).filter(x=>x.id!==v)}); break;
     case "doJoin": doJoin(); break;
