@@ -967,6 +967,18 @@ html{overflow-x:clip}
 .jt{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
 .jtpage{position:relative;background-size:100% 100%;background-repeat:no-repeat;background-color:#FAF6EE;
   border:1px solid #E8E0D2;border-radius:6px;overflow:hidden;box-shadow:0 20px 44px -28px rgba(40,50,70,.45)}
+.hstep{display:flex;gap:10px;align-items:flex-start;margin:22px 0 10px}
+.hstep:first-of-type{margin-top:8px}
+.hstep-n{flex:none;width:26px;height:26px;border-radius:50%;background:#2356F6;color:#fff !important;font-weight:700;font-size:13.5px;line-height:1;display:flex;align-items:center;justify-content:center;margin-top:2px}
+.hstep b{display:block;font-size:16.5px;line-height:1.35}
+.hstep>div span{display:block;color:#5B6B85;font-size:13px;margin-top:2px;line-height:1.5}
+.choices.two .choice{min-height:0}
+.onlybar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#EEF3FF;border:1px solid #D6E0F5;border-radius:12px;padding:8px 12px;margin:0 0 10px;font-size:13.5px;color:#25406E}
+.onlybar span{display:flex;align-items:center;gap:6px;flex:1 1 auto}
+.onlybar svg{width:16px;height:16px}
+.jcrop{position:relative;overflow:hidden;border-radius:10px;background:#EEF1F6;touch-action:none;cursor:grab;width:100%;max-height:60vh;margin-top:10px}
+.jcrop img{position:absolute;max-width:none;user-select:none;-webkit-user-drag:none}
+.jcrop-g{position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 0 0 2px rgba(255,255,255,.9),inset 0 0 0 3px rgba(30,58,95,.35)}
 .jtslot{position:absolute}
 .jtslot .jslot{width:100%;height:100%;aspect-ratio:auto;background:transparent;box-shadow:none;border-radius:0;padding:0}
 .jtslot .jslot img{width:100%;height:100%;border-radius:0}
@@ -990,7 +1002,7 @@ html{overflow-x:clip}
 .jt-p.mid{font-size:2.9cqw}
 .jt-p.long{font-size:2.5cqw;letter-spacing:0}
 .jt-desc{align-items:flex-start}
-.jt-desc textarea{height:100%;font-family:"Klee One",var(--f-body);font-size:2.5cqw;line-height:1.85;color:#33578A}
+.jt-desc textarea{height:100%;font-family:"Klee One",var(--f-body);font-size:2.35cqw;line-height:1.75;color:#33578A}
 .jt-desc textarea::placeholder{color:rgba(51,87,138,.38)}
 .jt-cap{align-items:center;padding:0 1.6cqw;transform-origin:50% 50%;overflow:hidden}
 .jt-cap input{font-family:"Caveat","Klee One",cursive;font-size:2.75cqw;line-height:1.1;color:#2B5288;letter-spacing:.02em}
@@ -1193,7 +1205,7 @@ html{overflow-x:clip}
 </section>
   <p class="foot" id="foot">人気順は、SNSでよく投稿・検索される定番スポットをもとにした参考順位です（Instagramのリアルタイムの投稿数ではありません）。車の移動時間は道路の経路から計算し、電車・バスの移動時間は距離からの目安です。実際の所要時間は各区間のリンク（電車・バスは「乗換案内」、車は「経路」）で確認してください。</p>
   <p class="foot">地図：<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">国土地理院</a>／場所・住所・ホテル情報：© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>（Nominatim・Overpass API）、国土地理院 地名検索／車の経路：<a href="https://project-osrm.org/" target="_blank" rel="noopener">OSRM</a>／写真：<a href="https://commons.wikimedia.org/" target="_blank" rel="noopener">Wikimedia Commons</a>（撮影者とライセンスは写真の上にマウスを置くか「詳細を見る」で表示）</p>
-  <footer class="sitefoot"><a href="privacy.html">プライバシーポリシー</a><span>地図：国土地理院／地図データ：© OpenStreetMap contributors／写真：Wikimedia Commons</span><span class="bver">v6</span></footer>
+  <footer class="sitefoot"><a href="privacy.html">プライバシーポリシー</a><span>地図：国土地理院／地図データ：© OpenStreetMap contributors／写真：Wikimedia Commons</span><span class="bver">v7</span></footer>
 </div>
 
 <div class="navbar" id="navbar" hidden><div class="in">
@@ -1405,6 +1417,8 @@ function renderNav(){
 }
 function go(i){
   i=Math.max(0,Math.min(STEPS.length-1,i));
+  APP.focusWish=null;   // ほかのSTEPに移ったら、1件だけ表示は解除
+
   if(i>S.step){ // 前へ進むときは検証
     for(let k=S.step;k<i;k++){ const cur=S.step; S.step=k; const ok=canNext(); S.step=cur; if(ok!==true){ S.step=k; flash(ok); render(); return; } }
   }
@@ -1596,7 +1610,11 @@ function stepWish(){
   <h2 class="sub">追加した場所 <small>${S.wishes.length}件</small></h2>`;
   if(!S.wishes.length) h+=`<div class="empty">まだありません。入力するか、このまま次へ進んでおすすめから選べます。</div>`;
   else{
-    h+=`<div class="list">`+S.wishes.map(w=>{
+    // 1か所をさわっている間は、その1件だけを出して迷わないようにします
+    const only=APP.focusWish&&S.wishes.some(w=>w.id===APP.focusWish)?APP.focusWish:null;
+    const shown=only?S.wishes.filter(w=>w.id===only):S.wishes;
+    if(only) h+=`<div class="onlybar"><span>${ICON.check}いま1件だけ表示しています</span><button type="button" class="btn small" data-act="showAllWish">ほかの${S.wishes.length-1}件も表示</button></div>`;
+    h+=`<div class="list">`+shown.map(w=>{
       const src={base:"登録スポット",ai:"AIで確認",manual:"貼り付けた位置",web:"ネットで確認"}[w.src||"base"]||"";
       let st = busy["web-"+w.id] ? `<span class="pill info"><span class="spin"></span>インターネットで調べています</span>` : w.status==="ok" ? `<span class="pill ok">地図に配置済み（${src}）</span>` : w.anchor ? `<span class="pill info">「${esc(w.anchor)}」の近くに仮配置</span>` : busy.wish&&w.pendingAI ? `<span class="pill info">AIが位置を調べています</span>` : `<span class="pill warn">位置が未設定です</span>`;
       const open = (w.status!=="ok"&&!w.anchor) || editing.has(w.id);
@@ -1611,6 +1629,7 @@ function stepWish(){
         ${mealRow(w)}${inf}${busy["web-"+w.id]&&w.status!=="ok"?"":""}${w.cands&&w.cands.length>1&&(open||w.src==="web")?candPicker(w):""}${open?locEditor(w):""}</div></div>
         <button type="button" class="x" data-delwish="${w.id}" aria-label="${esc(w.name)}を削除">×</button></div>`;
     }).join("")+`</div>`;
+    if(only) h+=`<div class="row" style="margin-top:10px"><button type="button" class="btn small" data-act="showAllWish">ほかの場所も表示する</button></div>`;
   }
   return h+`</section>`;
 }
@@ -1776,18 +1795,19 @@ function splitGain(){
     return SGAIN.v;
   }catch(e){ try{ NIGHTAREA=null; }catch(_){} return null; }
 }
+function nightsPick(){
+  if(nNights()<2) return "";
+  const gain=S.hotelSplit?null:splitGain();
+  let h=`<div class="choices two">
+    <button type="button" class="choice" data-hsplit="0" aria-pressed="${!S.hotelSplit}"><div><b>全部同じホテル</b><span>毎晩おなじ宿に泊まります</span></div></button>
+    <button type="button" class="choice" data-hsplit="1" aria-pressed="${!!S.hotelSplit}"><div><b>泊ごとに変える</b><span>日ごとにちがう宿に泊まります</span></div></button></div>`;
+  if(!S.hotelSplit&&gain&&gain.many&&gain.km>12) h+=`<div class="banner"><span>${ICON.spark} 行きたい場所が離れています。<b>泊ごとに変える</b>と移動が約<b>${Math.round(gain.km)}km</b>短くなります（${gain.areas.map((a,i)=>`${i+1}泊目：${esc(a)}`).join("／")}）。<button type="button" class="linkbtn" data-hsplit="1">泊ごとに分ける</button></span></div>`;
+  return h;
+}
 function nightsHTML(){
   if(nNights()<1) return "";
-  const gain=S.hotelSplit?null:splitGain();
-  let h=`<h2 class="sub">ホテルは何泊とも同じですか</h2>
-  <div class="chips">
-    <button type="button" class="chip" data-hsplit="0" aria-pressed="${!S.hotelSplit}">全部同じホテル</button>
-    <button type="button" class="chip" data-hsplit="1" aria-pressed="${!!S.hotelSplit}">泊ごとに変える</button></div>`;
-  if(!S.hotelSplit){
-    if(gain&&gain.many&&gain.km>12) h+=`<div class="banner"><span>${ICON.spark} 行きたい場所が離れているため、<b>泊ごとにホテルを変える</b>と移動が約<b>${Math.round(gain.km)}km</b>短くなります（${gain.areas.map((a,i)=>`${i+1}泊目：${esc(a)}`).join("／")}）。<button type="button" class="linkbtn" data-hsplit="1">泊ごとに分ける</button></span></div>`;
-    return h;
-  }
-  h+=`<p class="note">泊ごとに泊まるあたりを計算しました。ホテル名が決まっていれば入れてください。</p><div class="nights">`;
+  if(!S.hotelSplit) return "";
+  let h=`<p class="note">泊ごとに、泊まるとよいあたりを計算しました。ホテル名が決まっていれば入れてください。</p><div class="nights">`;
   const ns=nightsArr();
   let NH=[]; try{ NH=(buildPlan()||{}).nightHotels||[]; }catch(e){}
   for(let ni=0;ni<nNights();ni++){
@@ -1797,6 +1817,7 @@ function nightsHTML(){
       <div class="row" style="margin-top:6px"><input type="text" id="nh-${ni}" data-night="${ni}" placeholder="ホテル名（決まっていれば）" value="${esc(v.name||"")}" autocomplete="off">
         <button type="button" class="btn small primary" data-act="nhFind" data-v="${ni}" ${busy["nh"+ni]?"disabled":""}>${ICON.search}位置を調べる</button></div>
       <div class="status">${v.loc?`<span class="pill ok">位置を確認しました</span>`:stat("nh"+ni,"調べています…")}</div>
+      ${v.cands&&v.cands.length>1?`<div class="cands" aria-label="ホテルの候補">${v.cands.map((c,i)=>`<button type="button" class="cand" data-nhcand="${ni}|${i}" aria-pressed="${v.name===c.name}"><div><b>${esc(c.name)}</b><span>${esc(c.addr||"")}</span></div></button>`).join("")}<div class="note">正しいホテルを選んでください。</div></div>`:""}
       <div class="row" style="margin-top:6px;gap:6px;flex-wrap:wrap">
         <a class="btn small ghost" href="${rakutenAreaURL(((p&&p.name)||"").replace(/^宿泊エリア：/,"").replace(/[「」]/g,"")+" ホテル")}" target="_blank" rel="noopener">${ICON.search}このあたりの宿を楽天で見る</a>
         <a class="btn small ghost" href="https://www.google.com/maps/search/${enc("ホテル")}/@${p?p.lat.toFixed(5):""},${p?p.lng.toFixed(5):""},14z" target="_blank" rel="noopener">${ICON.map}地図で探す</a></div>
@@ -1805,15 +1826,26 @@ function nightsHTML(){
   h+=`</div>`;
   return h;
 }
+let HN=0;
+function hstep(t,sub){ HN++;
+  const n=HN; return `<div class="hstep"><span class="hstep-n">${n}</span><div><b>${t}</b>${sub?`<span>${sub}</span>`:""}</div></div>`; }
 function stepHotel(){
-  let h=`<section class="panel">${head(6,"泊まるホテルは決まっていますか？")}
-  ${nightsHTML()}
-  ${S.hotelSplit&&nNights()>0?`<p class="note" style="margin-top:14px">下の設定は、泊ごとに指定しなかったときの共通の条件として使います。</p>`:""}
+  const nn=nNights();
+  HN=0;
+  let h=`<section class="panel">${head(6,"泊まるところ","泊まるホテルを決めると、そこを出発点にして予定表をつくります。")}
+  ${nn<1?`<p class="note">日帰りのため、宿泊の設定はありません。このまま次へ進めます。</p>`:""}
+  ${hstep("ホテルは決まっていますか？")}
   <div class="choices">
-    <button type="button" class="choice" data-hmode="decided" aria-pressed="${S.hotelMode==="decided"}">${picIcon("ic-hotel")}<div><b>決まっている</b><span>ホテル名を入力します</span></div></button>
-    <button type="button" class="choice" data-hmode="undecided" aria-pressed="${S.hotelMode==="undecided"}">${picIcon("ic-hotel-undecided")}<div><b>まだ決まっていない</b><span>条件からおすすめを提案します</span></div></button>
+    <button type="button" class="choice" data-hmode="decided" aria-pressed="${S.hotelMode==="decided"}">${picIcon("ic-hotel")}<div><b>決まっている</b><span>ホテル名を入れます</span></div></button>
+    <button type="button" class="choice" data-hmode="undecided" aria-pressed="${S.hotelMode==="undecided"}">${picIcon("ic-hotel-undecided")}<div><b>まだ決まっていない</b><span>条件からおすすめを出します</span></div></button>
   </div>`;
+  if(!S.hotelMode) h+=`<p class="note" style="margin-top:8px">どちらかを選んでください。</p>`;
+  if(S.hotelMode&&nn>=2) h+=hstep("何泊とも同じホテルですか？")+nightsPick();
   if(S.hotelMode==="decided"){
+    h+=hstep("どのホテルに泊まりますか？","名前を入れて「位置を調べる」を押すと、地図と予定表に反映します。");
+    if(S.hotelSplit&&nn>=2) h+=nightsHTML();
+  }
+  if(S.hotelMode==="decided"&&!(S.hotelSplit&&nn>=2)){
     const st = S.hotelLoc? `<span class="pill ok">位置を確認しました</span>` : S.hotelAnchor? `<span class="pill info">「${esc(S.hotelAnchor)}」の近くとして配置</span>` : S.hotelName? `<span class="pill warn">位置が未確認です</span>`:"";
     h+=`<h2 class="sub">ホテル名</h2><div class="row"><input type="text" id="hotelName" placeholder="例：京都駅前の〇〇ホテル" value="${esc(S.hotelName)}" aria-label="ホテル名"><button type="button" class="btn primary" data-act="webHotel" ${busy.whf?"disabled":""}>${ICON.search}住所と位置を調べる</button>${sample?`<button type="button" class="btn" data-act="aiHotelLoc" ${busy.hloc?"disabled":""}>${ICON.spark}AIで調べる</button>`:""}</div>
     <div style="margin-top:8px">${st} <span class="status">${stat("whf","インターネットで調べています…")}</span> <span class="status" id="st-hloc">${stat("hloc")}</span></div>
@@ -1827,21 +1859,24 @@ function stepHotel(){
       ${!S.hotelLoc?`<div class="erow"><div class="elabel">近くの観光地のそばに置く <small>おおよその位置</small></div><select id="hAnchor"><option value="">選んでください</option>${allSpots(S.pref).map(s=>`<option ${S.hotelAnchor===s.name?"selected":""}>${esc(s.name)}</option>`).join("")}</select></div>`:""}
     </div>`;
   }
+  let PPL="";
   if(S.hotelMode==="undecided"||S.hotelMode==="decided"){
-    h+=`<h2 class="sub">泊まる人数</h2>
-    <div class="row" style="gap:20px;align-items:flex-end">
+    PPL+=`<div class="row" style="gap:20px;align-items:flex-end">
       <div class="field"><label>人数</label><div class="counter"><button type="button" data-people="-1" aria-label="1人減らす">−</button><output id="pplOut">${nPeople()}人</output><button type="button" data-people="1" aria-label="1人増やす">＋</button></div></div>
       <div class="field"><label>部屋数</label><div class="counter"><button type="button" data-rooms="-1" aria-label="1部屋減らす">−</button><output id="roomOut">${S.rooms||1}部屋</output><button type="button" data-rooms="1" aria-label="1部屋増やす">＋</button></div></div>
       <p class="note" style="flex:1 1 200px">${esc(stayText())}で、楽天トラベル・じゃらんの検索を開きます。</p>
     </div>`;
   }
+  if(S.hotelMode==="decided"&&PPL) h+=hstep("泊まる人数と部屋数")+PPL;
   if(S.hotelMode==="undecided"){
     const chipset=(arr,key,multi)=>`<div class="chips">`+arr.map(v=>`<button type="button" class="chip" data-cond="${key}" data-v="${v}" aria-pressed="${multi?condArr(key).includes(v):S.cond[key]===v}">${v}</button>`).join("")+`</div>`;
+    h+=hstep("どんなホテルがいいですか？","選ばなくても大丈夫です。選ぶと、おすすめの並び順に反映します。");
     h+=`<h2 class="sub">1泊あたりの予算</h2>${chipset(BUDGETS,"budget")}<h2 class="sub">ホテルのタイプ <small>いくつでも</small></h2>${chipset(TYPES,"type",true)}<h2 class="sub">こだわり <small>いくつでも</small></h2>${chipset(HPREFS,"prefs",true)}`;
     const stops=stopsAll();
     if(stops.length){
       const a=bestArea(stops);
-      h+=`<h2 class="sub">予定表から計算したおすすめの宿泊エリア</h2>
+      h+=hstep("この旅に合う宿泊エリア","行きたい場所から計算しました。ここから探すと移動が短くなります。");
+      h+=`
       <div class="item"><div class="main"><div class="name">${esc(a.label)}</div><div class="note">選んだ${stops.length}か所の中心付近です（各スポットまで平均 約${a.avg.toFixed(1)}km）。</div></div>
       <a class="btn small" href="https://www.google.com/maps/search/${enc("ホテル "+condArr("type").join(" "))}/@${a.lat.toFixed(5)},${a.lng.toFixed(5)},15z" target="_blank" rel="noopener">${ICON.map}周辺のホテルを地図で探す</a>
       <a class="btn small ghost" href="${rakutenAreaURL(hotelAreaQ())}" target="_blank" rel="noopener">${ICON.search}楽天トラベルで評価の高い順に見る</a></div>`;
@@ -1857,6 +1892,7 @@ function stepHotel(){
       }
       h+=`<p class="note" style="margin-top:8px">ホテルが決まっていなくても、このエリアを出発地として予定表をつくれます。</p>`;
     } else h+=`<div class="empty" style="margin-top:16px">行きたい場所やおすすめを選ぶと、回りやすい宿泊エリアを計算します。</div>`;
+    if(PPL) h+=hstep("泊まる人数と部屋数")+PPL;
   }
   return h+`</section>`;
 }
@@ -2628,6 +2664,7 @@ function webFind(id,q){
     if(!r.length&&outside.length){ w.cands=outside.slice(0,5); msg["web-"+id]=`${S.pref}の中では見つかりませんでした。県外の候補を下に出しています。行きたい場所なら選んでください。`; msg.wish=`「${w.q}」は${S.pref}の中では見つかりませんでした。`; return; }
     if(!r.length){ msg["web-"+id]="見つかりませんでした。正式名称や住所（例：〇〇市〇〇町1-2）で検索し直すか、下の方法で位置を指定してください。"; msg.wish=`「${w.q}」の場所が見つかりませんでした。`; return; }
     w.cands=r.slice(0,6);
+    if(w.cands.length>1) APP.focusWish=w.id;   // 候補が複数のときは、その1件だけを出す
     const top=r[0], looksAddr=/[都道府県市区町村]|丁目|番地|\d/.test(w.q);
     if(String(top.osm).startsWith("gsi/") && !looksAddr && !norm(top.addr).includes(norm(w.q))){
       msg["web-"+id]="名前が一致する場所が見つかりませんでした。近い地名の候補から選ぶか、正式名称や住所で検索し直してください。"; msg.wish=`「${w.q}」は候補から選んでください。`; return;
@@ -2780,7 +2817,8 @@ function nightHotelFind(ni){
     r=pickByRoute(r,v,"hotel");
     if(!r.length){ msg["nh"+ni]="見つかりませんでした。地図から探すか、名前を変えてお試しください。"; return; }
     const c=r[0]; ns[ni].name=c.name||v; ns[ni].loc={lat:c.lat,lng:c.lng}; ns[ni].addr=c.addr;
-    msg["nh"+ni]="";
+    ns[ni].cands=r.slice(0,6).map(x=>({name:x.name,lat:x.lat,lng:x.lng,addr:x.addr,osm:x.osm}));
+    msg["nh"+ni]= r.length>1 ? `${r.length}件見つかりました。ちがうホテルのときは、下の候補から選んでください。` : "";
   });
 }
 function webHotelFind(){
@@ -4048,6 +4086,10 @@ document.addEventListener("click",async e=>{
   if(d.mymeal){ S.myMeal=d.mymeal; save(); render(); return; }
   if(d.hsplit!==undefined){ S.hotelSplit=d.hsplit==="1"; NIGHTAREA=null; save(); render(); return; }
   if(d.act==="nhFind") return nightHotelFind(+d.v);
+  if(d.nhcand){ const [a,b]=d.nhcand.split("|").map(Number); const ns=nightsArr(); const v=ns[a]; const c=v&&v.cands&&v.cands[b];
+    if(c){ v.name=c.name; v.loc={lat:c.lat,lng:c.lng}; v.addr=c.addr; msg["nh"+a]=""; save(); render(); } return; }
+  if(d.act==="jcropOK") return jCropUse();
+  if(d.act==="jcropFit"){ if(!JCROP) return; JCROP.fit=!JCROP.fit; const z=$("#jcropZoom"); if(z) z.value=100; JCROP.zoom=1; jCropLayout(true); return; }
   if(d.act==="webHotel") return webHotelFind();
   if(d.act==="webHotels") return webHotels();
   if(d.act==="keyOpen"){ APP.keyOpen = APP.keyOpen===d.v ? "" : d.v; render(); return; }
@@ -4076,7 +4118,8 @@ document.addEventListener("click",async e=>{
   if(d.act==="saveGp"){ const v=($("#gpKey")?.value||"").trim(); setKey("gplacesKey",v); for(const k in gpCache) delete gpCache[k]; render(); if(v) loadGRates(foodShown()); return; }
   if(d.hdec!==undefined){ const c=S.hotelDecCands[+d.hdec]; if(c){ S.hotelName=c.name; S.hotelLoc={lat:c.lat,lng:c.lng}; S.hotelAnchor=""; S.hotelInfo=c; save(); render(); } return; }
   if(d.aione){ const hint=($("#hint-"+d.aione)?.value||"").trim(); return aiWish([d.aione],hint); }
-  if(d.edit){ editing.has(d.edit)?editing.delete(d.edit):editing.add(d.edit); render(); return; }
+  if(d.edit){ if(editing.has(d.edit)){ editing.delete(d.edit); APP.focusWish=null; } else { editing.add(d.edit); APP.focusWish=d.edit; } render(); return; }
+  if(d.act==="showAllWish"){ APP.focusWish=null; render(); return; }
   if(d.setll){ const w=S.wishes.find(x=>x.id===d.setll); const p=parseLatLng($("#ll-"+d.setll)?.value);
     if(!p){ msg["ll-"+d.setll]="座標を読み取れませんでした。「34.6851, 135.8430」のような数字か、Googleマップのアドレス欄のURLを貼り付けてください。（短縮URLは読み取れません）"; render(); return; }
     if(p.err){ msg["ll-"+d.setll]=p.err; render(); return; }
@@ -4140,7 +4183,7 @@ $("#resetBtn").onclick=()=>{ S=blank(); viewDay=0; save(); render(); };
 function planText(){
   const plan=window.__plan; if(!plan) return "";
   let s=`【${S.pref}${cityLabel()?" "+cityLabel():""} ${stayLabel(S.days)}の旅】\n宿泊：${plan.H.name}\n`;
-  const tl=it=>{ if(it.type==="tripstart") return `${m2t(it.t)} ${it.label}を出発`; if(it.type==="tripend") return `${m2t(it.t)} ${it.label}に到着`; if(it.type==="merge") return `${m2t(it.t)} 【合流】${it.place}で${it.with}と合流`; if(it.type==="split") return `${m2t(it.t)} 【解散】${it.place}で${it.with}と別れる`; const f=tripSegInfo(it.seg,plan.trip.label,(plan.trip.me&&plan.trip.me.mode)||"transit"); return `${m2t(it.t)}発 ${f.title}（${f.sub}） → ${m2t(it.t+it.seg.min)}着`; };
+  const tl=it=>{ if(it.type==="tripstart") return `${m2t(it.t)} ${it.label}を出発`; if(it.type==="tripend") return `${m2t(it.t)} ${it.label}に到着`; if(it.type==="merge") return `${m2t(it.t)} 【合流】${it.place}で${it.with}と合流${it.same?"（"+it.same+"）":""}`; if(it.type==="split") return `${m2t(it.t)} 【解散】${it.place}で${it.with}と別れる`; const f=tripSegInfo(it.seg,plan.trip.label,(plan.trip.me&&plan.trip.me.mode)||"transit"); return `${m2t(it.t)}発 ${f.title}（${f.sub}） → ${m2t(it.t+it.seg.min)}着`; };
   plan.days.forEach(d=>{ s+=`\n■ ${d.di+1}日目 ${fmtDate(S.date,d.di)}（移動：${d.mode==="car"?"車":"電車・バス"}）\n`; (d.tripOut||[]).forEach(it=>s+=tl(it)+"\n"); d.items.forEach(it=>{
     if(it.type==="start") s+=`${m2t(it.t)} 出発（${it.label}）\n`;
     else if(it.type==="leg") s+=`   ↓ ${it.mode==="walk"?"徒歩":it.mode==="car"?"車":"電車・バス"} ${m2t(it.t)}発 約${it.min}分\n`;
@@ -4338,8 +4381,30 @@ function tCompress(segs){
 // 目的地への直行（在来線・バス・車）
 function directMin(a,b,mode){ const d=hav(a,b); if(mode==="car") return d<=700?Math.round(d*1.3/(d>60?75:45)*60+ (d>250?30:10)):null; return d<=160?accessMin(d,"transit")+ (d>60?10:0):null; }
 function nearestHubs(p,k=4,air=true){ return Object.keys(TN).map(tnPt).filter(x=>air||!x.air).map(x=>({...x,d:hav(p,x)})).sort((a,b)=>a.d-b.d).slice(0,k); }
+/* 自分で決めた合流場所（その他）を1つの案として作る */
+function customMeetOption(R,dest,cst){
+  if(!cst||cst.lat==null) return null;
+  const v={id:"@custom",name:cst.name||"指定した場所",lat:cst.lat,lng:cst.lng,air:null,virtual:true}; VIRT[v.id]=v;
+  const Dd=tDijkstraTo(dest);
+  let tail=Infinity;
+  Object.keys(Dd).forEach(n=>{ const d=hav(tnPt(n),v); if(d>90) return; const t=(d<1?0:accessMin(d,"transit"))+Dd[n]; if(t<tail) tail=t; });
+  const dm=directMin(v,dest,"transit"); if(dm!=null&&dm<tail) tail=dm;
+  if(!isFinite(tail)){ const c=directMin(v,dest,"car"); tail=c!=null?c:accessMin(hav(v,dest),"transit"); }
+  const per=R.map(r=>{
+    let best=null;
+    Object.keys(r.D.node).forEach(n=>{ const P=tnPt(n); if(!P) return; const dd=hav(P,v); if(dd>60) return;
+      const t=r.D.node[n].t+(dd<1?0:accessMin(dd,"transit"));
+      if(!best||t<best.t){ const segs=tCompress(tPath(r.D,n)); if(dd>=1) segs.push({kind:"transfer",from:n,to:v.id,min:accessMin(dd,"transit")}); best={t,segs}; } });
+    const d=hav(r.m,v); const acc=d<=150?accessMin(d,r.m.mode):null;
+    if(acc!=null&&(!best||acc<best.t)) best={t:acc,segs:[{kind:"access",to:v.id,min:acc}]};
+    return best;
+  });
+  if(per.some(x=>!x)) return null;
+  return {type:"custom",title:`${v.name}で合流`,sub:`自分で決めた場所で合流してから、一緒に移動します（約${fmtMin(tail)}）`,
+    point:v,per,with:per.map(()=>true),shared:tail,after:tail,score:-1e6,tailFrom:v.id,tailAcc:true,custom:true};
+}
 /* members: [{key,name,lat,lng,mode}]  dest: {name,lat,lng} */
-function planMeeting(members,dest){
+function planMeeting(members,dest,custom){
   const ms=members.filter(m=>m.lat!=null);
   if(!ms.length||!dest) return null;
   const R=ms.map(m=>({m,D:tDijkstra(m,m.mode,m.mode==="car"?"auto":m.long)}));
@@ -4424,12 +4489,36 @@ function planMeeting(members,dest){
     tt+=last; legs.push({to:dest.name,min:last});
     opts.push({type:"car",title:`${dr.m.name}さんの車で迎えに行く`,sub:`${order.map(o=>o.name+"さん").join("→")}の順に迎えて、${dest.name}へ`,driver:dr.m,legs,total:tt,score:tt+25});
   });
+  try{ const cu=customMeetOption(R,dest,custom); if(cu) opts.push(cu); }catch(e){}
   // 重複をまとめて上位を返す
   opts.sort((a,b)=>a.score-b.score);
   const seen=new Set(); const top=[];
   for(const o of opts){ const k=o.type+(o.point?o.point.lat.toFixed(2)+","+o.point.lng.toFixed(2):o.driver.key); if(seen.has(k)) continue; seen.add(k); if(o.type==="enroute"&&top.filter(x=>x.type==="enroute").length>=2) continue; if(o.type==="local"&&top.filter(x=>x.type==="local").length>=2) continue; top.push(o); if(top.length>=4) break; }
   top.forEach(o=>{ if(o.tailFrom) o.tailPath=tDestPath(o.tailFrom,dest,o.tailAcc); });
-  return {options:top,solo,members:ms};
+  // 合流地点から先が、その人が乗っている列車と同じなら「乗ったまま合流」
+  top.forEach(o=>{
+    if(o.type!=="enroute"&&o.type!=="custom") return;
+    const t0=(o.tailPath||[])[0];
+    if(!t0||t0.kind!=="ride"||!t0.line||t0.flight) return;
+    (o.per||[]).forEach((pr,j)=>{
+      if(!pr||!pr.segs||!pr.segs.length) return;
+      if(o.with&&!o.with[j]) return;
+      const last=pr.segs[pr.segs.length-1];
+      if(!last||last.kind!=="ride"||last.flight||last.line!==t0.line) return;
+      pr.onboard=true; pr.boardAt=last.from; pr.line=last.line;
+    });
+    const inc=(o.per||[]).map((x,j)=>x&&(!o.with||o.with[j])?x:null).filter(Boolean);
+    const on=inc.filter(x=>x.onboard);
+    if(on.length&&on.length===inc.length){ o.allOnboard=true; return; }  // 全員すでに同じ列車＝合流地点の意味がない
+    if(on.length){
+      o.onboard=true; o.line=t0.line;
+      const pn=stName(o.point.id);
+      o.title=`${pn}で同じ${/新幹線/.test(t0.line)?"新幹線":"列車"}に合流${o.final?`（ほかの人は${stName(o.final.id)}で）`:""}`;
+      o.sub=`${stName(on[0].boardAt)}から乗っている${t0.line}に、${pn}から乗り合わせます（そこから約${fmtMin(o.shared)}）`;
+    }
+  });
+  const keep=top.filter(o=>!o.allOnboard);
+  return {options:(keep.length?keep:top),solo,members:ms};
 }
 // 目的地側から各ノードまでの時間（egressを起点に逆向き）
 function tDijkstraTo(dest){
@@ -4760,7 +4849,7 @@ function pbarHTML(){
 /* ============ たびのしおり（旅のあとは思い出のアルバムに） ============ */
 /* ---- 用意したテンプレート（写真のところだけ空けてあります） ---- */
 /* [ローマ字, [幅,高さ,[[中心x,中心y,幅,高さ,傾き],…]] ×3ページ] 位置は0〜1の割合 */
-const JT={"福岡県":["fukuoka",[511,1024,[[0.5137,0.56348,0.82387,0.44141,0.0]],[0.14481,0.28906,0.79256,0.02051]],[511,1024,[[0.30824,0.31169,0.29446,0.12001,-3.27],[0.30718,0.52649,0.30392,0.11122,-2.12],[0.31019,0.74425,0.29793,0.11684,-4.4]],[[[0.175,0.20286,0.8,0.04492],[0.48728,0.25391,0.45793,0.10645],[0.31726,0.3905,0.29446,0.0293,-3.27]],[[0.175,0.42205,0.8,0.04492],[0.48728,0.47656,0.46184,0.08008],[0.31275,0.60151,0.30392,0.0293,-2.12]],[[0.175,0.637,0.8,0.04492],[0.48924,0.68555,0.42857,0.08203],[0.32241,0.8235,0.29793,0.03027,-4.4]]]],[513,1024,[[0.27967,0.29684,0.3885,0.14535,-6.75],[0.72154,0.30515,0.36599,0.14731,5.67],[0.72313,0.50856,0.36058,0.13453,-5.56],[0.28451,0.50878,0.39421,0.14089,5.29],[0.28515,0.70739,0.39379,0.14081,-7.59],[0.72481,0.71358,0.35773,0.13765,5.75]],[[0.30177,0.39046,0.3885,0.03223,-6.75],[0.70343,0.39652,0.36599,0.02441,5.67],[0.74074,0.59918,0.36058,0.03711,-5.56],[0.26932,0.59096,0.39421,0.02441,5.29],[0.31121,0.80529,0.39379,0.03613,-7.59],[0.70612,0.80666,0.35773,0.03613,5.75]]]],"佐賀県":["saga",[512,1024,[[0.51074,0.57227,0.82617,0.4375,0.0]],[0.1582,0.30273,0.77148,0.02148]],[512,1024,[[0.29531,0.30493,0.2824,0.11088,-3.5],[0.29415,0.52168,0.28363,0.11291,-3.54],[0.29571,0.7394,0.28457,0.11195,-4.09]],[[[0.175,0.20066,0.8,0.04492],[0.47852,0.24707,0.32617,0.13379],[0.30495,0.38364,0.2824,0.0293,-3.5]],[[0.175,0.4164,0.8,0.04492],[0.47656,0.46289,0.39258,0.12988],[0.30341,0.59654,0.28363,0.03516,-3.54]],[[0.175,0.6346,0.8,0.04492],[0.47852,0.67969,0.36719,0.13281],[0.30661,0.81572,0.28457,0.03027,-4.09]]]],[512,1024,[[0.2661,0.29996,0.3892,0.148,-5.19],[0.71514,0.30732,0.36523,0.15114,5.89],[0.27288,0.51538,0.38651,0.1422,3.81],[0.726,0.5233,0.36666,0.15773,-4.85],[0.26872,0.71713,0.38111,0.13954,-5.71],[0.70861,0.72202,0.3625,0.14305,5.96]],[[0.28411,0.39901,0.3892,0.0332,-5.19],[0.69623,0.39893,0.36523,0.02539,5.89],[0.26109,0.60381,0.38651,0.02441,3.81],[0.74301,0.6235,0.36666,0.0332,-4.85],[0.28721,0.8096,0.38111,0.03613,-5.71],[0.69001,0.81104,0.3625,0.03516,5.96]]]],"沖縄県":["okinawa",[511,1024,[[0.52345,0.51825,0.80848,0.3674,-2.99]],[0.36986,0.28516,0.33659,0.02148]],[511,1024,[[0.29468,0.26025,0.28717,0.08848,-4.76],[0.31741,0.46545,0.29526,0.10256,-5.88],[0.31549,0.65883,0.29803,0.10143,-6.94],[0.30579,0.84697,0.29774,0.10174,-4.29]],[[[0.175,0.16718,0.8,0.04492],[0.51076,0.22168,0.3816,0.08301],[0.3046,0.31962,0.28717,0.04004,-4.76]],[[0.175,0.36534,0.8,0.04492],[0.50881,0.41504,0.39922,0.10645],[0.33181,0.53528,0.29526,0.03223,-5.88]],[[0.175,0.55929,0.8,0.04492],[0.51076,0.61621,0.36008,0.09961],[0.3326,0.72897,0.29803,0.03125,-6.94]],[[0.175,0.74727,0.8,0.04492],[0.51076,0.79297,0.36986,0.10059],[0.31636,0.91728,0.29774,0.03027,-4.29]]]],[513,1024,[[0.2954,0.27967,0.38038,0.15098,-6.34],[0.7227,0.28098,0.36401,0.14877,5.49],[0.7129,0.4847,0.37287,0.13317,-4.4],[0.27881,0.49071,0.36203,0.14555,5.55],[0.27961,0.69062,0.38495,0.14654,-5.36],[0.70994,0.70199,0.36426,0.12537,5.19]],[[0.31814,0.38218,0.38038,0.02734,-6.34],[0.70409,0.37797,0.36401,0.03418,5.49],[0.72646,0.57298,0.37287,0.03516,-4.4],[0.26221,0.57626,0.36203,0.02246,5.55],[0.29841,0.79106,0.38495,0.03027,-5.36],[0.69479,0.78543,0.36426,0.03027,5.19]]]],"青森県":["aomori",[511,1024,[[0.50294,0.56836,0.85323,0.49414,0.0]],[0.16047,0.29199,0.74755,0.02051]],[511,1024,[[0.29748,0.30927,0.27302,0.13452,-4.4],[0.29514,0.53511,0.27677,0.13196,-4.57],[0.30137,0.76367,0.28963,0.13672,-6.0]],[[[0.175,0.19318,0.8,0.04492],[0.46771,0.25684,0.37965,0.09277],[0.30969,0.38844,0.27302,0.03125,-4.4]],[[0.175,0.4203,0.8,0.04492],[0.46771,0.4707,0.43053,0.12402],[0.30857,0.61887,0.27677,0.02734,-4.57]],[[0.175,0.64648,0.8,0.04492],[0.46771,0.69824,0.40313,0.12891],[0.31885,0.84667,0.28963,0.0293,-6.0]]]],[513,1024,[[0.71626,0.31753,0.37548,0.18125,4.97],[0.26406,0.32753,0.38935,0.14959,-5.55],[0.27598,0.52157,0.36877,0.1446,4.76],[0.71356,0.53569,0.37257,0.16718,-4.64],[0.71477,0.73372,0.35864,0.1464,6.01],[0.27491,0.74648,0.37108,0.11706,-5.55]],[[0.69721,0.42729,0.37548,0.02881,4.97],[0.28115,0.4156,0.38935,0.02148,-5.55],[0.26102,0.6115,0.36877,0.02832,4.76],[0.7302,0.6385,0.37257,0.02881,-4.64],[0.69504,0.82761,0.35864,0.0293,6.01],[0.29059,0.82726,0.37108,0.03223,-5.55]]]],"岩手県":["iwate",[512,1024,[[0.48438,0.55811,0.89062,0.46387,0.0]],[0.37305,0.2959,0.53906,0.02246]],[512,1024,[[0.29845,0.31331,0.28158,0.13094,-3.01],[0.29794,0.54744,0.28496,0.14849,-3.25],[0.29927,0.78388,0.2845,0.13665,-4.76]],[[[0.175,0.19901,0.8,0.04492],[0.46875,0.25293,0.38086,0.11523],[0.30725,0.39686,0.28158,0.02832,-3.01]],[[0.175,0.42437,0.8,0.04492],[0.47461,0.48047,0.40039,0.13379],[0.30845,0.63999,0.28496,0.03027,-3.25]],[[0.175,0.66673,0.8,0.04492],[0.47852,0.71875,0.30664,0.13086],[0.31366,0.87023,0.2845,0.0293,-4.76]]]],[512,1024,[[0.25706,0.33664,0.36692,0.19947,-5.16],[0.70673,0.33812,0.38607,0.2002,5.27],[0.26219,0.61278,0.36792,0.20233,-4.13],[0.69683,0.61986,0.37852,0.21271,4.19]],[[0.27984,0.46287,0.36692,0.03027,-5.16],[0.68442,0.45896,0.38607,0.03418,5.27],[0.28,0.73601,0.36792,0.03516,-4.13],[0.67816,0.74722,0.37852,0.03027,4.19]]]],"宮城県":["miyagi",[512,1024,[[0.51074,0.56929,0.82457,0.45232,-0.15]],[0.15234,0.29004,0.77148,0.01953]],[512,1024,[[0.29269,0.2933,0.27998,0.10705,-3.81],[0.29313,0.48328,0.27839,0.10085,-4.24],[0.29001,0.66553,0.28139,0.09645,-3.95],[0.29179,0.84473,0.28711,0.11523,-2.0]],[[[0.175,0.19095,0.8,0.04492],[0.47852,0.24512,0.43945,0.10156],[0.30239,0.36605,0.27998,0.02539,-3.81]],[[0.175,0.38403,0.8,0.04492],[0.47656,0.43066,0.42188,0.10645],[0.30347,0.55303,0.27839,0.02246,-4.24]],[[0.175,0.56848,0.8,0.04492],[0.47656,0.62012,0.38867,0.10254],[0.29901,0.7308,0.28139,0.02441,-3.95]],[[0.175,0.73829,0.8,0.04492],[0.47656,0.79297,0.40234,0.09766],[0.29762,0.92817,0.28711,0.02051,-2.0]]]],[512,1024,[[0.72656,0.29395,0.38281,0.18555,-3.0],[0.27088,0.29568,0.39041,0.15117,-4.76],[0.70898,0.48828,0.37891,0.1543,2.0],[0.27124,0.49958,0.38704,0.13632,4.57],[0.21952,0.69971,0.31836,0.14746,-2.0],[0.52996,0.70306,0.24565,0.1411,2.53],[0.80811,0.7098,0.21326,0.14084,6.95]],[[0.7375,0.39829,0.38281,0.02148,-3.0],[0.28697,0.39224,0.39041,0.02734,-4.76],[0.70244,0.58197,0.37891,0.03516,2.0],[0.25754,0.58518,0.38704,0.02637,4.57],[0.22559,0.78657,0.31836,0.02637,-2.0],[0.52214,0.79142,0.24565,0.02246,2.53],[0.7872,0.79552,0.21326,0.02637,6.95]]]],"秋田県":["akita",[512,1024,[[0.48145,0.56104,0.88867,0.4502,0.0]],[0.39844,0.30859,0.50781,0.02344]],[512,1024,[[0.30664,0.28906,0.29297,0.11328,-2.0],[0.30217,0.48964,0.27935,0.10284,-2.73],[0.30623,0.69303,0.28972,0.12242,-2.49],[0.30465,0.86789,0.28944,0.09365,-4.09]],[[[0.175,0.18359,0.8,0.04492],[0.48242,0.24121,0.42578,0.10938],[0.31165,0.3608,0.29297,0.03418,-2.0]],[[0.175,0.38939,0.8,0.04492],[0.48633,0.44238,0.375,0.10156],[0.30873,0.55852,0.27935,0.02539,-2.73]],[[0.175,0.58299,0.8,0.04492],[0.48828,0.63574,0.36328,0.10547],[0.31316,0.77267,0.28972,0.02734,-2.49]],[[0.175,0.77224,0.8,0.04492],[0.48828,0.82324,0.43945,0.10059],[0.31429,0.93537,0.28944,0.02734,-4.09]]]],[512,1024,[[0.26603,0.29917,0.38741,0.15576,-5.49],[0.71064,0.30489,0.39751,0.16267,5.16],[0.70736,0.52252,0.38796,0.14193,-3.47],[0.26367,0.5293,0.39844,0.16406,-2.0],[0.2635,0.72095,0.3856,0.15551,-4.09],[0.7098,0.73747,0.38619,0.17621,5.08]],[[0.2854,0.39993,0.38741,0.03711,-5.49],[0.69215,0.4073,0.39751,0.02832,5.16],[0.7184,0.6136,0.38796,0.03223,-3.47],[0.2711,0.63568,0.39844,0.02539,-2.0],[0.27626,0.81032,0.3856,0.02734,-4.09],[0.69084,0.84411,0.38619,0.02832,5.08]]]],"山形県":["yamagata",[512,1024,[[0.48298,0.54428,0.8937,0.4364,0.86]],[0.13477,0.29492,0.79688,0.02148]],[512,1024,[[0.29727,0.30151,0.26432,0.11459,-4.24],[0.30226,0.48799,0.26827,0.11083,-5.48],[0.30366,0.66238,0.27306,0.09512,-6.34],[0.3044,0.84131,0.26949,0.09677,-5.57]],[[[0.175,0.19539,0.8,0.04492],[0.4707,0.24316,0.33203,0.05664],[0.30777,0.37236,0.26432,0.02832,-4.24]],[[0.175,0.38375,0.8,0.04492],[0.47656,0.43359,0.39648,0.0791],[0.31621,0.5607,0.26827,0.02979,-5.48]],[[0.175,0.56599,0.8,0.04492],[0.47461,0.61426,0.47461,0.08105],[0.31892,0.73102,0.27306,0.03125,-6.34]],[[0.175,0.7441,0.8,0.04492],[0.47656,0.7959,0.43555,0.0791],[0.31722,0.90701,0.26949,0.02979,-5.57]]]],[512,1024,[[0.25079,0.29781,0.37327,0.14731,-5.26],[0.70688,0.3044,0.39594,0.15732,6.2],[0.71236,0.51325,0.40313,0.14745,-3.18],[0.25182,0.51853,0.38128,0.15577,5.95],[0.25504,0.71382,0.38017,0.14423,-5.15],[0.70185,0.71782,0.39443,0.13871,7.82]],[[0.26819,0.39228,0.37327,0.03564,-5.26],[0.68466,0.40662,0.39594,0.04102,6.2],[0.72307,0.60971,0.40313,0.03223,-3.18],[0.23128,0.6171,0.38128,0.03564,5.95],[0.27206,0.80821,0.38017,0.03906,-5.15],[0.67942,0.79953,0.39443,0.03027,7.82]]]],"福島県":["fukushima",[511,1024,[[0.48201,0.54503,0.89138,0.47172,-0.42]],[0.3953,0.27734,0.30137,0.03711]],[511,1024,[[0.29875,0.29108,0.27587,0.10716,-3.27],[0.30011,0.48288,0.27389,0.09332,-1.85],[0.2984,0.66427,0.28027,0.09399,-3.61],[0.29801,0.8492,0.27925,0.09849,-2.91]],[[[0.175,0.18867,0.8,0.04492],[0.47358,0.24219,0.32485,0.10059],[0.30684,0.3617,0.27587,0.03613,-3.27]],[[0.175,0.38739,0.8,0.04492],[0.4775,0.44629,0.30137,0.09668],[0.30424,0.54684,0.27389,0.03711,-1.85]],[[0.175,0.56845,0.8,0.04492],[0.47162,0.62305,0.41292,0.09961],[0.30664,0.72936,0.28027,0.03125,-3.61]],[[0.175,0.75113,0.8,0.04492],[0.46771,0.80469,0.44618,0.08496],[0.30441,0.91203,0.27925,0.01953,-2.91]]]],[513,1024,[[0.26517,0.28707,0.39005,0.16622,-5.5],[0.71553,0.30052,0.39031,0.15529,6.23],[0.2668,0.51962,0.37726,0.16159,5.39],[0.71759,0.52517,0.37378,0.16701,-4.57],[0.28655,0.71582,0.39376,0.1582,-5.0],[0.71353,0.73001,0.36689,0.16383,7.77]],[[0.28517,0.39112,0.39005,0.0332,-5.5],[0.69433,0.39786,0.39031,0.0332,6.23],[0.24979,0.60995,0.37726,0.02148,5.39],[0.73392,0.62747,0.37378,0.0332,-4.57],[0.30345,0.81262,0.39376,0.03613,-5.0],[0.68667,0.82868,0.36689,0.03027,7.77]]]],"茨城県":["ibaraki",[511,1024,[[0.51999,0.55912,0.83836,0.46547,-0.84]],[0.15068,0.27344,0.79061,0.02051]],[511,1024,[[0.31044,0.28613,0.29877,0.12864,-3.96],[0.30888,0.4663,0.3009,0.10093,-4.03],[0.31172,0.65184,0.30011,0.1022,-3.69],[0.31717,0.83298,0.29823,0.09242,-4.34]],[[[0.175,0.17298,0.8,0.04492],[0.49706,0.22461,0.36595,0.10449],[0.32173,0.36755,0.29877,0.02344,-3.96]],[[0.175,0.36701,0.8,0.04492],[0.49706,0.41699,0.27593,0.10156],[0.31871,0.53596,0.3009,0.02148,-4.03]],[[0.175,0.55191,0.8,0.04492],[0.49706,0.60742,0.36791,0.0957],[0.32061,0.72056,0.30011,0.02539,-3.69]],[[0.175,0.73794,0.8,0.04492],[0.49902,0.79102,0.40509,0.09375],[0.32681,0.8963,0.29823,0.02344,-4.34]]]],[513,1024,[[0.71878,0.28541,0.3924,0.14785,4.01],[0.24784,0.28572,0.3767,0.15815,-6.04],[0.75342,0.50412,0.37232,0.12695,1.0],[0.61988,0.50586,0.23002,0.13281,-2.0],[0.25395,0.50974,0.38123,0.14597,3.52],[0.27051,0.71656,0.38047,0.14698,-5.32]],[[0.70519,0.38257,0.3924,0.0332,4.01],[0.26897,0.38567,0.3767,0.03027,-6.04],[0.83858,0.57811,0.19688,0.01953,1.0],[0.62587,0.59174,0.23002,0.0293,-2.0],[0.24234,0.60431,0.38123,0.03516,3.52],[0.28909,0.81646,0.38047,0.03223,-5.32]]]],"栃木県":["tochigi",[512,1024,[[0.51585,0.55999,0.83491,0.45736,-0.4]],[0.1582,0.28027,0.77148,0.02051]],[512,1024,[[0.29306,0.2883,0.28369,0.11084,-4.67],[0.29695,0.46152,0.27705,0.09363,-3.58],[0.29655,0.64957,0.27689,0.10792,-3.09],[0.29517,0.82671,0.27035,0.09929,-3.58]],[[[0.175,0.18405,0.8,0.04492],[0.46289,0.22754,0.43164,0.10254],[0.30518,0.36249,0.28369,0.02148,-4.67]],[[0.175,0.36588,0.8,0.04492],[0.46875,0.41016,0.39844,0.10352],[0.30516,0.52722,0.27705,0.02148,-3.58]],[[0.175,0.54678,0.8,0.04492],[0.4668,0.59082,0.47461,0.10059],[0.30443,0.72244,0.27689,0.02148,-3.09]],[[0.175,0.72824,0.8,0.04492],[0.4668,0.77246,0.48242,0.09863],[0.30374,0.89524,0.27035,0.02148,-3.58]]]],[512,1024,[[0.26498,0.28975,0.38896,0.15599,-4.71],[0.72085,0.3058,0.38223,0.1527,4.65],[0.27548,0.51336,0.3902,0.15153,5.36],[0.72848,0.52839,0.37182,0.16746,-5.51],[0.71558,0.72572,0.36665,0.14002,6.93],[0.27032,0.72729,0.37809,0.14528,-7.21]],[[0.28197,0.39272,0.38896,0.02441,-4.71],[0.70504,0.403,0.38223,0.03125,4.65],[0.25847,0.60409,0.3902,0.02734,5.36],[0.74827,0.63105,0.37182,0.03125,-5.51],[0.69403,0.81429,0.36665,0.03223,6.93],[0.29381,0.82006,0.37809,0.03418,-7.21]]]],"群馬県":["gunma",[512,1024,[[0.51396,0.55471,0.82982,0.42092,-0.48]],[0.38086,0.30469,0.30078,0.02051]],[512,1024,[[0.30458,0.28762,0.29681,0.09627,-2.2],[0.30858,0.48907,0.30061,0.10663,-2.79],[0.30809,0.65325,0.29432,0.1006,-1.77],[0.30853,0.83158,0.29895,0.10105,-2.77]],[[[0.175,0.19066,0.8,0.04492],[0.50977,0.24023,0.42188,0.125],[0.30919,0.34761,0.29681,0.02734,-2.2]],[[0.175,0.38693,0.8,0.04492],[0.50781,0.43457,0.33594,0.10547],[0.31521,0.55707,0.30061,0.0249,-2.79]],[[0.175,0.55412,0.8,0.04492],[0.50977,0.60352,0.39844,0.1084],[0.31229,0.72116,0.29432,0.02246,-1.77]],[[0.175,0.73223,0.8,0.04492],[0.51172,0.78027,0.39453,0.09863],[0.31485,0.8968,0.29895,0.0249,-2.77]]]],[512,1024,[[0.71815,0.30314,0.38808,0.14981,5.49],[0.26826,0.30443,0.39601,0.14867,-7.17],[0.72753,0.51454,0.37466,0.14272,-5.81],[0.27542,0.52786,0.39666,0.16255,4.6],[0.71547,0.71526,0.36876,0.13578,7.24],[0.27521,0.72377,0.3835,0.14913,-6.79]],[[0.70028,0.39606,0.38808,0.02734,5.49],[0.29269,0.40158,0.39601,0.0293,-7.17],[0.74633,0.60695,0.37466,0.0293,-5.81],[0.25908,0.62938,0.39666,0.0293,4.6],[0.69217,0.80688,0.36876,0.03711,7.24],[0.29561,0.80945,0.3835,0.02441,-6.79]]]],"埼玉県":["saitama",[512,1024,[[0.51074,0.57031,0.83008,0.45508,0.0]],[0.16602,0.28516,0.76172,0.02051]],[512,1024,[[0.2959,0.28369,0.2793,0.10254,0.0],[0.29451,0.47486,0.28088,0.0998,-0.78],[0.2998,0.65918,0.2832,0.0918,0.0],[0.29979,0.82841,0.28123,0.09008,-1.85]],[[[0.175,0.18359,0.8,0.04492],[0.46875,0.22949,0.36133,0.10254],[0.2959,0.35547,0.2793,0.02734,0.0]],[[0.175,0.37613,0.8,0.04492],[0.46875,0.42383,0.37891,0.10059],[0.29645,0.5454,0.28088,0.02246,-0.78]],[[0.175,0.56445,0.8,0.04492],[0.46875,0.6123,0.40039,0.10352],[0.2998,0.72363,0.2832,0.02539,0.0]],[[0.175,0.73454,0.8,0.04492],[0.4707,0.77832,0.36719,0.10254],[0.30374,0.88962,0.28123,0.02344,-1.85]]]],[512,1024,[[0.26687,0.29104,0.38011,0.14758,-5.4],[0.71977,0.31143,0.38324,0.18326,4.64],[0.7229,0.51023,0.36689,0.13525,-4.6],[0.27355,0.51247,0.3805,0.14033,4.57],[0.26646,0.72295,0.3757,0.14246,-6.01],[0.72063,0.72686,0.37065,0.13869,7.13]],[[0.28431,0.38323,0.38011,0.03223,-5.4],[0.70192,0.42151,0.38324,0.03223,4.64],[0.7378,0.60273,0.36689,0.03223,-4.6],[0.25989,0.59787,0.3805,0.02637,4.57],[0.28562,0.81395,0.3757,0.03516,-6.01],[0.69876,0.81434,0.37065,0.03223,7.13]]]],"千葉県":["chiba",[511,1024,[[0.48043,0.53613,0.89041,0.47656,0.0]],[0.27006,0.25684,0.5636,0.02344]],[511,1024,[[0.3192,0.27379,0.31151,0.09669,-2.35],[0.31528,0.46158,0.30715,0.09538,-2.98],[0.31414,0.64371,0.31297,0.09171,-3.98],[0.31192,0.82279,0.30992,0.08776,-3.18]],[[[0.175,0.17662,0.8,0.04492],[0.50294,0.22949,0.36204,0.07422],[0.32459,0.3393,0.31151,0.03027,-2.35]],[[0.175,0.36506,0.8,0.04492],[0.50098,0.41797,0.40117,0.07422],[0.32223,0.52823,0.30715,0.0293,-2.98]],[[0.175,0.54903,0.8,0.04492],[0.50294,0.60254,0.38552,0.07422],[0.32308,0.70785,0.31297,0.0332,-3.98]],[[0.175,0.73008,0.8,0.04492],[0.50098,0.78223,0.38356,0.0752],[0.31913,0.8876,0.30992,0.02344,-3.18]]]],[513,1024,[[0.28362,0.28709,0.41106,0.16755,-4.99],[0.72667,0.30455,0.37948,0.15874,6.62],[0.22798,0.51375,0.30497,0.14621,-5.38],[0.52632,0.52441,0.23392,0.14258,0.0],[0.79435,0.53027,0.27485,0.14453,1.0],[0.28034,0.72582,0.41275,0.15091,-4.33],[0.72696,0.73798,0.38599,0.1512,5.71]],[[0.30144,0.38926,0.41106,0.03711,-4.99],[0.70303,0.40654,0.37948,0.03906,6.62],[0.24532,0.60604,0.30497,0.03125,-5.38],[0.53216,0.61666,0.22222,0.03418,0.0],[0.79127,0.61864,0.27485,0.03027,1.0],[0.29532,0.82491,0.41275,0.02734,-4.33],[0.70721,0.83691,0.38599,0.03809,5.71]]]],"東京都":["tokyo",[511,1024,[[0.51701,0.57562,0.82499,0.44731,-0.74]],[0.37965,0.30664,0.30333,0.02148]],[511,1024,[[0.307,0.28918,0.29627,0.12343,-4.64],[0.30489,0.47286,0.29083,0.10528,-4.32],[0.29914,0.66931,0.28417,0.12089,-3.81],[0.30626,0.86426,0.30724,0.14258,-2.0]],[[[0.175,0.17864,0.8,0.04492],[0.48337,0.22461,0.38552,0.1084],[0.31958,0.36665,0.29627,0.03418,-4.64]],[[0.175,0.37139,0.8,0.04492],[0.48141,0.41797,0.3092,0.11035],[0.31524,0.54131,0.29083,0.03418,-4.32]],[[0.175,0.56004,0.8,0.04492],[0.48337,0.60645,0.45793,0.1084],[0.30933,0.7456,0.28417,0.03418,-3.81]],[[0.175,0.74414,0.8,0.04492],[0.48532,0.79102,0.43053,0.1084],[0.31237,0.9515,0.30724,0.03418,-2.0]]]],[513,1024,[[0.26477,0.30097,0.38192,0.16001,-5.89],[0.70733,0.30602,0.37436,0.17144,7.0],[0.28004,0.51778,0.37362,0.15593,5.04],[0.72791,0.52044,0.36138,0.17064,-5.76],[0.70632,0.72122,0.40793,0.14958,6.52],[0.26729,0.72198,0.36348,0.16223,-4.93]],[[0.28655,0.40666,0.38192,0.03516,-5.89],[0.68179,0.4102,0.37436,0.0293,7.0],[0.26298,0.6146,0.37362,0.0293,5.04],[0.74857,0.62301,0.36138,0.02637,-5.76],[0.68585,0.81094,0.40793,0.0293,6.52],[0.2845,0.82196,0.36348,0.0293,-4.93]]]],"北海道":["hokkaido",[512,1024,[[0.51074,0.56738,0.82617,0.44727,0.0]],[0.16211,0.28906,0.75977,0.01953]],[512,1024,[[0.29297,0.3042,0.27734,0.10254,0.0],[0.29535,0.5237,0.28074,0.11313,-2.96],[0.29736,0.74149,0.27851,0.10944,-2.57]],[[[0.175,0.2041,0.8,0.04492],[0.47266,0.25488,0.33984,0.08887],[0.29297,0.37531,0.27734,0.02832,0.0]],[[0.175,0.41831,0.8,0.04492],[0.47266,0.46777,0.42188,0.08789],[0.30325,0.6,0.28074,0.02832,-2.96]],[[0.175,0.63794,0.8,0.04492],[0.47461,0.68262,0.24609,0.09082],[0.30406,0.81597,0.27851,0.02832,-2.57]]]],[512,1024,[[0.25976,0.30074,0.37912,0.15835,-5.19],[0.7125,0.30763,0.37063,0.15023,4.9],[0.26931,0.50453,0.37528,0.1375,5.71],[0.72134,0.51412,0.37421,0.14442,-5.36],[0.70598,0.71358,0.36183,0.12849,6.67],[0.26777,0.71966,0.37443,0.12844,-5.76]],[[0.27824,0.40241,0.37912,0.02441,-5.19],[0.69599,0.40394,0.37063,0.02148,4.9],[0.2512,0.59506,0.37528,0.02295,5.71],[0.73897,0.60815,0.37421,0.02295,-5.36],[0.6859,0.79947,0.36183,0.02295,6.67],[0.28512,0.80569,0.37443,0.02295,-5.76]]]]};
+const JT={"福岡県":["fukuoka",[511,1024,[[0.5137,0.56348,0.82387,0.44141,0.0]],[0.14481,0.28906,0.79256,0.02051]],[511,1024,[[0.30824,0.31169,0.29446,0.12001,-3.27],[0.30718,0.52649,0.30392,0.11122,-2.12],[0.31019,0.74425,0.29793,0.11684,-4.4]],[[[0.175,0.20286,0.8,0.04492],[0.48728,0.25391,0.31272,0.10645],[0.31726,0.3905,0.29446,0.0293,-3.27]],[[0.175,0.42205,0.8,0.04492],[0.48728,0.47656,0.31272,0.08008],[0.31275,0.60151,0.30392,0.0293,-2.12]],[[0.175,0.637,0.8,0.04492],[0.48924,0.68555,0.31076,0.08203],[0.32241,0.8235,0.29793,0.03027,-4.4]]]],[513,1024,[[0.27967,0.29684,0.3885,0.14535,-6.75],[0.72154,0.30515,0.36599,0.14731,5.67],[0.72313,0.50856,0.36058,0.13453,-5.56],[0.28451,0.50878,0.39421,0.14089,5.29],[0.28515,0.70739,0.39379,0.14081,-7.59],[0.72481,0.71358,0.35773,0.13765,5.75]],[[0.30177,0.39046,0.3885,0.03223,-6.75],[0.70343,0.39652,0.36599,0.02441,5.67],[0.74074,0.59918,0.36058,0.03711,-5.56],[0.26932,0.59096,0.39421,0.02441,5.29],[0.31121,0.80529,0.39379,0.03613,-7.59],[0.70612,0.80666,0.35773,0.03613,5.75]]]],"佐賀県":["saga",[512,1024,[[0.51074,0.57227,0.82617,0.4375,0.0]],[0.1582,0.30273,0.77148,0.02148]],[512,1024,[[0.29531,0.30493,0.2824,0.11088,-3.5],[0.29415,0.52168,0.28363,0.11291,-3.54],[0.29571,0.7394,0.28457,0.11195,-4.09]],[[[0.175,0.20066,0.8,0.04492],[0.47852,0.24707,0.32148,0.13379],[0.30495,0.38364,0.2824,0.0293,-3.5]],[[0.175,0.4164,0.8,0.04492],[0.47656,0.46289,0.32344,0.12988],[0.30341,0.59654,0.28363,0.03516,-3.54]],[[0.175,0.6346,0.8,0.04492],[0.47852,0.67969,0.32148,0.13281],[0.30661,0.81572,0.28457,0.03027,-4.09]]]],[512,1024,[[0.2661,0.29996,0.3892,0.148,-5.19],[0.71514,0.30732,0.36523,0.15114,5.89],[0.27288,0.51538,0.38651,0.1422,3.81],[0.726,0.5233,0.36666,0.15773,-4.85],[0.26872,0.71713,0.38111,0.13954,-5.71],[0.70861,0.72202,0.3625,0.14305,5.96]],[[0.28411,0.39901,0.3892,0.0332,-5.19],[0.69623,0.39893,0.36523,0.02539,5.89],[0.26109,0.60381,0.38651,0.02441,3.81],[0.74301,0.6235,0.36666,0.0332,-4.85],[0.28721,0.8096,0.38111,0.03613,-5.71],[0.69001,0.81104,0.3625,0.03516,5.96]]]],"沖縄県":["okinawa",[511,1024,[[0.52345,0.51825,0.80848,0.3674,-2.99]],[0.36986,0.28516,0.33659,0.02148]],[511,1024,[[0.29468,0.26025,0.28717,0.08848,-4.76],[0.31741,0.46545,0.29526,0.10256,-5.88],[0.31549,0.65883,0.29803,0.10143,-6.94],[0.30579,0.84697,0.29774,0.10174,-4.29]],[[[0.175,0.16718,0.8,0.04492],[0.51076,0.22168,0.28924,0.08301],[0.3046,0.31962,0.28717,0.04004,-4.76]],[[0.175,0.36534,0.8,0.04492],[0.50881,0.41504,0.29119,0.10645],[0.33181,0.53528,0.29526,0.03223,-5.88]],[[0.175,0.55929,0.8,0.04492],[0.51076,0.61621,0.28924,0.09961],[0.3326,0.72897,0.29803,0.03125,-6.94]],[[0.175,0.74727,0.8,0.04492],[0.51076,0.79297,0.28924,0.10059],[0.31636,0.91728,0.29774,0.03027,-4.29]]]],[513,1024,[[0.2954,0.27967,0.38038,0.15098,-6.34],[0.7227,0.28098,0.36401,0.14877,5.49],[0.7129,0.4847,0.37287,0.13317,-4.4],[0.27881,0.49071,0.36203,0.14555,5.55],[0.27961,0.69062,0.38495,0.14654,-5.36],[0.70994,0.70199,0.36426,0.12537,5.19]],[[0.31814,0.38218,0.38038,0.02734,-6.34],[0.70409,0.37797,0.36401,0.03418,5.49],[0.72646,0.57298,0.37287,0.03516,-4.4],[0.26221,0.57626,0.36203,0.02246,5.55],[0.29841,0.79106,0.38495,0.03027,-5.36],[0.69479,0.78543,0.36426,0.03027,5.19]]]],"青森県":["aomori",[511,1024,[[0.50294,0.56836,0.85323,0.49414,0.0]],[0.16047,0.29199,0.74755,0.02051]],[511,1024,[[0.29748,0.30927,0.27302,0.13452,-4.4],[0.29514,0.53511,0.27677,0.13196,-4.57],[0.30137,0.76367,0.28963,0.13672,-6.0]],[[[0.175,0.19318,0.8,0.04492],[0.46771,0.25684,0.33229,0.09277],[0.30969,0.38844,0.27302,0.03125,-4.4]],[[0.175,0.4203,0.8,0.04492],[0.46771,0.4707,0.33229,0.12402],[0.30857,0.61887,0.27677,0.02734,-4.57]],[[0.175,0.64648,0.8,0.04492],[0.46771,0.69824,0.33229,0.12891],[0.31885,0.84667,0.28963,0.0293,-6.0]]]],[513,1024,[[0.71626,0.31753,0.37548,0.18125,4.97],[0.26406,0.32753,0.38935,0.14959,-5.55],[0.27598,0.52157,0.36877,0.1446,4.76],[0.71356,0.53569,0.37257,0.16718,-4.64],[0.71477,0.73372,0.35864,0.1464,6.01],[0.27491,0.74648,0.37108,0.11706,-5.55]],[[0.69721,0.42729,0.37548,0.02881,4.97],[0.28115,0.4156,0.38935,0.02148,-5.55],[0.26102,0.6115,0.36877,0.02832,4.76],[0.7302,0.6385,0.37257,0.02881,-4.64],[0.69504,0.82761,0.35864,0.0293,6.01],[0.29059,0.82726,0.37108,0.03223,-5.55]]]],"岩手県":["iwate",[512,1024,[[0.48438,0.55811,0.89062,0.46387,0.0]],[0.37305,0.2959,0.53906,0.02246]],[512,1024,[[0.29845,0.31331,0.28158,0.13094,-3.01],[0.29794,0.54744,0.28496,0.14849,-3.25],[0.29927,0.78388,0.2845,0.13665,-4.76]],[[[0.175,0.19901,0.8,0.04492],[0.46875,0.25293,0.33125,0.11523],[0.30725,0.39686,0.28158,0.02832,-3.01]],[[0.175,0.42437,0.8,0.04492],[0.47461,0.48047,0.32539,0.13379],[0.30845,0.63999,0.28496,0.03027,-3.25]],[[0.175,0.66673,0.8,0.04492],[0.47852,0.71875,0.30664,0.13086],[0.31366,0.87023,0.2845,0.0293,-4.76]]]],[512,1024,[[0.25706,0.33664,0.36692,0.19947,-5.16],[0.70673,0.33812,0.38607,0.2002,5.27],[0.26219,0.61278,0.36792,0.20233,-4.13],[0.69683,0.61986,0.37852,0.21271,4.19]],[[0.27984,0.46287,0.36692,0.03027,-5.16],[0.68442,0.45896,0.38607,0.03418,5.27],[0.28,0.73601,0.36792,0.03516,-4.13],[0.67816,0.74722,0.37852,0.03027,4.19]]]],"宮城県":["miyagi",[512,1024,[[0.51074,0.56929,0.82457,0.45232,-0.15]],[0.15234,0.29004,0.77148,0.01953]],[512,1024,[[0.29269,0.2933,0.27998,0.10705,-3.81],[0.29313,0.48328,0.27839,0.10085,-4.24],[0.29001,0.66553,0.28139,0.09645,-3.95],[0.29179,0.84473,0.28711,0.11523,-2.0]],[[[0.175,0.19095,0.8,0.04492],[0.47852,0.24512,0.32148,0.10156],[0.30239,0.36605,0.27998,0.02539,-3.81]],[[0.175,0.38403,0.8,0.04492],[0.47656,0.43066,0.32344,0.10645],[0.30347,0.55303,0.27839,0.02246,-4.24]],[[0.175,0.56848,0.8,0.04492],[0.47656,0.62012,0.32344,0.10254],[0.29901,0.7308,0.28139,0.02441,-3.95]],[[0.175,0.73829,0.8,0.04492],[0.47656,0.79297,0.32344,0.09766],[0.29762,0.92817,0.28711,0.02051,-2.0]]]],[512,1024,[[0.72656,0.29395,0.38281,0.18555,-3.0],[0.27088,0.29568,0.39041,0.15117,-4.76],[0.70898,0.48828,0.37891,0.1543,2.0],[0.27124,0.49958,0.38704,0.13632,4.57],[0.21952,0.69971,0.31836,0.14746,-2.0],[0.52996,0.70306,0.24565,0.1411,2.53],[0.80811,0.7098,0.21326,0.14084,6.95]],[[0.7375,0.39829,0.38281,0.02148,-3.0],[0.28697,0.39224,0.39041,0.02734,-4.76],[0.70244,0.58197,0.37891,0.03516,2.0],[0.25754,0.58518,0.38704,0.02637,4.57],[0.22559,0.78657,0.31836,0.02637,-2.0],[0.52214,0.79142,0.24565,0.02246,2.53],[0.7872,0.79552,0.21326,0.02637,6.95]]]],"秋田県":["akita",[512,1024,[[0.48145,0.56104,0.88867,0.4502,0.0]],[0.39844,0.30859,0.50781,0.02344]],[512,1024,[[0.30664,0.28906,0.29297,0.11328,-2.0],[0.30217,0.48964,0.27935,0.10284,-2.73],[0.30623,0.69303,0.28972,0.12242,-2.49],[0.30465,0.86789,0.28944,0.09365,-4.09]],[[[0.175,0.18359,0.8,0.04492],[0.48242,0.24121,0.31758,0.10938],[0.31165,0.3608,0.29297,0.03418,-2.0]],[[0.175,0.38939,0.8,0.04492],[0.48633,0.44238,0.31367,0.10156],[0.30873,0.55852,0.27935,0.02539,-2.73]],[[0.175,0.58299,0.8,0.04492],[0.48828,0.63574,0.31172,0.10547],[0.31316,0.77267,0.28972,0.02734,-2.49]],[[0.175,0.77224,0.8,0.04492],[0.48828,0.82324,0.31172,0.10059],[0.31429,0.93537,0.28944,0.02734,-4.09]]]],[512,1024,[[0.26603,0.29917,0.38741,0.15576,-5.49],[0.71064,0.30489,0.39751,0.16267,5.16],[0.70736,0.52252,0.38796,0.14193,-3.47],[0.26367,0.5293,0.39844,0.16406,-2.0],[0.2635,0.72095,0.3856,0.15551,-4.09],[0.7098,0.73747,0.38619,0.17621,5.08]],[[0.2854,0.39993,0.38741,0.03711,-5.49],[0.69215,0.4073,0.39751,0.02832,5.16],[0.7184,0.6136,0.38796,0.03223,-3.47],[0.2711,0.63568,0.39844,0.02539,-2.0],[0.27626,0.81032,0.3856,0.02734,-4.09],[0.69084,0.84411,0.38619,0.02832,5.08]]]],"山形県":["yamagata",[512,1024,[[0.48298,0.54428,0.8937,0.4364,0.86]],[0.13477,0.29492,0.79688,0.02148]],[512,1024,[[0.29727,0.30151,0.26432,0.11459,-4.24],[0.30226,0.48799,0.26827,0.11083,-5.48],[0.30366,0.66238,0.27306,0.09512,-6.34],[0.3044,0.84131,0.26949,0.09677,-5.57]],[[[0.175,0.19539,0.8,0.04492],[0.4707,0.24316,0.3293,0.05664],[0.30777,0.37236,0.26432,0.02832,-4.24]],[[0.175,0.38375,0.8,0.04492],[0.47656,0.43359,0.32344,0.0791],[0.31621,0.5607,0.26827,0.02979,-5.48]],[[0.175,0.56599,0.8,0.04492],[0.47461,0.61426,0.32539,0.08105],[0.31892,0.73102,0.27306,0.03125,-6.34]],[[0.175,0.7441,0.8,0.04492],[0.47656,0.7959,0.32344,0.0791],[0.31722,0.90701,0.26949,0.02979,-5.57]]]],[512,1024,[[0.25079,0.29781,0.37327,0.14731,-5.26],[0.70688,0.3044,0.39594,0.15732,6.2],[0.71236,0.51325,0.40313,0.14745,-3.18],[0.25182,0.51853,0.38128,0.15577,5.95],[0.25504,0.71382,0.38017,0.14423,-5.15],[0.70185,0.71782,0.39443,0.13871,7.82]],[[0.26819,0.39228,0.37327,0.03564,-5.26],[0.68466,0.40662,0.39594,0.04102,6.2],[0.72307,0.60971,0.40313,0.03223,-3.18],[0.23128,0.6171,0.38128,0.03564,5.95],[0.27206,0.80821,0.38017,0.03906,-5.15],[0.67942,0.79953,0.39443,0.03027,7.82]]]],"福島県":["fukushima",[511,1024,[[0.48201,0.54503,0.89138,0.47172,-0.42]],[0.3953,0.27734,0.30137,0.03711]],[511,1024,[[0.29875,0.29108,0.27587,0.10716,-3.27],[0.30011,0.48288,0.27389,0.09332,-1.85],[0.2984,0.66427,0.28027,0.09399,-3.61],[0.29801,0.8492,0.27925,0.09849,-2.91]],[[[0.175,0.18867,0.8,0.04492],[0.47358,0.24219,0.32485,0.10059],[0.30684,0.3617,0.27587,0.03613,-3.27]],[[0.175,0.38739,0.8,0.04492],[0.4775,0.44629,0.30137,0.09668],[0.30424,0.54684,0.27389,0.03711,-1.85]],[[0.175,0.56845,0.8,0.04492],[0.47162,0.62305,0.32838,0.09961],[0.30664,0.72936,0.28027,0.03125,-3.61]],[[0.175,0.75113,0.8,0.04492],[0.46771,0.80469,0.33229,0.08496],[0.30441,0.91203,0.27925,0.01953,-2.91]]]],[513,1024,[[0.26517,0.28707,0.39005,0.16622,-5.5],[0.71553,0.30052,0.39031,0.15529,6.23],[0.2668,0.51962,0.37726,0.16159,5.39],[0.71759,0.52517,0.37378,0.16701,-4.57],[0.28655,0.71582,0.39376,0.1582,-5.0],[0.71353,0.73001,0.36689,0.16383,7.77]],[[0.28517,0.39112,0.39005,0.0332,-5.5],[0.69433,0.39786,0.39031,0.0332,6.23],[0.24979,0.60995,0.37726,0.02148,5.39],[0.73392,0.62747,0.37378,0.0332,-4.57],[0.30345,0.81262,0.39376,0.03613,-5.0],[0.68667,0.82868,0.36689,0.03027,7.77]]]],"茨城県":["ibaraki",[511,1024,[[0.51999,0.55912,0.83836,0.46547,-0.84]],[0.15068,0.27344,0.79061,0.02051]],[511,1024,[[0.31044,0.28613,0.29877,0.12864,-3.96],[0.30888,0.4663,0.3009,0.10093,-4.03],[0.31172,0.65184,0.30011,0.1022,-3.69],[0.31717,0.83298,0.29823,0.09242,-4.34]],[[[0.175,0.17298,0.8,0.04492],[0.49706,0.22461,0.30294,0.10449],[0.32173,0.36755,0.29877,0.02344,-3.96]],[[0.175,0.36701,0.8,0.04492],[0.49706,0.41699,0.27593,0.10156],[0.31871,0.53596,0.3009,0.02148,-4.03]],[[0.175,0.55191,0.8,0.04492],[0.49706,0.60742,0.30294,0.0957],[0.32061,0.72056,0.30011,0.02539,-3.69]],[[0.175,0.73794,0.8,0.04492],[0.49902,0.79102,0.30098,0.09375],[0.32681,0.8963,0.29823,0.02344,-4.34]]]],[513,1024,[[0.71878,0.28541,0.3924,0.14785,4.01],[0.24784,0.28572,0.3767,0.15815,-6.04],[0.75342,0.50412,0.37232,0.12695,1.0],[0.61988,0.50586,0.23002,0.13281,-2.0],[0.25395,0.50974,0.38123,0.14597,3.52],[0.27051,0.71656,0.38047,0.14698,-5.32]],[[0.70519,0.38257,0.3924,0.0332,4.01],[0.26897,0.38567,0.3767,0.03027,-6.04],[0.83858,0.57811,0.19688,0.01953,1.0],[0.62587,0.59174,0.23002,0.0293,-2.0],[0.24234,0.60431,0.38123,0.03516,3.52],[0.28909,0.81646,0.38047,0.03223,-5.32]]]],"栃木県":["tochigi",[512,1024,[[0.51585,0.55999,0.83491,0.45736,-0.4]],[0.1582,0.28027,0.77148,0.02051]],[512,1024,[[0.29306,0.2883,0.28369,0.11084,-4.67],[0.29695,0.46152,0.27705,0.09363,-3.58],[0.29655,0.64957,0.27689,0.10792,-3.09],[0.29517,0.82671,0.27035,0.09929,-3.58]],[[[0.175,0.18405,0.8,0.04492],[0.46289,0.22754,0.33711,0.10254],[0.30518,0.36249,0.28369,0.02148,-4.67]],[[0.175,0.36588,0.8,0.04492],[0.46875,0.41016,0.33125,0.10352],[0.30516,0.52722,0.27705,0.02148,-3.58]],[[0.175,0.54678,0.8,0.04492],[0.4668,0.59082,0.3332,0.10059],[0.30443,0.72244,0.27689,0.02148,-3.09]],[[0.175,0.72824,0.8,0.04492],[0.4668,0.77246,0.3332,0.09863],[0.30374,0.89524,0.27035,0.02148,-3.58]]]],[512,1024,[[0.26498,0.28975,0.38896,0.15599,-4.71],[0.72085,0.3058,0.38223,0.1527,4.65],[0.27548,0.51336,0.3902,0.15153,5.36],[0.72848,0.52839,0.37182,0.16746,-5.51],[0.71558,0.72572,0.36665,0.14002,6.93],[0.27032,0.72729,0.37809,0.14528,-7.21]],[[0.28197,0.39272,0.38896,0.02441,-4.71],[0.70504,0.403,0.38223,0.03125,4.65],[0.25847,0.60409,0.3902,0.02734,5.36],[0.74827,0.63105,0.37182,0.03125,-5.51],[0.69403,0.81429,0.36665,0.03223,6.93],[0.29381,0.82006,0.37809,0.03418,-7.21]]]],"群馬県":["gunma",[512,1024,[[0.51396,0.55471,0.82982,0.42092,-0.48]],[0.38086,0.30469,0.30078,0.02051]],[512,1024,[[0.30458,0.28762,0.29681,0.09627,-2.2],[0.30858,0.48907,0.30061,0.10663,-2.79],[0.30809,0.65325,0.29432,0.1006,-1.77],[0.30853,0.83158,0.29895,0.10105,-2.77]],[[[0.175,0.19066,0.8,0.04492],[0.50977,0.24023,0.29023,0.125],[0.30919,0.34761,0.29681,0.02734,-2.2]],[[0.175,0.38693,0.8,0.04492],[0.50781,0.43457,0.29219,0.10547],[0.31521,0.55707,0.30061,0.0249,-2.79]],[[0.175,0.55412,0.8,0.04492],[0.50977,0.60352,0.29023,0.1084],[0.31229,0.72116,0.29432,0.02246,-1.77]],[[0.175,0.73223,0.8,0.04492],[0.51172,0.78027,0.28828,0.09863],[0.31485,0.8968,0.29895,0.0249,-2.77]]]],[512,1024,[[0.71815,0.30314,0.38808,0.14981,5.49],[0.26826,0.30443,0.39601,0.14867,-7.17],[0.72753,0.51454,0.37466,0.14272,-5.81],[0.27542,0.52786,0.39666,0.16255,4.6],[0.71547,0.71526,0.36876,0.13578,7.24],[0.27521,0.72377,0.3835,0.14913,-6.79]],[[0.70028,0.39606,0.38808,0.02734,5.49],[0.29269,0.40158,0.39601,0.0293,-7.17],[0.74633,0.60695,0.37466,0.0293,-5.81],[0.25908,0.62938,0.39666,0.0293,4.6],[0.69217,0.80688,0.36876,0.03711,7.24],[0.29561,0.80945,0.3835,0.02441,-6.79]]]],"埼玉県":["saitama",[512,1024,[[0.51074,0.57031,0.83008,0.45508,0.0]],[0.16602,0.28516,0.76172,0.02051]],[512,1024,[[0.2959,0.28369,0.2793,0.10254,0.0],[0.29451,0.47486,0.28088,0.0998,-0.78],[0.2998,0.65918,0.2832,0.0918,0.0],[0.29979,0.82841,0.28123,0.09008,-1.85]],[[[0.175,0.18359,0.8,0.04492],[0.46875,0.22949,0.33125,0.10254],[0.2959,0.35547,0.2793,0.02734,0.0]],[[0.175,0.37613,0.8,0.04492],[0.46875,0.42383,0.33125,0.10059],[0.29645,0.5454,0.28088,0.02246,-0.78]],[[0.175,0.56445,0.8,0.04492],[0.46875,0.6123,0.33125,0.10352],[0.2998,0.72363,0.2832,0.02539,0.0]],[[0.175,0.73454,0.8,0.04492],[0.4707,0.77832,0.3293,0.10254],[0.30374,0.88962,0.28123,0.02344,-1.85]]]],[512,1024,[[0.26687,0.29104,0.38011,0.14758,-5.4],[0.71977,0.31143,0.38324,0.18326,4.64],[0.7229,0.51023,0.36689,0.13525,-4.6],[0.27355,0.51247,0.3805,0.14033,4.57],[0.26646,0.72295,0.3757,0.14246,-6.01],[0.72063,0.72686,0.37065,0.13869,7.13]],[[0.28431,0.38323,0.38011,0.03223,-5.4],[0.70192,0.42151,0.38324,0.03223,4.64],[0.7378,0.60273,0.36689,0.03223,-4.6],[0.25989,0.59787,0.3805,0.02637,4.57],[0.28562,0.81395,0.3757,0.03516,-6.01],[0.69876,0.81434,0.37065,0.03223,7.13]]]],"千葉県":["chiba",[511,1024,[[0.48043,0.53613,0.89041,0.47656,0.0]],[0.27006,0.25684,0.5636,0.02344]],[511,1024,[[0.3192,0.27379,0.31151,0.09669,-2.35],[0.31528,0.46158,0.30715,0.09538,-2.98],[0.31414,0.64371,0.31297,0.09171,-3.98],[0.31192,0.82279,0.30992,0.08776,-3.18]],[[[0.175,0.17662,0.8,0.04492],[0.50294,0.22949,0.29706,0.07422],[0.32459,0.3393,0.31151,0.03027,-2.35]],[[0.175,0.36506,0.8,0.04492],[0.50098,0.41797,0.29902,0.07422],[0.32223,0.52823,0.30715,0.0293,-2.98]],[[0.175,0.54903,0.8,0.04492],[0.50294,0.60254,0.29706,0.07422],[0.32308,0.70785,0.31297,0.0332,-3.98]],[[0.175,0.73008,0.8,0.04492],[0.50098,0.78223,0.29902,0.0752],[0.31913,0.8876,0.30992,0.02344,-3.18]]]],[513,1024,[[0.28362,0.28709,0.41106,0.16755,-4.99],[0.72667,0.30455,0.37948,0.15874,6.62],[0.22798,0.51375,0.30497,0.14621,-5.38],[0.52632,0.52441,0.23392,0.14258,0.0],[0.79435,0.53027,0.27485,0.14453,1.0],[0.28034,0.72582,0.41275,0.15091,-4.33],[0.72696,0.73798,0.38599,0.1512,5.71]],[[0.30144,0.38926,0.41106,0.03711,-4.99],[0.70303,0.40654,0.37948,0.03906,6.62],[0.24532,0.60604,0.30497,0.03125,-5.38],[0.53216,0.61666,0.22222,0.03418,0.0],[0.79127,0.61864,0.27485,0.03027,1.0],[0.29532,0.82491,0.41275,0.02734,-4.33],[0.70721,0.83691,0.38599,0.03809,5.71]]]],"東京都":["tokyo",[511,1024,[[0.51701,0.57562,0.82499,0.44731,-0.74]],[0.37965,0.30664,0.30333,0.02148]],[511,1024,[[0.307,0.28918,0.29627,0.12343,-4.64],[0.30489,0.47286,0.29083,0.10528,-4.32],[0.29914,0.66931,0.28417,0.12089,-3.81],[0.30626,0.86426,0.30724,0.14258,-2.0]],[[[0.175,0.17864,0.8,0.04492],[0.48337,0.22461,0.31663,0.1084],[0.31958,0.36665,0.29627,0.03418,-4.64]],[[0.175,0.37139,0.8,0.04492],[0.48141,0.41797,0.3092,0.11035],[0.31524,0.54131,0.29083,0.03418,-4.32]],[[0.175,0.56004,0.8,0.04492],[0.48337,0.60645,0.31663,0.1084],[0.30933,0.7456,0.28417,0.03418,-3.81]],[[0.175,0.74414,0.8,0.04492],[0.48532,0.79102,0.31468,0.1084],[0.31237,0.9515,0.30724,0.03418,-2.0]]]],[513,1024,[[0.26477,0.30097,0.38192,0.16001,-5.89],[0.70733,0.30602,0.37436,0.17144,7.0],[0.28004,0.51778,0.37362,0.15593,5.04],[0.72791,0.52044,0.36138,0.17064,-5.76],[0.70632,0.72122,0.40793,0.14958,6.52],[0.26729,0.72198,0.36348,0.16223,-4.93]],[[0.28655,0.40666,0.38192,0.03516,-5.89],[0.68179,0.4102,0.37436,0.0293,7.0],[0.26298,0.6146,0.37362,0.0293,5.04],[0.74857,0.62301,0.36138,0.02637,-5.76],[0.68585,0.81094,0.40793,0.0293,6.52],[0.2845,0.82196,0.36348,0.0293,-4.93]]]],"北海道":["hokkaido",[512,1024,[[0.51074,0.56738,0.82617,0.44727,0.0]],[0.16211,0.28906,0.75977,0.01953]],[512,1024,[[0.29297,0.3042,0.27734,0.10254,0.0],[0.29535,0.5237,0.28074,0.11313,-2.96],[0.29736,0.74149,0.27851,0.10944,-2.57]],[[[0.175,0.2041,0.8,0.04492],[0.47266,0.25488,0.32734,0.08887],[0.29297,0.37531,0.27734,0.02832,0.0]],[[0.175,0.41831,0.8,0.04492],[0.47266,0.46777,0.32734,0.08789],[0.30325,0.6,0.28074,0.02832,-2.96]],[[0.175,0.63794,0.8,0.04492],[0.47461,0.68262,0.24609,0.09082],[0.30406,0.81597,0.27851,0.02832,-2.57]]]],[512,1024,[[0.25976,0.30074,0.37912,0.15835,-5.19],[0.7125,0.30763,0.37063,0.15023,4.9],[0.26931,0.50453,0.37528,0.1375,5.71],[0.72134,0.51412,0.37421,0.14442,-5.36],[0.70598,0.71358,0.36183,0.12849,6.67],[0.26777,0.71966,0.37443,0.12844,-5.76]],[[0.27824,0.40241,0.37912,0.02441,-5.19],[0.69599,0.40394,0.37063,0.02148,4.9],[0.2512,0.59506,0.37528,0.02295,5.71],[0.73897,0.60815,0.37421,0.02295,-5.36],[0.6859,0.79947,0.36183,0.02295,6.67],[0.28512,0.80569,0.37443,0.02295,-5.76]]]]};
 function jtOf(){ try{ return (S&&JT[S.pref])||null; }catch(e){ return null; } }
 // 割合で持っている枠を、そのままCSSの位置に
 function jtBox(b){ if(!b) return ""; return `left:${(b[0]*100).toFixed(3)}%;top:${(b[1]*100).toFixed(3)}%;width:${(b[2]*100).toFixed(3)}%;height:${(b[3]*100).toFixed(3)}%`; }
@@ -4838,7 +4927,7 @@ function jtPage(t,i,r,sheet,per){
         <span class="jt-t">${nd&&(S.days>1)?`<b class="jt-d">${s0.di+1}日目</b>`:""}${esc(s0.t)}</span>
         <span class="jt-i">${jtIcon(s0)}</span>
         <span class="jt-p${lg}">${esc(nm)}</span></div>
-        <div class="jtxt jt-desc" style="${jtBox(st[1])}"><textarea data-jnote="s${k}${sf}" placeholder="ここに思い出をひとこと" spellcheck="false">${esc(jNote("s"+k+sf))}</textarea></div>
+        <div class="jtxt jt-desc" style="${jtBox(st[1])}"><textarea data-jnote="s${k}${sf}" placeholder="ひとこと" spellcheck="false">${esc(jNote("s"+k+sf))}</textarea></div>
         <div class="jtxt jt-cap" style="${jtRot(st[2])}"><input type="text" data-jnote="sc${k}${sf}" value="${esc(jNote("sc"+k+sf))}" placeholder="ことばを入れる" spellcheck="false" aria-label="写真のことば"></div>`;
     });
   }
@@ -4895,11 +4984,89 @@ async function jPick(slot,file){
   if(!file) return;
   if(!/^image\//.test(file.type)){ toast("画像ファイルを選んでください"); return; }
   try{
-    const d=await shrink(file,1400);
-    const ok=await jPut(jKey(slot),d);
-    if(!ok){ toast("この端末に保存できませんでした（空き容量をご確認ください）"); return; }
-    JPHOTO[jKey(slot)]=d; jPaint(slot);
+    const d=await shrink(file,1800);
+    const img=new Image();
+    img.onload=()=>jCropOpen(slot,img);
+    img.onerror=()=>toast("写真を読み込めませんでした");
+    img.src=d;
   }catch(e){ toast("写真を読み込めませんでした"); }
+}
+/* ---- 切り取る範囲を自分で決める ---- */
+let JCROP=null;
+function jSlotAR(slot){
+  const el=document.querySelector(`.jslot[data-slot="${CSS.escape(slot)}"]`);
+  if(el){ const r=el.getBoundingClientRect(); if(r.width>6&&r.height>6) return r.width/r.height; }
+  return 4/3;
+}
+function jCropOpen(slot,img){
+  JCROP={slot,img,ar:jSlotAR(slot),zoom:1,ox:0,oy:0,fit:false};
+  $("#sheet").innerHTML=`<div class="eyebrow">写真</div><h2 id="mTitle">切り取る範囲を決める</h2>
+  <p class="note">写真を指で動かして位置を、下のつまみで大きさを合わせます。枠の中が、しおりに入る部分です。</p>
+  <div class="jcrop" id="jcropBox" style="aspect-ratio:${JCROP.ar.toFixed(4)}"><img id="jcropImg" src="${img.src}" alt="" draggable="false"><div class="jcrop-g"></div></div>
+  <div class="row" style="align-items:center;gap:10px;margin-top:12px">
+    <span class="note" style="flex:none">小</span>
+    <input type="range" id="jcropZoom" min="100" max="300" value="100" aria-label="写真の大きさ" style="flex:1">
+    <span class="note" style="flex:none">大</span></div>
+  <div class="row" style="gap:8px;margin-top:12px"><button type="button" class="btn small" data-act="jcropFit">写真の全体を入れる</button></div>
+  <div class="row" style="gap:8px;margin-top:8px;justify-content:flex-end">
+    <button type="button" class="btn" data-close="1">やめる</button>
+    <button type="button" class="btn primary" data-act="jcropOK">この範囲で使う</button></div>`;
+  $("#modal").hidden=false;
+  requestAnimationFrame(()=>{ jCropLayout(true); jCropBind(); });
+}
+function jCropBase(){
+  const b=$("#jcropBox"); if(!b||!JCROP) return null;
+  const r=b.getBoundingClientRect(); const iw=JCROP.img.naturalWidth, ih=JCROP.img.naturalHeight;
+  if(!r.width||!iw) return null;
+  const cover=Math.max(r.width/iw,r.height/ih), contain=Math.min(r.width/iw,r.height/ih);
+  return {FW:r.width,FH:r.height,iw,ih,cover,contain};
+}
+function jCropLayout(center){
+  const m=jCropBase(); if(!m) return;
+  const base=JCROP.fit?m.contain:m.cover;
+  const k=base*JCROP.zoom, w=m.iw*k, h=m.ih*k;
+  if(center){ JCROP.ox=(m.FW-w)/2; JCROP.oy=(m.FH-h)/2; }
+  if(!JCROP.fit){   // 枠にすき間ができないように
+    JCROP.ox=Math.min(0,Math.max(m.FW-w,JCROP.ox));
+    JCROP.oy=Math.min(0,Math.max(m.FH-h,JCROP.oy));
+  }
+  const im=$("#jcropImg");
+  im.style.width=w+"px"; im.style.height=h+"px";
+  im.style.left=JCROP.ox+"px"; im.style.top=JCROP.oy+"px";
+}
+function jCropBind(){
+  const b=$("#jcropBox"); if(!b) return;
+  let dx=0,dy=0,on=false,id=null;
+  b.addEventListener("pointerdown",e=>{ on=true; id=e.pointerId; dx=e.clientX-JCROP.ox; dy=e.clientY-JCROP.oy; b.setPointerCapture(id); });
+  b.addEventListener("pointermove",e=>{ if(!on||e.pointerId!==id) return; e.preventDefault(); JCROP.ox=e.clientX-dx; JCROP.oy=e.clientY-dy; jCropLayout(); });
+  const up=e=>{ if(!on) return; on=false; try{ b.releasePointerCapture(id); }catch(_){} };
+  b.addEventListener("pointerup",up); b.addEventListener("pointercancel",up);
+  const z=$("#jcropZoom");
+  if(z) z.addEventListener("input",()=>{
+    const m=jCropBase(); if(!m) return;
+    const old=(JCROP.fit?m.contain:m.cover)*JCROP.zoom;
+    JCROP.zoom=(+z.value)/100;
+    const nw=(JCROP.fit?m.contain:m.cover)*JCROP.zoom;
+    const cx=(m.FW/2-JCROP.ox)/old, cy=(m.FH/2-JCROP.oy)/old;   // 真ん中を動かさない
+    JCROP.ox=m.FW/2-cx*nw; JCROP.oy=m.FH/2-cy*nw;
+    jCropLayout();
+  });
+}
+async function jCropUse(){
+  const m=jCropBase(); if(!m||!JCROP) return;
+  const base=JCROP.fit?m.contain:m.cover, k=base*JCROP.zoom;
+  const sx=-JCROP.ox/k, sy=-JCROP.oy/k, sw=m.FW/k, sh=m.FH/k;
+  const long=Math.min(1400,Math.max(m.FW,m.FH)*3);
+  const ow=m.FW>=m.FH?long:Math.round(long*m.FW/m.FH);
+  const oh=m.FW>=m.FH?Math.round(long*m.FH/m.FW):long;
+  const c=document.createElement("canvas"); c.width=Math.max(1,ow); c.height=Math.max(1,oh);
+  const g=c.getContext("2d"); g.fillStyle="#fff"; g.fillRect(0,0,c.width,c.height);
+  g.drawImage(JCROP.img,sx,sy,sw,sh,0,0,c.width,c.height);
+  let d; try{ d=c.toDataURL("image/jpeg",0.82); }catch(e){ toast("写真を読み込めませんでした"); return; }
+  const slot=JCROP.slot;
+  const ok=await jPut(jKey(slot),d);
+  if(!ok){ toast("この端末に保存できませんでした（空き容量をご確認ください）"); return; }
+  JPHOTO[jKey(slot)]=d; JCROP=null; $("#modal").hidden=true; jPaint(slot);
 }
 async function jClear(slot){ await jDel(jKey(slot)); JPHOTO[jKey(slot)]=null; jPaint(slot); }
 function jPaint(slot){ const el=document.querySelector(`.jslot[data-slot="${CSS.escape(slot)}"]`); if(el) el.outerHTML=jSlotHTML(slot,el.dataset.shape,el.dataset.cap||""); }
@@ -5118,7 +5285,7 @@ function journalHTML(){
           <div class="jt-side">
             <div class="jt-mv"><span class="jt-ic">${ICON[d.mode==="car"?"car":"train"]}</span>移動：${d.mode==="car"?"車":"電車・バス"}</div>
             <div class="jt-mt">${it.meal?MEALNAME[it.meal]:`滞在 ${fmtMin(it.dur)}`}</div>
-            <textarea class="jt-memo" data-jnote="d${d.di}-${n}" rows="3" placeholder="ここに思い出をひとこと">${esc(jNote("d"+d.di+"-"+n))}</textarea>
+            <textarea class="jt-memo" data-jnote="d${d.di}-${n}" rows="3" placeholder="ひとこと">${esc(jNote("d"+d.di+"-"+n))}</textarea>
           </div></div>
       </div></li>`;
     });
@@ -5373,8 +5540,9 @@ function meetingPlan(){
   const p=APP.project; const dest=destPoint(); if(!dest) return null;
   const ppl=allPeople(p).filter(x=>x.start&&x.start.lat!=null).map(x=>({key:x.key,name:x.name,lat:x.start.lat,lng:x.start.lng,mode:x.start.mode||"transit",long:x.start.long||"auto",st:x.start.kind==="station"||!!x.start.st||isSt(x.start.label),label:x.start.label,idx:x.idx}));
   if(!ppl.length) return {none:true,dest};
-  const k=JSON.stringify([ppl,dest,LRAIL.key,LRAIL.state,longMode(),airPick("dep"),airPick("arr")]);
-  if(MEETCACHE.k!==k){ MEETCACHE={k,v:{...planMeeting(ppl,dest),dest}}; }
+  const cst=(p.meet&&p.meet.custom)||null;
+  const k=JSON.stringify([ppl,dest,LRAIL.key,LRAIL.state,longMode(),airPick("dep"),airPick("arr"),cst]);
+  if(MEETCACHE.k!==k){ MEETCACHE={k,v:{...planMeeting(ppl,dest,cst),dest}}; }
   return MEETCACHE.v;
 }
 function optKey(o){ return o.type+":"+(o.point?o.point.id:o.driver.key); }
@@ -5398,21 +5566,52 @@ function meetOptionHTML(o,M,i,chosenKey,shownKey){
     let t=meet-o.total-10; const dep=t;
     rows=`<div class="mrow">${avatar(o.driver.name,o.driver.idx)}<div class="mmain"><b>${esc(o.driver.name)}さん</b>（運転）<span class="dep ${dep<5.5*60?"warn":""}">${m2t(Math.max(0,dep))} 出発</span><ul class="segs">`+o.legs.map(l=>{ t+=l.min; return `<li><span class="sgi">${ICON.car}</span><span>${esc(l.to)}${l.to===M.dest.name?"":"さんを迎える"}<small>約${fmtMin(l.min)}・${m2t(t)}ごろ</small></span></li>`; }).join("")+`</ul></div></div>`;
   } else {
-    const tail = o.type==="enroute"? o.shared : 0;
+    const tail = (o.type==="enroute"||o.type==="custom")? o.shared : 0;
     const groupDep = meet - tail; // 合流地点を出る時刻
     rows=M.members.map((m,j)=>{
       const per=o.per[j]; if(!per) return "";
       if(per.here) return `<div class="mrow">${avatar(m.name,m.idx)}<div class="mmain"><b>${esc(m.name)}</b><span class="dep">${m2t(groupDep-10)} までに ${esc(stName(o.point.id))}（出発駅）で待ち合わせ</span></div></div>`;
-      const inGroup = o.type!=="enroute" || (o.with&&o.with[j]);
-      const arriveAt = o.type==="enroute" && inGroup ? groupDep-10 : meet;
+      const inGroup = (o.type!=="enroute"&&o.type!=="custom") || (o.with&&o.with[j]);
+      const arriveAt = (o.type==="enroute"||o.type==="custom") && inGroup ? (per.onboard?groupDep:groupDep-10) : meet;
       const dep=arriveAt-per.t;
-      const where = o.type==="enroute" ? (inGroup? stName(o.point.id) : (o.final? stName(o.final.id):M.dest.name)) : stName(o.point.id);
-      return `<div class="mrow">${avatar(m.name,m.idx)}<div class="mmain"><b>${esc(m.name)}</b><span class="dep ${dep<5.5*60?"warn":""}">${dep<0?"前日":m2t(dep)} 出発 → ${m2t(arriveAt)} ${esc(where)}着</span>${dep<5.5*60?`<span class="pill warn">早朝のため前日移動（前泊）がおすすめ</span>`:""}<ul class="segs">${(()=>{let ct=dep;return per.segs.map(s=>{const st=ct;ct+=s.min||0;return segHTML(s,m,0,st)}).join("")})()}</ul></div></div>`;
+      const where = (o.type==="enroute"||o.type==="custom") ? (inGroup? stName(o.point.id) : (o.final? stName(o.final.id):M.dest.name)) : stName(o.point.id);
+      return `<div class="mrow">${avatar(m.name,m.idx)}<div class="mmain"><b>${esc(m.name)}</b><span class="dep ${dep<5.5*60?"warn":""}">${dep<0?"前日":m2t(dep)} 出発 → ${m2t(arriveAt)} ${esc(where)}${per.onboard?"（乗ったまま）":"着"}</span>${per.onboard?`<span class="pill info">${esc(stName(per.boardAt))}から乗った${esc(per.line||"列車")}に、そのまま乗っています</span>`:""}${dep<5.5*60?`<span class="pill warn">早朝のため前日移動（前泊）がおすすめ</span>`:""}<ul class="segs">${(()=>{let ct=dep;return per.segs.map(s=>{const st=ct;ct+=s.min||0;return segHTML(s,m,0,st)}).join("")})()}</ul></div></div>`;
     }).join("");
-    if(o.type==="enroute") rows+=`<div class="mrow together"><span class="av" style="background:var(--hot)">${ICON.users}</span><div class="mmain"><b>合流したあと一緒に</b><span class="dep">${m2t(groupDep)} ${esc(stName(o.point.id))}発 → ${m2t(meet)} ${esc(arrivalNode(o)?stName(arrivalNode(o).id):M.dest.name)}着</span><ul class="segs">${(()=>{let ct=groupDep;return (o.tailPath||[]).map(s=>{const st=ct;ct+=s.min||0;return segHTML(s,{},0,st)}).join("")})()||`<li><span class="sgi">${ICON.train}</span><span>${esc(M.dest.name)}へ<small>約${fmtMin(o.shared)}</small></span></li>`}</ul></div></div>`;
+    if(o.type==="enroute"||o.type==="custom") rows+=`<div class="mrow together"><span class="av" style="background:var(--hot)">${ICON.users}</span><div class="mmain"><b>${o.onboard?`ここから同じ${/新幹線/.test(o.line||"")?"新幹線":"列車"}で一緒に`:"合流したあと一緒に"}</b><span class="dep">${m2t(groupDep)} ${esc(stName(o.point.id))}発 → ${m2t(meet)} ${esc(arrivalNode(o)?stName(arrivalNode(o).id):M.dest.name)}着</span><ul class="segs">${(()=>{let ct=groupDep;return (o.tailPath||[]).map(s=>{const st=ct;ct+=s.min||0;return segHTML(s,{},0,st)}).join("")})()||`<li><span class="sgi">${ICON.train}</span><span>${esc(M.dest.name)}へ<small>約${fmtMin(o.shared)}</small></span></li>`}</ul></div></div>`;
   }
   return `<article class="mopt ${chosen?"on":""}" data-mopt="${esc(key)}"><div class="mopt-hd"><div>${i===0?'<span class="pill hot">おすすめ</span> ':""}${chosen?'<span class="pill ok">決定</span> ':""}<b class="mt">${esc(o.title)}</b><div class="note">${esc(o.sub)}</div></div>
     <div class="row" style="gap:6px">${open?"":`<button type="button" class="btn small ghost" data-app="meetShow" data-v="${esc(key)}">詳しく見る</button>`}<button type="button" class="btn small ${chosen?"primary":""}" data-app="meetChoose" data-v="${esc(key)}">${chosen?"✓ この案に決定":"この案にする"}</button></div></div>${open?rows:`<div class="msum">${summ}</div>`}</article>`;
+}
+/* ---- その他：合流する場所を自分で決める ---- */
+function openMeetCustom(){
+  APP.mc=APP.mc||{q:"",cands:[],msg:""};
+  renderMeetCustom(); $("#modal").hidden=false;
+  setTimeout(()=>$("#mcQ")&&$("#mcQ").focus(),60);
+}
+function renderMeetCustom(){
+  const mc=APP.mc||{q:"",cands:[]};
+  const cur=(APP.project&&APP.project.meet&&APP.project.meet.custom)||null;
+  $("#sheet").innerHTML=`<div class="eyebrow">合流</div><h2 id="mTitle">合流する場所を自分で決める</h2>
+  <p class="note" style="font-size:13.5px">駅・空港のほか、お店や施設の名前でも指定できます。ここで合流してから、みんなで行き先に向かう案を作ります。</p>
+  ${cur?`<p class="note">いま指定している場所：<b>${esc(cur.name||"")}</b></p>`:""}
+  <div class="row" style="gap:6px"><input type="text" id="mcQ" value="${esc(mc.q||"")}" placeholder="例：名古屋駅／新神戸駅／〇〇ホテル" aria-label="合流する場所"><button type="button" class="btn primary" data-app="mcFind" ${busy.mc?"disabled":""}>${ICON.search}探す</button></div>
+  <div class="status" style="margin-top:6px">${busy.mc?'<span class="spin"></span>探しています…':esc(mc.msg||"")}</div>
+  ${mc.cands&&mc.cands.length?`<div class="cands" style="margin-top:8px">${mc.cands.map((c,i)=>`<button type="button" class="cand" data-app="mcPick" data-v="${i}"><div><b>${esc(c.name)}</b><span>${esc(c.addr||"")}</span></div></button>`).join("")}</div>`:""}
+  <div class="row" style="justify-content:flex-end;margin-top:12px"><button type="button" class="btn" data-close="1">閉じる</button></div>`;
+}
+function meetCustomFind(){
+  const el=$("#mcQ"); const q=((el&&el.value)||"").trim();
+  APP.mc=APP.mc||{}; APP.mc.q=q;
+  if(!q){ APP.mc.msg="場所の名前を入れてください。"; renderMeetCustom(); return; }
+  busy.mc=true; APP.mc.msg=""; renderMeetCustom();
+  (async()=>{
+    try{
+      let r=await lookup(q,{});
+      APP.mc.cands=(r||[]).slice(0,6).map(x=>({name:x.name,lat:x.lat,lng:x.lng,addr:x.addr}));
+      APP.mc.msg=APP.mc.cands.length?`${APP.mc.cands.length}件見つかりました。合流したい場所を選んでください。`:"見つかりませんでした。駅名や正式名称でお試しください。";
+    }catch(e){ APP.mc.cands=[]; APP.mc.msg="調べられませんでした。少し時間をおいてお試しください。"; }
+    busy.mc=false; renderMeetCustom();
+  })();
 }
 /* ---- 予定表に出す「みんなの出発地」 ---- */
 function startsSectionHTML(){
@@ -5467,6 +5666,9 @@ function meetSectionHTML(){
   const shownKey=APP.meetSel||chosenKey||optKey(M.options[0]);
   h+=M.options.map((o,i)=>meetOptionHTML(o,M,i,chosenKey,shownKey)).join("");
   if(chosenKey){ const o=M.options.find(x=>optKey(x)===chosenKey); if(o&&o.type!=="car") h+=`<label class="ckrow"><input type="checkbox" id="meetDay1" ${meet.useForDay1?"checked":""}> 1日目の予定を「${esc(stName(((o.type==="enroute"?arrivalNode(o):o.point)||o.point).id))}」に着いてから始める</label>`; }
+  h+=`<div class="row" style="gap:8px;margin-top:12px;flex-wrap:wrap">
+    <button type="button" class="btn small ghost" data-app="meetCustom">${ICON.pin}その他：合流する場所を自分で決める</button>
+    ${meet.custom?`<span class="note">いま指定：<b>${esc(meet.custom.name||"")}</b></span><button type="button" class="btn small ghost" data-app="meetCustomClear">指定をやめる</button>`:""}</div>`;
   h+=`<p class="note">所要時間は代表的な新幹線・特急・直行便と、駅までの距離からの目安です。予約の前に「乗換案内」や各社のサイトで時刻を確認してください。</p></section>`;
   return h;
 }
@@ -5743,7 +5945,10 @@ function myTrip(key){
       out.push({type:"trip",t,seg:sg}); t+=sg.min; });
     if(inGroup){
       const grp=M.members.filter((m,i)=>i!==j&&o.with[i]);
-      out.push({type:"merge",t:groupDep-10,place:stName(o.point.id),with:nm(grp)});
+      const mineOn=(o.per[j]||{}).onboard;
+      const othersOn=M.members.some((m,i)=>i!==j&&o.with[i]&&o.per[i]&&o.per[i].onboard);
+      out.push({type:"merge",t:mineOn?groupDep:groupDep-10,place:stName(o.point.id),with:nm(grp),
+        same: o.onboard? (mineOn?`乗っている${o.line||"列車"}に合流`:`${othersOn?nm(M.members.filter((m,i)=>i!==j&&o.with[i]&&o.per[i]&&o.per[i].onboard)):"みんな"}が乗っている${o.line||"列車"}に、ここから乗ります`) : null});
       const tp=o.tailPath||[], xt=xferList(tp);
       let t2=groupDep; tp.forEach((sg,i)=>{
         if(xt[i]>0){ out.push({type:"xfer",t:t2,min:xt[i],place:stName(sg.from||(tp[i-1]&&tp[i-1].to)||"")}); t2+=xt[i]; }
@@ -5987,7 +6192,7 @@ function tripItemHTML(it,trip,di){
   const mode=(trip.me&&trip.me.mode)||"transit";
   if(it.type==="tripstart") return `<li class="trip"><div class="t">${m2t(it.t)}</div><div class="stop" style="--c:var(--ink)"><div class="nm">${ICON.home} ${esc(it.label)} を出発</div>${it.note?`<div class="sm">${esc(it.note)}</div>`:""}</div></li>`;
   if(it.type==="tripend") return `<li class="trip"><div class="t">${m2t(it.t)}</div><div class="stop" style="--c:var(--ink)"><div class="nm">${ICON.home} ${esc(it.label)} に到着・おつかれさまでした</div></div></li>`;
-  if(it.type==="merge") return `<li class="trip"><div class="t">${m2t(it.t)}</div><div class="stop" style="--c:var(--hot)"><div class="nm"><span class="pill meal">合流</span>${esc(it.place)}で${esc(it.with)}と合流</div></div></li>`;
+  if(it.type==="merge") return `<li class="trip"><div class="t">${m2t(it.t)}</div><div class="stop" style="--c:var(--hot)"><div class="nm"><span class="pill meal">合流</span>${esc(it.place)}で${esc(it.with)}と合流</div>${it.same?`<div class="note">${esc(it.same)}</div>`:""}</div></li>`;
   if(it.type==="split") return `<li class="trip"><div class="t">${m2t(it.t)}</div><div class="stop" style="--c:var(--hot)"><div class="nm"><span class="pill warn">解散</span>${esc(it.place)}で${esc(it.with)}と別れる</div>${it.note?`<div class="sm">${esc(it.note)}</div>`:""}</div></li>`;
   if(it.type==="xfer") return `<li class="trip"><div class="t">${m2t(it.t)}</div><div class="stop xferrow" style="--c:var(--muted)"><div class="nm">${ICON.walk}${esc(it.place||"")}で乗り換え<b>${it.min}分</b></div><div class="sm">${it.real?"実際のダイヤでの乗り継ぎ時間です。":(it.min>=9?"会社・のりばが変わるため、歩く時間を入れています。":"のりばの移動ときっぷの時間です。")}</div></div></li>`;
   const f=tripSegInfo(it.seg,trip.label,mode,di,it.t);
@@ -6199,6 +6404,11 @@ document.addEventListener("click",async e=>{
     case "smSave": smSave(); break;
     case "smDel": closeModal(); pupdate({["starts."+APP.sm.key]:DEL}); break;
     case "railRetry": LRAIL.key=null; LRAIL.state="none"; try{ localStorage.removeItem("tabiroute-rail-"+railKeyOf(railPoints())); }catch(er){} render(); break;
+    case "meetCustom": openMeetCustom(); break;
+    case "meetCustomClear": pupdate({"meet.custom":DEL,...((APP.project.meet||{}).choice==="custom:@custom"?{"meet.choice":DEL,"meet.title":DEL,"meet.point":DEL}:{})}); MEETCACHE={k:null,v:null}; toast("自分で決めた合流場所をやめました"); break;
+    case "mcFind": meetCustomFind(); break;
+    case "mcPick": { const c=(APP.mc&&APP.mc.cands||[])[+v]; if(!c) break;
+      pupdate({"meet.custom":{name:c.name,lat:c.lat,lng:c.lng}}); MEETCACHE={k:null,v:null}; closeModal(); toast(`「${c.name}」で合流する案を追加しました`); break; }
     case "meetShow": APP.meetSel=v; render(); setTimeout(()=>document.querySelector(`.mopt[data-mopt="${CSS.escape(v)}"]`)?.scrollIntoView({block:"nearest",behavior:"smooth"}),50); break;
     case "meetChoose": { const M=meetingPlan(); const o=M.options.find(x=>optKey(x)===v); if(!o) break; const pt=o.type==="car"?null:(o.type==="enroute"?arrivalNode(o):o.point); APP.meetSel=v;
       pupdate({"meet.choice":v,"meet.title":o.title,"meet.point":pt?{id:pt.id,name:stName(pt.id),lat:pt.lat,lng:pt.lng}:DEL, "meet.useForDay1": pt? (P.meet&&P.meet.useForDay1!==undefined?P.meet.useForDay1:true) : false}); toast("合流プランを決めました"); break; }
