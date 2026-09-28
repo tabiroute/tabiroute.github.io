@@ -1,0 +1,237 @@
+[
+  {
+    "code": "01",
+    "prefecture": "北海道",
+    "file": "templates/hokkaido.html"
+  },
+  {
+    "code": "02",
+    "prefecture": "青森県",
+    "file": "templates/aomori.html"
+  },
+  {
+    "code": "03",
+    "prefecture": "岩手県",
+    "file": "templates/iwate.html"
+  },
+  {
+    "code": "04",
+    "prefecture": "宮城県",
+    "file": "templates/miyagi.html"
+  },
+  {
+    "code": "05",
+    "prefecture": "秋田県",
+    "file": "templates/akita.html"
+  },
+  {
+    "code": "06",
+    "prefecture": "山形県",
+    "file": "templates/yamagata.html"
+  },
+  {
+    "code": "07",
+    "prefecture": "福島県",
+    "file": "templates/fukushima.html"
+  },
+  {
+    "code": "08",
+    "prefecture": "茨城県",
+    "file": "templates/ibaraki.html"
+  },
+  {
+    "code": "09",
+    "prefecture": "栃木県",
+    "file": "templates/tochigi.html"
+  },
+  {
+    "code": "10",
+    "prefecture": "群馬県",
+    "file": "templates/gunma.html"
+  },
+  {
+    "code": "11",
+    "prefecture": "埼玉県",
+    "file": "templates/saitama.html"
+  },
+  {
+    "code": "12",
+    "prefecture": "千葉県",
+    "file": "templates/chiba.html"
+  },
+  {
+    "code": "13",
+    "prefecture": "東京都",
+    "file": "templates/tokyo.html"
+  },
+  {
+    "code": "14",
+    "prefecture": "神奈川県",
+    "file": "templates/kanagawa.html"
+  },
+  {
+    "code": "15",
+    "prefecture": "新潟県",
+    "file": "templates/niigata.html"
+  },
+  {
+    "code": "16",
+    "prefecture": "富山県",
+    "file": "templates/toyama.html"
+  },
+  {
+    "code": "17",
+    "prefecture": "石川県",
+    "file": "templates/ishikawa.html"
+  },
+  {
+    "code": "18",
+    "prefecture": "福井県",
+    "file": "templates/fukui.html"
+  },
+  {
+    "code": "19",
+    "prefecture": "山梨県",
+    "file": "templates/yamanashi.html"
+  },
+  {
+    "code": "20",
+    "prefecture": "長野県",
+    "file": "templates/nagano.html"
+  },
+  {
+    "code": "21",
+    "prefecture": "岐阜県",
+    "file": "templates/gifu.html"
+  },
+  {
+    "code": "22",
+    "prefecture": "静岡県",
+    "file": "templates/shizuoka.html"
+  },
+  {
+    "code": "23",
+    "prefecture": "愛知県",
+    "file": "templates/aichi.html"
+  },
+  {
+    "code": "24",
+    "prefecture": "三重県",
+    "file": "templates/mie.html"
+  },
+  {
+    "code": "25",
+    "prefecture": "滋賀県",
+    "file": "templates/shiga.html"
+  },
+  {
+    "code": "26",
+    "prefecture": "京都府",
+    "file": "templates/kyoto.html"
+  },
+  {
+    "code": "27",
+    "prefecture": "大阪府",
+    "file": "templates/osaka.html"
+  },
+  {
+    "code": "28",
+    "prefecture": "兵庫県",
+    "file": "templates/hyogo.html"
+  },
+  {
+    "code": "29",
+    "prefecture": "奈良県",
+    "file": "templates/nara.html"
+  },
+  {
+    "code": "30",
+    "prefecture": "和歌山県",
+    "file": "templates/wakayama.html"
+  },
+  {
+    "code": "31",
+    "prefecture": "鳥取県",
+    "file": "templates/tottori.html"
+  },
+  {
+    "code": "32",
+    "prefecture": "島根県",
+    "file": "templates/shimane.html"
+  },
+  {
+    "code": "33",
+    "prefecture": "岡山県",
+    "file": "templates/okayama.html"
+  },
+  {
+    "code": "34",
+    "prefecture": "広島県",
+    "file": "templates/hiroshima.html"
+  },
+  {
+    "code": "35",
+    "prefecture": "山口県",
+    "file": "templates/yamaguchi.html"
+  },
+  {
+    "code": "36",
+    "prefecture": "徳島県",
+    "file": "templates/tokushima.html"
+  },
+  {
+    "code": "37",
+    "prefecture": "香川県",
+    "file": "templates/kagawa.html"
+  },
+  {
+    "code": "38",
+    "prefecture": "愛媛県",
+    "file": "templates/ehime.html"
+  },
+  {
+    "code": "39",
+    "prefecture": "高知県",
+    "file": "templates/kochi.html"
+  },
+  {
+    "code": "40",
+    "prefecture": "福岡県",
+    "file": "templates/fukuoka.html"
+  },
+  {
+    "code": "41",
+    "prefecture": "佐賀県",
+    "file": "templates/saga.html"
+  },
+  {
+    "code": "42",
+    "prefecture": "長崎県",
+    "file": "templates/nagasaki.html"
+  },
+  {
+    "code": "43",
+    "prefecture": "熊本県",
+    "file": "templates/kumamoto.html"
+  },
+  {
+    "code": "44",
+    "prefecture": "大分県",
+    "file": "templates/oita.html"
+  },
+  {
+    "code": "45",
+    "prefecture": "宮崎県",
+    "file": "templates/miyazaki.html"
+  },
+  {
+    "code": "46",
+    "prefecture": "鹿児島県",
+    "file": "templates/kagoshima.html"
+  },
+  {
+    "code": "47",
+    "prefecture": "沖縄県",
+    "file": "templates/okinawa.html"
+  }
+]
