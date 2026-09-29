@@ -2,236 +2,518 @@
   {
     "code": "01",
     "prefecture": "北海道",
-    "file": "templates/hokkaido.html"
+    "file": "templates/hokkaido.html",
+    "theme": "ラベンダー畑と、大きな空",
+    "colors": [
+      "#464764",
+      "#84759e",
+      "#e9e3ef"
+    ]
   },
   {
     "code": "02",
     "prefecture": "青森県",
-    "file": "templates/aomori.html"
+    "file": "templates/aomori.html",
+    "theme": "りんごの彩り、奥入瀬の緑",
+    "colors": [
+      "#473e42",
+      "#ad5364",
+      "#f0dfe0"
+    ]
   },
   {
     "code": "03",
     "prefecture": "岩手県",
-    "file": "templates/iwate.html"
+    "file": "templates/iwate.html",
+    "theme": "平泉の余韻、山あいの静けさ",
+    "colors": [
+      "#344e4d",
+      "#638e87",
+      "#dfebe5"
+    ]
   },
   {
     "code": "04",
     "prefecture": "宮城県",
-    "file": "templates/miyagi.html"
+    "file": "templates/miyagi.html",
+    "theme": "松島の島影と、海の青",
+    "colors": [
+      "#344b58",
+      "#628797",
+      "#dfe9ed"
+    ]
   },
   {
     "code": "05",
     "prefecture": "秋田県",
-    "file": "templates/akita.html"
+    "file": "templates/akita.html",
+    "theme": "黄金の稲穂と、田沢湖の青",
+    "colors": [
+      "#564b31",
+      "#a48945",
+      "#eee7cc"
+    ]
   },
   {
     "code": "06",
     "prefecture": "山形県",
-    "file": "templates/yamagata.html"
+    "file": "templates/yamagata.html",
+    "theme": "さくらんぼと、湯けむりの街",
+    "colors": [
+      "#633b43",
+      "#ac5f68",
+      "#f3e1e3"
+    ]
   },
   {
     "code": "07",
     "prefecture": "福島県",
-    "file": "templates/fukushima.html"
+    "file": "templates/fukushima.html",
+    "theme": "会津の城下町、桃色の季節",
+    "colors": [
+      "#493e49",
+      "#946877",
+      "#eadde3"
+    ]
   },
   {
     "code": "08",
     "prefecture": "茨城県",
-    "file": "templates/ibaraki.html"
+    "file": "templates/ibaraki.html",
+    "theme": "ネモフィラの丘から、海へ",
+    "colors": [
+      "#304d63",
+      "#548bac",
+      "#dcecf2"
+    ]
   },
   {
     "code": "09",
     "prefecture": "栃木県",
-    "file": "templates/tochigi.html"
+    "file": "templates/tochigi.html",
+    "theme": "日光の木立、いちご色の休日",
+    "colors": [
+      "#3d4d3b",
+      "#758563",
+      "#e5eadc"
+    ]
   },
   {
     "code": "10",
     "prefecture": "群馬県",
-    "file": "templates/gunma.html"
+    "file": "templates/gunma.html",
+    "theme": "湯けむりと、山の深呼吸",
+    "colors": [
+      "#3e5652",
+      "#638b82",
+      "#dce9e3"
+    ]
   },
   {
     "code": "11",
     "prefecture": "埼玉県",
-    "file": "templates/saitama.html"
+    "file": "templates/saitama.html",
+    "theme": "蔵の街を、ゆっくり歩く",
+    "colors": [
+      "#49465c",
+      "#897e9f",
+      "#e8e3ee"
+    ]
   },
   {
     "code": "12",
     "prefecture": "千葉県",
-    "file": "templates/chiba.html"
+    "file": "templates/chiba.html",
+    "theme": "房総の海風、岬の灯り",
+    "colors": [
+      "#34525d",
+      "#548e9a",
+      "#dcebee"
+    ]
   },
   {
     "code": "13",
     "prefecture": "東京都",
-    "file": "templates/tokyo.html"
+    "file": "templates/tokyo.html",
+    "theme": "街のきらめき、小さな寄り道",
+    "colors": [
+      "#414552",
+      "#9b6b77",
+      "#e9e2e8"
+    ]
   },
   {
     "code": "14",
     "prefecture": "神奈川県",
-    "file": "templates/kanagawa.html"
+    "file": "templates/kanagawa.html",
+    "theme": "港の風と、海辺の時間",
+    "colors": [
+      "#30465d",
+      "#627f9c",
+      "#dce5ef"
+    ]
   },
   {
     "code": "15",
     "prefecture": "新潟県",
-    "file": "templates/niigata.html"
+    "file": "templates/niigata.html",
+    "theme": "実りの大地と、日本海",
+    "colors": [
+      "#4b4c39",
+      "#9b884a",
+      "#ece8d3"
+    ]
   },
   {
     "code": "16",
     "prefecture": "富山県",
-    "file": "templates/toyama.html"
+    "file": "templates/toyama.html",
+    "theme": "立山の稜線、富山湾の光",
+    "colors": [
+      "#324c61",
+      "#6b8b9d",
+      "#dde9ee"
+    ]
   },
   {
     "code": "17",
     "prefecture": "石川県",
-    "file": "templates/ishikawa.html"
+    "file": "templates/ishikawa.html",
+    "theme": "金沢の茶屋街、金色の余韻",
+    "colors": [
+      "#50452f",
+      "#aa874b",
+      "#eee5cf"
+    ]
   },
   {
     "code": "18",
     "prefecture": "福井県",
-    "file": "templates/fukui.html"
+    "file": "templates/fukui.html",
+    "theme": "恐竜の記憶と、越前の海",
+    "colors": [
+      "#3f513f",
+      "#7b9063",
+      "#e4e9d9"
+    ]
   },
   {
     "code": "19",
     "prefecture": "山梨県",
-    "file": "templates/yamanashi.html"
+    "file": "templates/yamanashi.html",
+    "theme": "富士の眺め、ぶどうの実り",
+    "colors": [
+      "#514254",
+      "#94759e",
+      "#ebe0ed"
+    ]
   },
   {
     "code": "20",
     "prefecture": "長野県",
-    "file": "templates/nagano.html"
+    "file": "templates/nagano.html",
+    "theme": "アルプスの風、森の休日",
+    "colors": [
+      "#3f514a",
+      "#71917b",
+      "#e1eadd"
+    ]
   },
   {
     "code": "21",
     "prefecture": "岐阜県",
-    "file": "templates/gifu.html"
+    "file": "templates/gifu.html",
+    "theme": "合掌の里、飛騨の木のぬくもり",
+    "colors": [
+      "#55483c",
+      "#9a8062",
+      "#ece4d6"
+    ]
   },
   {
     "code": "22",
     "prefecture": "静岡県",
-    "file": "templates/shizuoka.html"
+    "file": "templates/shizuoka.html",
+    "theme": "茶畑の緑と、富士の青",
+    "colors": [
+      "#40583f",
+      "#7e965c",
+      "#e7edd9"
+    ]
   },
   {
     "code": "23",
     "prefecture": "愛知県",
-    "file": "templates/aichi.html"
+    "file": "templates/aichi.html",
+    "theme": "名古屋の城、ものづくりの街",
+    "colors": [
+      "#594735",
+      "#ad874c",
+      "#f0e4cf"
+    ]
   },
   {
     "code": "24",
     "prefecture": "三重県",
-    "file": "templates/mie.html"
+    "file": "templates/mie.html",
+    "theme": "伊勢の森、真珠のきらめき",
+    "colors": [
+      "#4b5550",
+      "#81968e",
+      "#e7ece5"
+    ]
   },
   {
     "code": "25",
     "prefecture": "滋賀県",
-    "file": "templates/shiga.html"
+    "file": "templates/shiga.html",
+    "theme": "琵琶湖の青、湖畔の一日",
+    "colors": [
+      "#335968",
+      "#6f9bac",
+      "#dfeef1"
+    ]
   },
   {
     "code": "26",
     "prefecture": "京都府",
-    "file": "templates/kyoto.html"
+    "file": "templates/kyoto.html",
+    "theme": "古都の路地、季節のうつろい",
+    "colors": [
+      "#5a444c",
+      "#a16d7d",
+      "#eee0e3"
+    ]
   },
   {
     "code": "27",
     "prefecture": "大阪府",
-    "file": "templates/osaka.html"
+    "file": "templates/osaka.html",
+    "theme": "街のにぎわい、おいしい寄り道",
+    "colors": [
+      "#624638",
+      "#b77e5c",
+      "#f2e3d5"
+    ]
   },
   {
     "code": "28",
     "prefecture": "兵庫県",
-    "file": "templates/hyogo.html"
+    "file": "templates/hyogo.html",
+    "theme": "港町の風、白鷺の城",
+    "colors": [
+      "#3f5060",
+      "#8099a8",
+      "#e2e9ee"
+    ]
   },
   {
     "code": "29",
     "prefecture": "奈良県",
-    "file": "templates/nara.html"
+    "file": "templates/nara.html",
+    "theme": "鹿と歩く、古都の森",
+    "colors": [
+      "#594e38",
+      "#9a8b5e",
+      "#eae6d5"
+    ]
   },
   {
     "code": "30",
     "prefecture": "和歌山県",
-    "file": "templates/wakayama.html"
+    "file": "templates/wakayama.html",
+    "theme": "熊野の森、みかん色の光",
+    "colors": [
+      "#415548",
+      "#899c6a",
+      "#e5eadb"
+    ]
   },
   {
     "code": "31",
     "prefecture": "鳥取県",
-    "file": "templates/tottori.html"
+    "file": "templates/tottori.html",
+    "theme": "砂丘の曲線、海の向こう",
+    "colors": [
+      "#65543d",
+      "#b19b76",
+      "#f0e8d7"
+    ]
   },
   {
     "code": "32",
     "prefecture": "島根県",
-    "file": "templates/shimane.html"
+    "file": "templates/shimane.html",
+    "theme": "出雲の祈り、宍道湖の夕色",
+    "colors": [
+      "#594354",
+      "#a47f96",
+      "#eee3eb"
+    ]
   },
   {
     "code": "33",
     "prefecture": "岡山県",
-    "file": "templates/okayama.html"
+    "file": "templates/okayama.html",
+    "theme": "白壁の街、桃色の休日",
+    "colors": [
+      "#5f443c",
+      "#b47c70",
+      "#f0e0d7"
+    ]
   },
   {
     "code": "34",
     "prefecture": "広島県",
-    "file": "templates/hiroshima.html"
+    "file": "templates/hiroshima.html",
+    "theme": "宮島の朱、瀬戸内の凪",
+    "colors": [
+      "#62433b",
+      "#ae7865",
+      "#f0e1d5"
+    ]
   },
   {
     "code": "35",
     "prefecture": "山口県",
-    "file": "templates/yamaguchi.html"
+    "file": "templates/yamaguchi.html",
+    "theme": "錦帯橋の曲線、海辺の旅",
+    "colors": [
+      "#355766",
+      "#7699a4",
+      "#e2edf0"
+    ]
   },
   {
     "code": "36",
     "prefecture": "徳島県",
-    "file": "templates/tokushima.html"
+    "file": "templates/tokushima.html",
+    "theme": "鳴門の渦、藍の風景",
+    "colors": [
+      "#334b68",
+      "#6382a6",
+      "#dfe6f0"
+    ]
   },
   {
     "code": "37",
     "prefecture": "香川県",
-    "file": "templates/kagawa.html"
+    "file": "templates/kagawa.html",
+    "theme": "オリーブの島、うどんの時間",
+    "colors": [
+      "#4a563b",
+      "#909a63",
+      "#e9eddc"
+    ]
   },
   {
     "code": "38",
     "prefecture": "愛媛県",
-    "file": "templates/ehime.html"
+    "file": "templates/ehime.html",
+    "theme": "みかんの実り、道後の湯",
+    "colors": [
+      "#67503a",
+      "#b49257",
+      "#f2e8d6"
+    ]
   },
   {
     "code": "39",
     "prefecture": "高知県",
-    "file": "templates/kochi.html"
+    "file": "templates/kochi.html",
+    "theme": "太平洋の光、川の清らかさ",
+    "colors": [
+      "#31565a",
+      "#659899",
+      "#dceceb"
+    ]
   },
   {
     "code": "40",
     "prefecture": "福岡県",
-    "file": "templates/fukuoka.html"
+    "file": "templates/fukuoka.html",
+    "theme": "屋台の灯り、梅の香り",
+    "colors": [
+      "#64434a",
+      "#ae7682",
+      "#efe0e5"
+    ]
   },
   {
     "code": "41",
     "prefecture": "佐賀県",
-    "file": "templates/saga.html"
+    "file": "templates/saga.html",
+    "theme": "有田のうつわ、田園の時間",
+    "colors": [
+      "#38546c",
+      "#728fa9",
+      "#e2eaf0"
+    ]
   },
   {
     "code": "42",
     "prefecture": "長崎県",
-    "file": "templates/nagasaki.html"
+    "file": "templates/nagasaki.html",
+    "theme": "祈りの街、港に吹く風",
+    "colors": [
+      "#4a4a65",
+      "#8e89ab",
+      "#e7e4f0"
+    ]
   },
   {
     "code": "43",
     "prefecture": "熊本県",
-    "file": "templates/kumamoto.html"
+    "file": "templates/kumamoto.html",
+    "theme": "熊本城の風格、阿蘇の大地",
+    "colors": [
+      "#514740",
+      "#978575",
+      "#e8e1d8"
+    ]
   },
   {
     "code": "44",
     "prefecture": "大分県",
-    "file": "templates/oita.html"
+    "file": "templates/oita.html",
+    "theme": "別府の湯けむり、由布の稜線",
+    "colors": [
+      "#425a59",
+      "#80a09a",
+      "#e1eeea"
+    ]
   },
   {
     "code": "45",
     "prefecture": "宮崎県",
-    "file": "templates/miyazaki.html"
+    "file": "templates/miyazaki.html",
+    "theme": "日南の海、南国のひだまり",
+    "colors": [
+      "#455b4e",
+      "#98a36a",
+      "#ecedda"
+    ]
   },
   {
     "code": "46",
     "prefecture": "鹿児島県",
-    "file": "templates/kagoshima.html"
+    "file": "templates/kagoshima.html",
+    "theme": "桜島の息吹、錦江湾の光",
+    "colors": [
+      "#4c4d5a",
+      "#8c8c9e",
+      "#e6e5ed"
+    ]
   },
   {
     "code": "47",
     "prefecture": "沖縄県",
-    "file": "templates/okinawa.html"
+    "file": "templates/okinawa.html",
+    "theme": "珊瑚の海、島のゆったり時間",
+    "colors": [
+      "#315d60",
+      "#76a8a5",
+      "#dcefeb"
+    ]
   }
 ]
