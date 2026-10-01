@@ -21,8 +21,9 @@ const BookingAPI=(()=>{
       let quota=read('usage-'+root)||{start:Date.now(),count:0};if(Date.now()-quota.start>=3600000)quota={start:Date.now(),count:0};
       if(quota.count>=60)throw error('session_limit',Math.ceil((quota.start+3600000-Date.now())/1000));quota.count++;write('usage-'+root,quota);
       let r,j;
-      try{r=await fetch(url,{credentials:'omit',signal:AbortSignal.timeout(12000)});j=await r.json();}
+      try{r=await fetch(url,{credentials:'omit',signal:AbortSignal.timeout(12000)});}
       catch{write('pause-'+scope,Date.now()+300000);throw error('network',300);}
+      try{j=await r.json();}catch{write('pause-'+scope,Date.now()+300000);throw error(r.status===429?'provider_limited':'network',300);}
       if(!r.ok||j.ok!==true){const seconds=Math.min(3600,Math.max(60,Number(j.retryAfter)||Number(r.headers.get('Retry-After'))||300));if((r.status>=500||r.status===429||r.status===403)&&j.code!=='booking_links_not_configured')write('pause-'+scope,Date.now()+seconds*1000);throw error(j.code||'unavailable',seconds);}
       if(!Array.isArray(j.items)||!Number.isFinite(j.expiresAt))throw error('unavailable');
       for(const[k,v]of memory)if(v.expiresAt<=Date.now())memory.delete(k);if(memory.size>=35)memory.delete(memory.keys().next().value);memory.set(url,j);write('cache-'+url,j);
@@ -34,7 +35,7 @@ const BookingAPI=(()=>{
   return {get,configured:()=>!!base(),base};
 })();
 function bookingMessage(e){
-  const m={booking_links_not_configured:'条件付き予約リンクは準備中です。楽天の施設ページで日程・人数を指定してください。',not_configured:'現在は予約サイト・店舗サイトで情報を確認できます。',provider_config:'情報提供サービスに接続できません。下のリンクをご利用ください。',provider_limited:'情報取得が混み合っています。予約サイト・店舗サイトは引き続き利用できます。',client_limited:'検索回数が多くなっています。少し時間をおいてお試しください。',session_limit:'この端末での検索をしばらく休止しています。外部サイトから引き続き探せます。',cooldown:'情報取得を一時休止しています。下のリンクをご利用ください。',network:'通信またはサービスの利用制限により情報を取得できません。下のリンクをご利用ください。',maintenance:'情報取得を一時休止しています。下のリンクをご利用ください。',invalid_dates:'チェックイン・チェックアウトの日付を確認してください。',invalid_request:'入力した検索条件を確認してください。',children_external:'お子さま連れの人数・食事・寝具の条件は予約サイトで指定してください。'};
+  const m={booking_links_not_configured:'条件付き予約リンクは準備中です。楽天の施設ページで日程・人数を指定してください。',not_configured:'現在は予約サイト・店舗サイトで情報を確認できます。',provider_config:'情報提供サービスの認証・許可設定を確認する必要があります。外部サイトから引き続き探せます。',provider_unavailable:'情報提供サービスから正常な応答がありませんでした。おすすめのエリアは表示できます。',provider_bad_response:'情報提供サービスから読み取れない応答がありました。外部サイトをご利用ください。',origin_denied:'このサイトからの接続が許可されていません。サイト運営者による接続設定の確認が必要です。',not_found:'検索先が見つかりません。サイト運営者による接続先の確認が必要です。',provider_limited:'情報取得が混み合っています。予約サイト・店舗サイトは引き続き利用できます。',client_limited:'検索回数が多くなっています。少し時間をおいてお試しください。',session_limit:'この端末での検索をしばらく休止しています。外部サイトから引き続き探せます。',cooldown:'情報取得を一時休止しています。下のリンクをご利用ください。',network:'通信またはサービスの利用制限により情報を取得できません。下のリンクをご利用ください。',maintenance:'情報取得を一時休止しています。下のリンクをご利用ください。',invalid_dates:'チェックイン・チェックアウトの日付を確認してください。',invalid_request:'入力した検索条件を確認してください。',children_external:'お子さま連れの人数・食事・寝具の条件は予約サイトで指定してください。'};
   return (m[e?.code]||'情報を取得できませんでした。下のリンクをご利用ください。')+(e?.seconds?' 再取得の目安：約'+Math.ceil(e.seconds/60)+'分後。':'');
 }
 function bookingISO(d){const z=n=>String(n).padStart(2,'0');return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())}`;}

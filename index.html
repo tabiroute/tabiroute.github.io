@@ -1197,7 +1197,7 @@ article.day{content-visibility:auto;contain-intrinsic-size:auto 900px}
 svg.transport-icon{min-width:22px;min-height:22px}.sgi svg.transport-icon,.tl .tripseg .sgi svg.transport-icon{width:25px;height:25px}.chip svg.transport-icon,.btn svg.transport-icon{width:22px;height:22px}.tl svg.transport-icon{margin-right:5px}button[aria-pressed=true] svg.transport-icon{filter:drop-shadow(0 0 1px white)}
 </style>
 
-<link rel="stylesheet" href="booking/style.css?v=1">
+<link rel="stylesheet" href="booking/style.css?v=2-route">
 </head>
 <body>
 <div class="wrap" id="wrap">
@@ -1466,7 +1466,7 @@ function renderPlan(){
   // Booking API searches are user initiated (no requests on render).
   if(S&&S.pref&&(S.step===3||S.step===4)&&!wsLoadCache(S.pref)&&!wsBusy[S.pref]&&!(wsFail[S.pref]&&Date.now()-wsFail[S.pref]<600000)) setTimeout(()=>loadWikiSpots(S.pref),0);
   if(S&&S.step===2&&S.rental&&!busy.rent&&!msg.rent&&!(S.rentCands&&S.rentCands.length)) setTimeout(()=>loadRentals(false),0);
-  if(S&&(S.step===6||S.step===7) && S.hotelMode!=="decided" && !(S.hotelCands&&S.hotelCands.length) && stopsAll().length && !busy.wh && !msg.wh){ if(!S.hotelMode&&S.step===7) S.hotelMode="undecided"; if(S.hotelMode==="undecided") setTimeout(()=>webHotels(),0); }
+  // Hotel suggestions are requested only after an explicit user action.
   $("#foot").hidden = !(S.step===4||S.step===5||S.step===7);
   document.querySelectorAll(".foot").forEach(f=>f.hidden=!(S.step>=3));
 }
@@ -6622,7 +6622,8 @@ window.addEventListener('scroll',queueJournalViewport,{passive:true});window.add
 
 </script>
 <script src="booking/config.js?v=1"></script>
-<script src="booking/client.js?v=1"></script>
+<script src="booking/client.js?v=2-route"></script>
+<script src="booking/itinerary.js?v=2-route"></script>
 <script>
 boot();
 (async()=>{ try{ sample = window.claude? await window.claude.use("sample") : null; }catch(e){ sample=null } if(sample) render(); })();
