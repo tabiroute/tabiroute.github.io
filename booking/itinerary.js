@@ -4,7 +4,7 @@ PLAN_KEYS.push('mealDecisions','bookingFoodDay','bookingFoodSlot','stayDecision'
 const ROUTE_UI={food:null,hotel:null,foodSeq:0,hotelSeq:0,foodBusy:false,hotelBusy:false};
 let bookingRouteMemo=null;
 function bookingRouteSignature(){
-  return JSON.stringify([S.pref,S.city,S.cityOther,S.days,S.date,S.start,S.end,S.pace,S.transport,S.dayMode,S.dayTimes,S.dayOf,S.manualOrd,S.wishes,S.picks,S.hotelMode,S.hotelName,S.hotelLoc,S.hotelAnchor,S.hotelPick,S.hotelCands,S.hotelSplit,S.nights,APP.pid,APP.project?.starts,APP.project?.meet,S.flight,S.air]);
+  return JSON.stringify([S.pref,S.city,S.cityOther,S.days,S.date,S.start,S.end,S.pace,S.transport,S.dayMode,S.dayTimes,S.dayOf,S.manualOrd,S.stopRules,S.stayRules,S.visitOrder,S.wishes,S.picks,S.hotelMode,S.hotelName,S.hotelLoc,S.hotelAnchor,S.hotelPick,S.hotelCands,S.hotelSplit,S.nights,APP.pid,APP.project?.starts,APP.project?.meet,S.flight,S.air]);
 }
 function bookingRoutePlan(){
   const key=bookingRouteSignature();
@@ -26,7 +26,7 @@ function bookingMealContext(di=bookingFoodDay(),slot=bookingFoodSlot(),plan=book
   if(slot==='朝'){before=day?.from||items.find(x=>x.type==='start')?.node;after=sights[0]?.s;}
   else if(slot==='夜'){before=sights.at(-1)?.s;after=day?.to||day?.hotel;}
   else{
-    const lunch=items.find(x=>x.type==='lunch'||x.type==='stop'&&x.s.meal==='昼');
+    const lunch=items.find(x=>x.type==='lunch'||x.type==='missingMeal'&&x.meal==='昼'||x.type==='stop'&&x.s.meal==='昼');
     const t=lunch?.t??MEALWIN.昼.target;
     before=sights.filter(x=>x.t<=t).at(-1)?.s;
     after=sights.find(x=>x.t>t)?.s;
@@ -39,10 +39,11 @@ function bookingMealContext(di=bookingFoodDay(),slot=bookingFoodSlot(),plan=book
   // Long intercity legs: search near the last visited place, never an arbitrary
   // halfway point in the sea or mountains. Rank against both endpoints below.
   const center=before&&after&&gap<=6?{lat:(before.lat+after.lat)/2,lng:(before.lng+after.lng)/2}:anchor;
-  return {di,slot,before,after,center,hasSights:!!sights.length,...bookingLocalAt(center)};
+  const plannedMeal=items.find(x=>x.type==='missingMeal'&&x.meal===slot||x.type==='stop'&&x.s.meal===slot);
+  return {di,slot,time:plannedMeal?.t??MEALWIN[slot].target,before,after,center,hasSights:!!sights.length,...bookingLocalAt(center)};
 }
 function bookingMealKey(c=bookingMealContext()){
-  return JSON.stringify([APP.pid,S.pref,S.date,c.di,c.slot,c.before?.name,c.before?.lat,c.before?.lng,c.after?.name,c.after?.lat,c.after?.lng,c.center]);
+  return JSON.stringify([APP.pid,S.pref,S.date,S.transport,S.dayMode,c.di,c.slot,c.time,c.before?.name,c.before?.lat,c.before?.lng,c.after?.name,c.after?.lat,c.after?.lng,c.center]);
 }
 function bookingExtraDistance(p,c){
   if(c.before&&c.after)return Math.max(0,hav(c.before,p)+hav(p,c.after)-hav(c.before,c.after));
@@ -60,7 +61,7 @@ function bookingStayContext(plan=bookingRoutePlan()){
   const center=points.length?points.slice().sort((a,b)=>points.reduce((s,p)=>s+hav(a,p)-hav(b,p),0))[0]:bookingFallbackPoint();
   return {ni,pairs,center,hasSights:points.length>0};
 }
-function bookingStayKey(c=bookingStayContext()){return JSON.stringify([APP.pid,S.pref,S.date,S.days,!!S.hotelSplit,c.ni,c.pairs,c.center]);}
+function bookingStayKey(c=bookingStayContext()){return JSON.stringify([APP.pid,S.pref,S.date,S.days,S.transport,S.dayMode,S.stayRules,!!S.hotelSplit,c.ni,c.pairs,c.center]);}
 function bookingRankHotels(items,c){return items.map(h=>({...h,routeDistance:c.pairs.reduce((v,p)=>v+(p.before?hav(p.before,h):0)+(p.after?hav(h,p.after):0),0)/Math.max(1,c.pairs.length)})).sort((a,b)=>a.routeDistance-b.routeDistance);}
 function bookingRouteHTML(c,hotel=false){
   const pairs=hotel?c.pairs:[c];
@@ -188,13 +189,6 @@ const bookingPreviousCanNext=canNext;
 canNext=function(){if(S?.step===6)return nNights()===0||!!bookingStayDecision()||'宿泊場所が決まっているか選んでください';return bookingPreviousCanNext();};
 // Eliminate the old render-triggered Overpass hotel search.
 webHotels=async()=>{};
-const bookingPreviousDayHTML=dayHTML;
-dayHTML=function(d,H){
-  const html=bookingPreviousDayHTML(d,H),plan=window.__plan||bookingRoutePlan();
-  const c=bookingMealContext(d.di,'昼',plan),foods=c.foods.slice(0,3);
-  const actions=`<aside class="booking-day-picks"><h4>この日の食事・宿泊を決める</h4><p>${esc(c.city||S.pref)}の食事の候補：${esc(foods.join('・')||'周辺のお店')}</p><div class="booking-actions">${MEALS.map(m=>`<button class="btn small" type="button" data-route-open-food="${d.di}|${m}">${MEALNAME[m]}を${d.ord.some(s=>s.meal===m)?'確認・変更':'決める'}</button>`).join('')}${d.di<nNights()?`<button class="btn small" type="button" data-route-open-stay="${d.di}">この日の宿泊を決める</button>`:''}</div></aside>`;
-  return html.replace(/<\/article>$/,actions+'</article>');
-};
 function bookingResetFoodRequest(){ROUTE_UI.foodSeq++;ROUTE_UI.foodBusy=false;ROUTE_UI.food=null;}
 function bookingResetHotelRequest(){ROUTE_UI.hotelSeq++;ROUTE_UI.hotelBusy=false;ROUTE_UI.hotel=null;}
 document.addEventListener('toggle',e=>{if(e.target.isConnected&&e.target.matches?.('.booking-conditions'))ROUTE_UI.conditionsOpen=e.target.open;},true);
@@ -223,5 +217,5 @@ document.addEventListener('click',e=>{
   if(d.routeSplit!==undefined)bookingSetSplit(d.routeSplit==='1');
   if(d.routeSelectNight!==undefined)bookingSelectNight(d.routeSelectNight);
   if(d.routeOpenFood!==undefined){const [di,slot]=d.routeOpenFood.split('|');S.bookingFoodDay=+di;S.bookingFoodSlot=slot;bookingResetFoodRequest();APP.ptab='plan';S.step=5;S.visited=Math.max(5,S.visited||0);save();render();window.scrollTo({top:0});}
-  if(d.routeOpenStay!==undefined){bookingCommitDates();S.bookingNight=+d.routeOpenStay;bookingResetHotelRequest();APP.ptab='plan';S.step=6;S.visited=Math.max(6,S.visited||0);save();render();window.scrollTo({top:0});}
+  if(d.routeOpenStay!==undefined){bookingCommitDates();if(nNights()>1&&!S.hotelSplit){S.hotelSplit=true;const ns=nightsArr();for(let i=0;i<nNights();i++)if(!ns[i].name&&S.hotelName)ns[i]={name:S.hotelName,loc:S.hotelLoc,info:S.hotelInfo};}S.bookingNight=+d.routeOpenStay;bookingResetHotelRequest();APP.ptab='plan';S.step=6;S.visited=Math.max(6,S.visited||0);save();render();window.scrollTo({top:0});}
 });
