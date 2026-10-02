@@ -13,7 +13,7 @@ const BookingAPI=(()=>{
   async function get(path,params){
     const root=base();if(!root)throw error('not_configured');
     const provider=path==='/restaurants'?'hotpepper':'rakuten';const scope=root+'|'+provider;
-    const url=root+path+'?'+new URLSearchParams(params);const cached=memory.get(url)||read('cache-'+url);
+    const url=root+path+'?'+new URLSearchParams(params);const cached=memory.get(url)||read('cache-v5-'+url);
     if(cached?.expiresAt>Date.now()){memory.set(url,cached);return {...cached,cached:true};}
     const until=read('pause-'+scope)||0;if(until>Date.now())throw error('cooldown',Math.ceil((until-Date.now())/1000));
     if(pending.has(url))return pending.get(url);
@@ -26,7 +26,7 @@ const BookingAPI=(()=>{
       try{j=await r.json();}catch{write('pause-'+scope,Date.now()+300000);throw error(r.status===429?'provider_limited':'network',300);}
       if(!r.ok||j.ok!==true){const seconds=Math.min(3600,Math.max(60,Number(j.retryAfter)||Number(r.headers.get('Retry-After'))||300));if((r.status>=500||r.status===429||r.status===403)&&j.code!=='booking_links_not_configured')write('pause-'+scope,Date.now()+seconds*1000);throw error(j.code||'unavailable',seconds);}
       if(!Array.isArray(j.items)||!Number.isFinite(j.expiresAt))throw error('unavailable');
-      for(const[k,v]of memory)if(v.expiresAt<=Date.now())memory.delete(k);if(memory.size>=35)memory.delete(memory.keys().next().value);memory.set(url,j);write('cache-'+url,j);
+      for(const[k,v]of memory)if(v.expiresAt<=Date.now())memory.delete(k);if(memory.size>=35)memory.delete(memory.keys().next().value);memory.set(url,j);write('cache-v5-'+url,j);
       // Keep the tab cache bounded and remove expired API data, including Recruit data.
       try{const keys=Object.keys(sessionStorage).filter(k=>k.startsWith('tb-api-cache-'));for(const k of keys){const v=JSON.parse(sessionStorage.getItem(k)||'null');if(!v||v.expiresAt<=Date.now())sessionStorage.removeItem(k);}const left=Object.keys(sessionStorage).filter(k=>k.startsWith('tb-api-cache-'));left.slice(0,Math.max(0,left.length-35)).forEach(k=>sessionStorage.removeItem(k));}catch{}
       return j;
@@ -39,10 +39,36 @@ function bookingMessage(e){
   return (m[e?.code]||'情報を取得できませんでした。下のリンクをご利用ください。')+(e?.seconds?' 再取得の目安：約'+Math.ceil(e.seconds/60)+'分後。':'');
 }
 function bookingISO(d){const z=n=>String(n).padStart(2,'0');return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())}`;}
+function bookingAddDays(value,days){
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(value||''))return '';
+  const d=new Date(value+'T12:00:00Z');if(!Number.isFinite(+d)||d.toISOString().slice(0,10)!==value)return '';
+  d.setUTCDate(d.getUTCDate()+days);return d.toISOString().slice(0,10);
+}
+function bookingNightIndex(){return S.hotelSplit?Math.max(0,Math.min(Number(S.bookingNight)||0,Math.max(0,nNights()-1))):0;}
+function bookingDateState(){
+  const b=S.booking||{},ni=bookingNightIndex();
+  const start=b.startDate||(b.checkin?bookingAddDays(b.checkin,-ni):'')||bookingISO(dayDate(0));
+  const legacyNights=!S.hotelSplit&&b.checkin&&b.checkout?(Date.parse(b.checkout)-Date.parse(b.checkin))/86400000:0;
+  return {startDate:start,stayNights:Math.max(1,Math.min(30,Number(b.stayNights)||legacyNights||nNights()||1))};
+}
+function bookingCommitDates(){S.booking={...(S.booking||{}),...bookingDateState()};delete S.booking.checkin;delete S.booking.checkout;}
+function bookingResetDates(){if(S.booking)for(const k of ['startDate','stayNights','checkin','checkout'])delete S.booking[k];}
 function bookingConditions(){
-  const b=S.booking||{},night=S.hotelSplit?Math.min(S.bookingNight||0,Math.max(0,nNights()-1)):0;
-  const defIn=dayDate(night),defOut=dayDate(S.hotelSplit?night+1:Math.max(1,(S.days||2)-1));
-  return {checkin:b.checkin||bookingISO(defIn),checkout:b.checkout||bookingISO(defOut),adults:Number(b.adults||Math.max(1,Math.min(10,Math.ceil(nPeople()/Math.max(1,Number(S.rooms||1)))))),rooms:Number(b.rooms||S.rooms||1),children:Number(b.children||0)};
+  const b=S.booking||{},dates=bookingDateState(),ni=bookingNightIndex();
+  return {checkin:bookingAddDays(dates.startDate,ni),checkout:bookingAddDays(dates.startDate,S.hotelSplit?ni+1:dates.stayNights),adults:Number(b.adults||Math.max(1,Math.min(10,Math.ceil(nPeople()/Math.max(1,Number(S.rooms||1)))))),rooms:Number(b.rooms||S.rooms||1),children:Number(b.children||0)};
+}
+function bookingChangeField(field,value){
+  ROUTE_UI.conditionsOpen=!!document.querySelector('.booking-conditions')?.open;
+  const before=bookingConditions();bookingCommitDates();
+  if(field==='checkin'){
+    const start=bookingAddDays(value,-bookingNightIndex());if(!start){toast('正しい日付を入力してください');return;}
+    S.booking.startDate=start;
+  }else if(field==='checkout'){
+    const nights=(Date.parse(value)-Date.parse(before.checkin))/86400000;
+    if(S.hotelSplit||!bookingAddDays(value,0)||!Number.isInteger(nights)||nights<1||nights>30){toast('チェックアウトはチェックインの翌日から30泊以内で指定してください');render();return;}
+    S.booking.stayNights=nights;
+  }else S.booking[field]=Number(value);
+  save();render();
 }
 function bookingValid(c){const today=new Date(Date.now()+9*3600000).toISOString().slice(0,10);const days=(Date.parse(c.checkout)-Date.parse(c.checkin))/86400000;return /^\d{4}-\d\d-\d\d$/.test(c.checkin)&&/^\d{4}-\d\d-\d\d$/.test(c.checkout)&&c.checkin>=today&&days>0&&days<=30&&Number.isInteger(c.adults)&&c.adults>=1&&c.adults<=10&&Number.isInteger(c.rooms)&&c.rooms>=1&&c.rooms<=10&&Number.isInteger(c.children)&&c.children>=0&&c.children<=10;}
 function bookingConditionText(){const c=bookingConditions();return `${c.checkin}〜${c.checkout}／${c.rooms}部屋／1室あたり大人${c.adults}名${c.children?'・子ども'+c.children+'名':''}`;}
@@ -52,7 +78,7 @@ function bookingSafeURL(v){if(typeof v!=='string'||!v.trim())return '';try{const
 function bookingID(o){return o?.providerId|| (o?.hotelNo?'rakuten:'+o.hotelNo:o?.hpId?'hotpepper:'+o.hpId:/^(rakuten|hotpepper):/.test(o?.osm||'')?o.osm:'');}
 function bookingMedia(o){return (window.TABIROUTE_PLACE_MEDIA||{})[bookingID(o)]||{};}
 function bookingHotelURL(h){
-  const u=bookingSafeURL(h?.rkURL||h?.url);return u||rakutenHotelURL(h?.name||hotelAreaQ());
+  const u=bookingSafeURL(h?.rkPlanURL||h?.planUrl||h?.rkURL||h?.url);return u||rakutenHotelURL(h?.name||hotelAreaQ());
 }
 let bookingSJIS;
 function bookingEncodeSJIS(value){
@@ -70,7 +96,7 @@ function jalanHotelURL(name){
   return 'https://www.jalan.net/uw/uwp2011/uww2011init.do?distCd=06&rootCd=7701&screenId=FWPCTOP&keyword='+bookingEncodeSJIS(name||cityLabel()||S.pref);
 }
 function bookingJalanURL(h){const u=bookingSafeURL(bookingMedia(h).jalanUrl);try{if(u&&new URL(u).hostname==='www.jalan.net')return u;}catch{}return jalanHotelURL(h?.name);}
-function bookingHotelLinks(h){return `<div class="booking-actions"><a class="btn small" href="${esc(bookingHotelURL(h))}" target="_blank" rel="noopener">楽天で施設・料金を見る</a><a class="btn small ghost" href="${esc(bookingJalanURL(h))}" target="_blank" rel="noopener">じゃらんで探す</a><button type="button" class="btn small ghost" data-bk-copy="${esc(h?.name||'')}">宿泊条件をコピー</button></div><p class="note">直接開く場合は予約サイトで日程・人数を確認してください。じゃらんは施設を選び直す場合があります。</p>`;}
+function bookingHotelLinks(h){return `<div class="booking-actions"><a class="btn small" href="${esc(bookingHotelURL(h))}" target="_blank" rel="noopener">${h?.rkPlanURL||h?.rkURL||h?.url?'楽天で空室・宿泊プランを確認':'楽天でホテルを探す'}</a><a class="btn small ghost" href="${esc(bookingJalanURL(h))}" target="_blank" rel="noopener">じゃらんで探す</a><button type="button" class="btn small ghost" data-bk-copy="${esc(h?.name||'')}">宿泊条件をコピー</button></div><p class="note">直接開く場合は予約サイトで日程・人数を確認してください。じゃらんは施設を選び直す場合があります。</p>`;}
 function hpSearchURL(q){return 'https://www.hotpepper.jp/CSP/psh010/doBasic?keyword='+enc(q||cityLabel()||S.pref);}
 function hpURL(f){const u=bookingSafeURL(f?.hpURL);try{if(u&&['www.hotpepper.jp','hotpepper.jp','hpr.jp'].includes(new URL(u).hostname))return u;}catch{}return hpSearchURL([f?.name,cityLabel()||S.pref].filter(Boolean).join(' '));}
 function bookingPhoto(o,size){
@@ -103,14 +129,20 @@ function bookingHotelFields(){
   const c=bookingConditions(),today=new Date(Date.now()+9*3600000).toISOString().slice(0,10);
   return `<div class="booking-box"><h3>宿泊の日程・人数</h3><div class="booking-fields">
     <label>チェックイン<input type="date" data-bk-field="checkin" value="${esc(c.checkin)}" min="${today}" required></label>
-    <label>チェックアウト<input type="date" data-bk-field="checkout" value="${esc(c.checkout)}" min="${esc(c.checkin)}" required></label>
+    <label>チェックアウト<input type="date" data-bk-field="checkout" value="${esc(c.checkout)}" min="${esc(bookingAddDays(c.checkin,1))}" ${S.hotelSplit?'readonly aria-describedby="bookingDateHint"':''} required></label>
     <label>1室あたりの大人<select data-bk-field="adults">${Array.from({length:10},(_,i)=>`<option value="${i+1}" ${c.adults===i+1?'selected':''}>${i+1}名</option>`).join('')}</select></label>
     <label>部屋数<select data-bk-field="rooms">${Array.from({length:10},(_,i)=>`<option value="${i+1}" ${c.rooms===i+1?'selected':''}>${i+1}部屋</option>`).join('')}</select></label>
     <label>1室あたりの子ども<select data-bk-field="children">${Array.from({length:11},(_,i)=>`<option value="${i}" ${c.children===i?'selected':''}>${i}名</option>`).join('')}</select></label>
     </div><p class="note">合計：大人${c.adults*c.rooms}名${c.children?'・子ども'+c.children*c.rooms+'名':''}。各部屋が同じ人数の場合の条件です。人数が部屋ごとに異なる場合や、お子さまの年齢・食事・寝具は予約サイトで指定してください。</p>
     ${c.children?'<p class="booking-notice">お子さま連れの場合は、予約サイトで詳細条件を指定して空室をご確認ください。</p>':''}
     ${!bookingValid(c)?'<p class="booking-notice" role="alert">日付を確認してください。チェックアウトはチェックインより後、30泊以内で指定できます。</p>':''}
-    <button type="button" class="linkbtn" data-bk-reset>旅行の日程に戻す</button><p class="note">ここで日付を変更しても、旅行の予定表の日付は変わりません。</p></div>`;
+    <p id="bookingDateHint" class="note">${S.hotelSplit?'各泊は1泊ずつ検索します。チェックインを動かすと、ほかの泊も同じ日数だけ移動します。':`${bookingDateState().stayNights}泊の条件です。チェックインを変更すると泊数を保ってチェックアウトも移動します。`}</p><button type="button" class="linkbtn" data-bk-reset>旅行の日程に戻す</button><p class="note">宿泊検索の日付です。旅行の予定表の日付は変更しません。</p>${bookingDateState().startDate!==bookingISO(dayDate(0))||!S.hotelSplit&&bookingDateState().stayNights!==nNights()?'<p class="booking-notice">旅行の日程と宿泊検索の日程が異なります。予約前に日付をご確認ください。</p>':''}</div>`;
+}
+function bookingAvailabilityMessage(data){
+  if(data.availabilityStatus==='no_availability')return 'この日程・人数に合う空室はAPIでは見つかりませんでした。満室のほか、未販売・対象外のプランもあります。下の楽天のプラン一覧でも確認できます。';
+  if(data.availabilityStatus==='links_unavailable')return data.bookingLinksConfigured===false?'宿泊プラン情報はありますが、直接予約用のリンクは未設定です。下の楽天のプラン一覧から日程・人数を指定してください。':'宿泊プラン情報はありますが、直接予約用のURLが利用できません。下の楽天のプラン一覧から確認できます。';
+  if(data.availabilityStatus==='no_room_details')return '施設は見つかりましたが、対象の部屋・プラン詳細は返されませんでした。下の楽天のプラン一覧で確認してください。';
+  return 'この条件のプランリンクは返されませんでした。下の楽天のプラン一覧で日程・人数を指定して確認できます。';
 }
 function bookingHotelCard(h,i){
   const c=bookingConditions(),key=JSON.stringify(c),a=BOOKING_UI.availability[h.hotelNo],current=a?.key===key&&a.project===APP.pid;
@@ -119,8 +151,8 @@ function bookingHotelCard(h,i){
   return `<article class="booking-card"><div class="booking-card-top">${bookingPhoto({...h,hotel:true},'card')}<div><span class="booking-eyebrow">STAY / 楽天トラベル</span><h3>${esc(h.name)}</h3><p class="note">${esc(h.addr||'')}</p>${h.apiExpiresAt>Date.now()&&h.rate?rateBadge(h.rate,h.cnt,'楽天トラベル'):''}<p class="note">${esc(h.access||'')}</p></div></div>
     <div class="booking-actions"><button type="button" class="btn primary" data-bk-availability="${esc(h.hotelNo)}" ${!BookingAPI.configured()||!bookingValid(c)||c.children||(current&&(a.busy||a.code==='booking_links_not_configured'))?'disabled':''}>${current&&a.busy?'空室を確認中…':'この条件で宿泊プランを見る'}</button><button type="button" class="btn ${picked?'primary':''}" data-bk-pick="${i}">${picked?'✓ 予定に追加済み':'この宿を予定に追加'}</button></div>
     ${current&&a.message?`<p class="booking-notice" role="status">${esc(a.message)}</p>`:''}
-    ${fresh?`<div class="booking-plans"><p class="note">${esc(bookingConditionText())}<br>${new Date(a.data.fetchedAt).toLocaleTimeString('ja-JP')}取得。料金・最終的な空室は楽天で確認してください。</p>${a.data.items.map(p=>`<a class="booking-plan" href="${esc(bookingSafeURL(p.url))}" target="_blank" rel="noopener"><b>${esc(p.name)}</b><span>${esc(p.room)} → 楽天で確認</span></a>`).join('')}${!a.data.items.length?'<p class="note">この条件の予約リンクは取得できませんでした。空室の有無は楽天の施設ページで確認してください。</p>':''}</div>`:''}
-    ${bookingHotelLinks(h)}</article>`;
+    ${fresh?`<div class="booking-plans"><p class="note">${esc(bookingConditionText())}<br>${new Date(a.data.fetchedAt).toLocaleTimeString('ja-JP')}取得。料金・最終的な空室は楽天で確認してください。</p>${a.data.items.map(p=>`<a class="booking-plan" href="${esc(bookingSafeURL(p.url))}" target="_blank" rel="noopener"><b>${esc(p.name)}</b><span>${esc(p.room)} → 楽天で確認</span></a>`).join('')}${!a.data.items.length?`<p class="note">${esc(bookingAvailabilityMessage(a.data))}</p>`:''}</div>`:''}
+    ${bookingHotelLinks(fresh&&a.data.facilityUrl?{...h,rkPlanURL:a.data.facilityUrl}:h)}</article>`;
 }
 function stepHotel(){
   const cands=(S.hotelCands||[]).filter(h=>h.hotelNo);
@@ -143,7 +175,7 @@ async function bookingSearchHotels(q){
   try{const p=S.booking.q?{q:S.booking.q}:(()=>{const a=S.hotelSplit?nightArea(S.bookingNight||0):stopsAll().length?bestArea(stopsAll()):foodCenters().昼;return {lat:a.lat.toFixed(5),lng:a.lng.toFixed(5)}})();
     const j=await BookingAPI.get('/hotels',p);if(S!==state||APP.pid!==pid||seq!==BOOKING_UI.seq)return;
     const previous=S.hotelMode==='undecided'?S.hotelCands?.[S.hotelPick]:null;const selected=previous?.hotelNo;if(previous){S.hotelMode='decided';S.hotelName=previous.name;S.hotelLoc={lat:previous.lat,lng:previous.lng};S.hotelInfo=previous;}
-    S.hotelCands=j.items.map(h=>({name:h.name,lat:h.lat,lng:h.lng,addr:h.address,kind:'ホテル',type:'hotel',hotelNo:h.id,providerId:'rakuten:'+h.id,osm:'rakuten:'+h.id,rkURL:h.url,apiPhoto:h.photo,apiExpiresAt:j.expiresAt,rate:h.rating,cnt:h.reviewCount,access:h.access,park:!!h.parking&&!/なし|無し/.test(h.parking),src:'rakuten',sc:0}));
+    S.hotelCands=j.items.map(h=>({name:h.name,lat:h.lat,lng:h.lng,addr:h.address,kind:'ホテル',type:'hotel',hotelNo:h.id,providerId:'rakuten:'+h.id,osm:'rakuten:'+h.id,rkURL:h.url,rkPlanURL:h.planUrl,apiPhoto:h.photo,apiExpiresAt:j.expiresAt,rate:h.rating,cnt:h.reviewCount,access:h.access,park:!!h.parking&&!/なし|無し/.test(h.parking),src:'rakuten',sc:0}));
     S.hotelPick=S.hotelCands.findIndex(h=>h.hotelNo===selected);BOOKING_UI.hotelMessage=j.items.length?`${j.items.length}件のホテルが見つかりました。各ホテルで宿泊条件に合うプランを確認できます。`:'該当するホテルが見つかりませんでした。ホテル名を短くするか、地域名で探してください。';save();
   }catch(e){if(S===state&&APP.pid===pid)BOOKING_UI.hotelMessage=bookingMessage(e);}finally{BOOKING_UI.hotelsBusy=false;render();}
 }
@@ -194,12 +226,12 @@ function addFood(slot,i){
 // An explicit click/search drives new requests. Rendering a screen never consumes API quota.
 function bookingPickHotel(i){const h=S.hotelCands?.[i];if(!h)return;if(S.hotelSplit){const ns=nightsArr();ns[S.bookingNight||0]={name:h.name,loc:{lat:h.lat,lng:h.lng},addr:h.addr,info:h};}else{S.hotelMode='undecided';S.hotelPick=i;S.hotelName=h.name;}save();render();}
 document.addEventListener('submit',e=>{if(e.target.id==='bookingHotelSearch'){e.preventDefault();bookingSearchHotels(new FormData(e.target).get('query'));}if(e.target.id==='bookingFoodSearch'){e.preventDefault();foodSearch(new FormData(e.target).get('query'));}});
-document.addEventListener('change',e=>{const t=e.target;if(t.dataset.bkField){S.booking={...bookingConditions(),...(S.booking||{}),[t.dataset.bkField]:t.type==='date'?t.value:Number(t.value)};save();render();}if(t.hasAttribute('data-bk-night')){S.bookingNight=Number(t.value);if(S.booking){delete S.booking.checkin;delete S.booking.checkout;}save();render();}});
+document.addEventListener('change',e=>{const t=e.target;if(t.dataset.bkField){bookingChangeField(t.dataset.bkField,t.value);}if(t.hasAttribute('data-bk-night')){S.bookingNight=Number(t.value);if(S.booking){delete S.booking.checkin;delete S.booking.checkout;}save();render();}});
 document.addEventListener('click',e=>{const t=e.target.closest('[data-hsplit]');if(t&&S.booking){delete S.booking.checkin;delete S.booking.checkout;S.bookingNight=0;}},true);
 document.addEventListener('click',async e=>{const t=e.target.closest('[data-bk-availability],[data-bk-pick],[data-bk-copy],[data-bk-reset],[data-bk-manual],[data-bk-food-near]');if(!t)return;
   if(t.dataset.bkAvailability)return bookingAvailability(t.dataset.bkAvailability);
   if(t.hasAttribute('data-bk-pick'))return bookingPickHotel(Number(t.dataset.bkPick));
-  if(t.hasAttribute('data-bk-reset')){if(S.booking){delete S.booking.checkin;delete S.booking.checkout;}save();render();return;}
+  if(t.hasAttribute('data-bk-reset')){bookingResetDates();save();render();return;}
   if(t.hasAttribute('data-bk-food-near')){S.foodS=null;DRAFT.foodQ='';return loadFood(true);}
   if(t.hasAttribute('data-bk-copy')){const value=t.dataset.bkCopy+'\n'+bookingConditionText();try{await navigator.clipboard.writeText(value);toast('ホテル名と宿泊条件をコピーしました');}catch{window.prompt('宿泊条件をコピーしてください',value);}return;}
   if(t.hasAttribute('data-bk-manual')){const name=document.getElementById('bookingManualName').value.trim(),raw=document.getElementById('bookingManualCoords').value.trim();if(!name){toast('ホテル名を入力してください');return;}let loc=null;if(raw){const m=raw.match(/^\s*(\d+(?:\.\d+)?)\s*[,、]\s*(\d+(?:\.\d+)?)\s*$/);if(!m||+m[1]<20||+m[1]>46||+m[2]<122||+m[2]>154){toast('緯度・経度を「34.9858, 135.7588」の形で入力してください');return;}loc={lat:+m[1],lng:+m[2]};}if(S.hotelSplit){nightsArr()[S.bookingNight||0]={name,loc};}else{S.hotelMode='decided';S.hotelName=name;S.hotelLoc=loc;S.hotelInfo=null;S.hotelPick=-1;}save();render();}

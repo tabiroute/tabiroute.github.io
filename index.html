@@ -1197,7 +1197,7 @@ article.day{content-visibility:auto;contain-intrinsic-size:auto 900px}
 svg.transport-icon{min-width:22px;min-height:22px}.sgi svg.transport-icon,.tl .tripseg .sgi svg.transport-icon{width:25px;height:25px}.chip svg.transport-icon,.btn svg.transport-icon{width:22px;height:22px}.tl svg.transport-icon{margin-right:5px}button[aria-pressed=true] svg.transport-icon{filter:drop-shadow(0 0 1px white)}
 </style>
 
-<link rel="stylesheet" href="booking/style.css?v=2-route">
+<link rel="stylesheet" href="booking/style.css?v=5-stay">
 </head>
 <body>
 <div class="wrap" id="wrap">
@@ -3084,7 +3084,7 @@ function drawLMap(){
 let mapAreaOnly=true;
 function fitMap(anim){
   const plan=window.__plan; if(!lMap||!plan) return;
-  const pts=[]; mapDays().forEach(d=>{ [d.from||plan.H,...d.ord,d.to||plan.H].forEach(p=>pts.push([p.lat,p.lng])); });
+  const pts=[]; mapDays().forEach(d=>{ [...d.items.filter(it=>it.type==="start"||it.type==="end").map(it=>it.node),...d.ord].filter(Boolean).forEach(p=>pts.push([p.lat,p.lng])); });
   if(plan.trip&&!mapAreaOnly&&mapDays().some(d=>d.di===0)) crewTrips().forEach(c=>c.pts.forEach(x=>pts.push([x.lat,x.lng])));
   if(!pts.length) pts.push([plan.H.lat,plan.H.lng]);
   const pd=Math.max(18,Math.round(Math.min(lMap.getSize().x,lMap.getSize().y)*0.09)); lMap.fitBounds(L.latLngBounds(pts),{padding:[pd,pd],maxZoom:16,animate:!!anim});
@@ -3100,12 +3100,19 @@ function midOf(pts){
   let acc=0; for(let i=0;i<seg.length;i++){ if(acc+seg[i]>=tot/2){ const f=(tot/2-acc)/(seg[i]||1); return [pts[i][0]+(pts[i+1][0]-pts[i][0])*f, pts[i][1]+(pts[i+1][1]-pts[i][1])*f]; } acc+=seg[i]; }
   return pts[Math.floor(pts.length/2)];
 }
+function mapHotelPoints(plan,days){
+  if(!plan.split)return plan.nightHotels?.length?[{...plan.H,nights:Array.from({length:plan.nightHotels.length},(_,i)=>i+1)}]:[];
+  const included=new Set(days.flatMap(d=>[d.di-1,d.di]).filter(i=>i>=0&&i<plan.nightHotels.length)),result=new Map();
+  for(const i of included){const h=plan.nightHotels[i],key=h.lat+","+h.lng+"|"+h.name;
+    if(!result.has(key))result.set(key,{...h,nights:[]});result.get(key).nights.push(i+1);}
+  return [...result.values()];
+}
 function drawRouteLayer(){
   if(!lMap||!document.getElementById("lmap")) return;
   const plan=window.__plan; if(!lMap||!lRoute||!plan) return;
   lRoute.clearLayers(); lPins={};
   const H=plan.H, single=viewDay!==-1, photo=mapBaseSel==="photo", compact=lMap.getSize().x<520;
-  const days=mapDays(); const drawnEnds=new Set();
+  const days=mapDays(), hotelPoints=mapHotelPoints(plan,days); const drawnEnds=new Set();
   if(plan.trip && days.some(d=>d.di===0) && !mapAreaOnly){
     crewTrips().forEach(c=>{
       if(c.pts.length>1){ L.polyline(c.pts.map(x=>[x.lat,x.lng]),{color:"#fff",weight:6,opacity:.8,interactive:false}).addTo(lRoute); L.polyline(c.pts.map(x=>[x.lat,x.lng]),{color:c.col,weight:3.5,opacity:.95,dashArray:"2 8",lineCap:"round",interactive:false}).addTo(lRoute); }
@@ -3136,13 +3143,17 @@ function drawRouteLayer(){
       lPins[s.id]=m.getElement()&&m.getElement().firstChild;
     });
     const ends=[[d.from,"発"],[d.to,"帰"]];
-    ends.forEach(([p,t])=>{ if(!p) return; const ek=p.lat.toFixed(4)+","+p.lng.toFixed(4); if(drawnEnds.has(ek)) return; drawnEnds.add(ek);
+    ends.forEach(([p,t])=>{ if(!p||hotelPoints.some(h=>h.name===p.name&&h.lat===p.lat&&h.lng===p.lng)) return; const ek=p.lat.toFixed(4)+","+p.lng.toFixed(4); if(drawnEnds.has(ek)) return; drawnEnds.add(ek);
       const kOf=x=>x.lat.toFixed(4)+","+x.lng.toFixed(4); const both=t==="発"&&days.some(x=>x.to&&kOf(x.to)===ek);
       const air=/空港/.test(p.place||p.name||""); const g=p.tripHub?(air?"plane":"train"):p.meet?"flag":"home";
       const m=L.marker([p.lat,p.lng],{zIndexOffset:900,title:p.name,icon:pinIcon(g,{size:36})}).addTo(lRoute);
       m.bindTooltip(`<i class="lt">${p.tripHub?(both?"到着・帰り":t==="発"?"到着":"帰り"):"集合"}</i><b>${esc(p.place||p.name)}</b>`,{direction:"top",offset:[0,-2],permanent:single,className:"maplbl card"+(single?" perm":"")}); });
   });
-  if(!H.area||days.length){ const m=L.marker([H.lat,H.lng],{zIndexOffset:1000,title:H.name,icon:pinIcon("hotel",{size:36})}).addTo(lRoute); m.bindTooltip(`<i class="lt">ホテル</i><b>${esc(H.name)}</b>`,{direction:"top",offset:[0,-2],className:"maplbl card"}); if(!H.area) hoverCard(lMap,m,{name:H.name,lat:H.lat,lng:H.lng,hotel:true},"泊まるところ"); }
+  hotelPoints.forEach(h=>{const label=h.nights.join('・')+'泊目';
+    const m=L.marker([h.lat,h.lng],{zIndexOffset:1000,title:label+' '+h.name,icon:pinIcon("hotel",{size:36})}).addTo(lRoute);
+    m.bindTooltip(`<i class="lt">${label}</i><b>${esc(h.name)}</b>`,{direction:"top",offset:[0,-2],className:"maplbl card"});
+    if(!h.area)hoverCard(lMap,m,{...h,hotel:true},label+'の宿泊先');
+  });
 }
 function focusStop(id){
   const plan=window.__plan; if(!plan||!lMap) return;
@@ -6622,8 +6633,8 @@ window.addEventListener('scroll',queueJournalViewport,{passive:true});window.add
 
 </script>
 <script src="booking/config.js?v=1"></script>
-<script src="booking/client.js?v=2-route"></script>
-<script src="booking/itinerary.js?v=2-route"></script>
+<script src="booking/client.js?v=5-stay"></script>
+<script src="booking/itinerary.js?v=5-stay"></script>
 <script>
 boot();
 (async()=>{ try{ sample = window.claude? await window.claude.use("sample") : null; }catch(e){ sample=null } if(sample) render(); })();

@@ -1,8 +1,9 @@
 /* たびルート：無料API専用プロキシ。DB/KV/有料サービスへの依存なし。 */
-const VERSION = 'booking-v3-diagnostics';
+const VERSION = 'booking-v5-stay-plans';
 const KNOWN_FAULT = Symbol('booking-fault');
 const TTL = {hotels:3600, restaurants:3600, availability:60};
 const circuits = new Map();
+const authReasons = new Map();
 const ipWindows = new Map();
 const flights = new Map();
 const HOSTS = {
@@ -13,6 +14,41 @@ export function safeURL(value,provider){
   try {const u=new URL(String(value||''));if(!['https:','http:'].includes(u.protocol)||u.username||u.password)return '';if(!HOSTS[provider]?.includes(u.hostname))return '';u.protocol='https:';return u.href;}catch{return '';}
 }
 function fault(code,status=503,retryAfter=300,diagnostic){return Object.assign(new Error(code),{code,status,retryAfter,diagnostic,[KNOWN_FAULT]:true});}
+export function rakutenCredentials(env){
+  const appId=String(env.RAKUTEN_APP_ID||'').trim(),accessKey=String(env.RAKUTEN_ACCESS_KEY||'').trim();
+  if(!appId||!accessKey)throw fault('not_configured',503,1800,{provider:'rakuten',stage:'credentials'});
+  let site;
+  try{site=new URL(String(env.SITE_URL||'https://tabiroute.github.io/').trim());}catch{throw fault('provider_config',503,1800,{provider:'rakuten',stage:'request_setup',reason:'invalid_site_url'});}
+  const allowed=(env.ALLOWED_ORIGINS||'https://tabiroute.github.io').split(',').map(x=>x.trim());
+  if(site.protocol!=='https:'||site.username||site.password||!allowed.includes(site.origin))throw fault('provider_config',503,1800,{provider:'rakuten',stage:'request_setup',reason:'site_origin_mismatch'});
+  // Identify this application's own configured website; never copy a caller's
+  // arbitrary Origin or substitute a third-party site to get around a refusal.
+  site.search='';site.hash='';
+  return {appId,accessKey,affiliateId:String(env.RAKUTEN_AFFILIATE_ID||'').trim(),headers:{accessKey,Referer:site.href,Origin:site.origin}};
+}
+export function classifyAuthReason(body){
+  // Heuristic classifications, not verbatim upstream text or official codes.
+  const codes=[body?.error,body?.code,body?.errorCode,body?.errors?.errorCode,body?.errors?.code,body?.error?.code].filter(x=>typeof x==='string').join(' ').toUpperCase();
+  if(/HTTP_REFERRER_NOT_ALLOWED|REFERRER_NOT_ALLOWED|ORIGIN_NOT_ALLOWED/.test(codes))return 'site_not_allowed';
+  if(/REFERRER_MISSING|ORIGIN_MISSING/.test(codes))return 'site_header_missing';
+  if(/INVALID_ACCESS_KEY|ACCESS_KEY_INVALID|INVALID_APPLICATION_ID|INVALID_APP_ID/.test(codes))return 'credentials_rejected';
+  const text=[body?.error_description,body?.errorMessage,body?.message,body?.errors?.errorMessage,body?.errors?.message,body?.error?.message].filter(x=>typeof x==='string').map(x=>x.slice(0,2048).toLowerCase()).join(' ');
+  if(/(?:referer|referrer|origin).{0,45}(?:not allowed|not permitted|mismatch)/.test(text))return 'site_not_allowed';
+  if(/(?:referer|referrer|origin).{0,45}(?:missing|required)/.test(text))return 'site_header_missing';
+  if(/invalid (?:access\s*key|application\s*id|app\s*id)|(?:access\s*key|application\s*id|app\s*id).{0,30}(?:invalid|expired|revoked)/.test(text))return 'credentials_rejected';
+  if(/(?:ip address|source ip).{0,40}(?:not allowed|denied)/.test(text))return 'ip_not_allowed';
+  if(/(?:scope|permission).{0,35}(?:insufficient|missing|denied)|insufficient.{0,35}(?:scope|permission)/.test(text))return 'api_permission_denied';
+  return 'unclassified';
+}
+async function authReason(response){
+  // Read at most 16 KiB and return a fixed label only. No key, URL, raw body,
+  // exception message, or upstream HTML is exposed to clients or logs.
+  let reader;
+  try{reader=response.body?.getReader();if(!reader)return 'unclassified';let size=0,raw='';const decoder=new TextDecoder();
+    while(true){const {value,done}=await reader.read();if(done)break;size+=value.byteLength;if(size>16384){await reader.cancel();return 'unclassified';}raw+=decoder.decode(value,{stream:true});}
+    raw+=decoder.decode();return classifyAuthReason(JSON.parse(raw));
+  }catch{return 'unclassified';}finally{reader?.releaseLock();}
+}
 function int(v,min,max,def){if(v===null||v===undefined||v==='')return def;const n=Number(v);if(!Number.isInteger(n)||n<min||n>max)throw fault('invalid_request',400,0);return n;}
 function text(v,max=80){v=String(v||'').trim();if(v.length>max)throw fault('invalid_request',400,0);return v;}
 function coord(v,min,max){const n=Number(v);if(v===null||v===''||!Number.isFinite(n)||n<min||n>max)throw fault('invalid_request',400,0);return n.toFixed(5);}
@@ -47,21 +83,33 @@ export function normalizeRestaurants(j){
     return [{id:s.id,name:String(s.name),lat,lng,address:String(s.address||''),genre:String(s.genre?.name||''),catch:String(s.catch||''),budget:String(s.budget?.average||s.budget?.name||''),hours:String(s.open||''),closed:String(s.close||''),photo:safeURL(s.photo?.pc?.l||s.photo?.pc?.m,'hotpepper'),url:safeURL(s.urls?.pc,'hotpepper')}];
   });
 }
-export function normalizeAvailability(j,hotelNo){
-  const hotels=(j.hotels||[]).filter(x=>(x.hotel||[]).some(y=>String(y.hotelBasicInfo?.hotelNo)===String(hotelNo)));
-  if(!hotels.length)return [];
-  const plans=[];
-  for(const hotel of hotels)for(const part of hotel.hotel||[]){
-    const room=part.roomInfo;if(!room)continue;
-    const blocks=Array.isArray(room)?room:[room];
-    for(const b of blocks){const r=b.roomBasicInfo;if(!r)continue;const url=safeURL(r.reserveUrl,'rakuten');
-      if(url)plans.push({name:String(r.planName||r.roomName||'宿泊プラン'),room:String(r.roomName||''),url});
+const asArray=value=>Array.isArray(value)?value:value&&typeof value==='object'?[value]:[];
+export function availabilityResult(j,hotelNo){
+  const plans=[];let matched=false,roomCount=0,missingLinks=0,rejectedLinks=0,facilityUrl='';
+  for(const wrapped of asArray(j.hotels)){
+    const parts=asArray(wrapped.hotel||wrapped);
+    const basic=parts.find(p=>p.hotelBasicInfo)?.hotelBasicInfo;
+    if(String(basic?.hotelNo)!==String(hotelNo))continue;
+    matched=true;
+    facilityUrl=facilityUrl||safeURL(basic.planListUrl,'rakuten')||safeURL(basic.hotelInformationUrl,'rakuten');
+    for(const part of parts){
+      for(const block of asArray(part.roomInfo)){
+        const room=block.roomBasicInfo;if(!room)continue;
+        roomCount++;
+        const url=safeURL(room.reserveUrl,'rakuten');
+        if(!url){if(room.reserveUrl)rejectedLinks++;else missingLinks++;continue;}
+        plans.push({name:String(room.planName||room.roomName||'宿泊プラン'),room:String(room.roomName||''),url});
+      }
     }
   }
-  return [...new Map(plans.map(p=>[p.url,p])).values()].slice(0,6);
+  const items=[...new Map(plans.map(p=>[p.url,p])).values()].slice(0,6);
+  const availabilityStatus=items.length?'plans_available':!matched?'no_availability':roomCount?'links_unavailable':'no_room_details';
+  return {items,matched,availabilityStatus,facilityUrl,diagnostic:{stage:'availability',roomCount,missingLinks,rejectedLinks}};
 }
+export function normalizeAvailability(j,hotelNo){return availabilityResult(j,hotelNo).items;}
 async function upstream(provider,url,headers={}){
-  const until=circuits.get(provider)||0;if(until>Date.now())throw fault('provider_limited',429,Math.ceil((until-Date.now())/1000),{provider,stage:'cooldown'});
+  const until=circuits.get(provider)||0;if(until>Date.now())throw fault('provider_limited',429,Math.ceil((until-Date.now())/1000),{provider,stage:'cooldown',...(authReasons.has(provider)?{authReason:authReasons.get(provider)}:{})});
+  authReasons.delete(provider);
   let r,j,signal;const started=Date.now();
   try{signal=AbortSignal.timeout(9000);}catch{throw fault('worker_runtime_error',503,60,{provider,stage:'request_setup'});}
   try{r=await fetch(url,{headers,signal,redirect:'manual'});}
@@ -69,7 +117,7 @@ async function upstream(provider,url,headers={}){
   const detail={provider,stage:'upstream_http',upstreamStatus:r.status};
   // Do not follow redirects with API credentials or include URLs / response bodies.
   if(r.status>=300&&r.status<400){circuits.set(provider,Date.now()+60000);throw fault('provider_unavailable',503,60,{...detail,reason:'redirect'});}
-  if(r.status===401||r.status===403){circuits.set(provider,Date.now()+1800000);throw fault('provider_config',503,1800,detail);}
+  if(r.status===401||r.status===403){const reason=provider==='rakuten'?await authReason(r):null;circuits.set(provider,Date.now()+1800000);if(reason)authReasons.set(provider,reason);throw fault('provider_config',503,1800,{...detail,...(reason?{authReason:reason}:{})});}
   if(r.status===429||r.status===503){circuits.set(provider,Date.now()+300000);throw fault('provider_limited',429,300,detail);}
   try{j=await r.json();}catch(e){circuits.set(provider,Date.now()+60000);throw fault('provider_bad_response',503,60,{...detail,stage:'response_body',reason:signal.aborted||e?.name==='TimeoutError'||e?.name==='AbortError'?'timeout':'unreadable'});}
   if(!j||typeof j!=='object'){circuits.set(provider,Date.now()+60000);throw fault('provider_bad_response',503,60,{...detail,stage:'response_body',reason:'invalid_shape'});}
@@ -86,18 +134,17 @@ async function query(path,p,env){
     u.search=new URLSearchParams({key:env.HOTPEPPER_API_KEY,format:'json',lat:p.lat,lng:p.lng,range:p.range,count:'20',order:'1',...(p.q?{keyword:p.q}:{})});
     return {items:normalizeRestaurants(await upstream('hotpepper',u)),provider:'hotpepper'};
   }
-  if(!env.RAKUTEN_APP_ID||!env.RAKUTEN_ACCESS_KEY)throw fault('not_configured',503,1800);
-  if(path==='/availability'&&!env.RAKUTEN_AFFILIATE_ID)throw fault('booking_links_not_configured',503,1800);
+  const credentials=rakutenCredentials(env);
   const endpoint=path==='/availability'?'VacantHotelSearch/20170426':p.q?'KeywordHotelSearch/20260731':'SimpleHotelSearch/20260731';
   const u=new URL('https://openapi.rakuten.co.jp/engine/api/Travel/'+endpoint);
-  const params={applicationId:env.RAKUTEN_APP_ID,format:'json',formatVersion:'1',datumType:'1',responseType: path==='/availability'?'large':'middle',hits:'20'};
-  if(env.RAKUTEN_AFFILIATE_ID)params.affiliateId=env.RAKUTEN_AFFILIATE_ID;
-  if(path==='/availability')Object.assign(params,{hotelNo:p.hotelNo,checkinDate:p.checkin,checkoutDate:p.checkout,adultNum:p.adults,roomNum:p.rooms});
+  const params={applicationId:credentials.appId,format:'json',formatVersion:'1',datumType:'1',responseType: path==='/availability'?'large':'middle',hits:'20'};
+  if(credentials.affiliateId)params.affiliateId=credentials.affiliateId;
+  if(path==='/availability')Object.assign(params,{hotelNo:p.hotelNo,checkinDate:p.checkin,checkoutDate:p.checkout,adultNum:p.adults,roomNum:p.rooms,searchPattern:'1'});
   else if(p.q)params.keyword=p.q;
   else Object.assign(params,{latitude:p.lat,longitude:p.lng,searchRadius:'3'});
   u.search=new URLSearchParams(params);
-  const j=await upstream('rakuten',u,{accessKey:env.RAKUTEN_ACCESS_KEY,Referer:env.SITE_URL||'https://tabiroute.github.io/'});
-  if(path==='/availability')return {items:normalizeAvailability(j,p.hotelNo),provider:'rakuten',conditions:p,matched:(j.hotels||[]).length>0};
+  const j=await upstream('rakuten',u,credentials.headers);
+  if(path==='/availability')return {...availabilityResult(j,p.hotelNo),provider:'rakuten',conditions:p,bookingLinksConfigured:!!credentials.affiliateId};
   return {items:normalizeHotels(j),provider:'rakuten'};
 }
 function response(data,status,origin,retry){return new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff',...(origin?{'Access-Control-Allow-Origin':origin,'Vary':'Origin','Access-Control-Expose-Headers':'Retry-After'}:{}),...(retry?{'Retry-After':String(retry)}:{})}});}

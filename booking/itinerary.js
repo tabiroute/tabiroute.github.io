@@ -1,6 +1,6 @@
 /* v2: decisions first; recommendations follow the actual ordered itinerary.
    This module is loaded after client.js. Rendering never fetches a provider. */
-PLAN_KEYS.push('mealDecisions','bookingFoodDay','bookingFoodSlot','stayDecision');
+PLAN_KEYS.push('mealDecisions','bookingFoodDay','bookingFoodSlot','stayDecision','stayDecisions');
 const ROUTE_UI={food:null,hotel:null,foodSeq:0,hotelSeq:0,foodBusy:false,hotelBusy:false};
 let bookingRouteMemo=null;
 function bookingRouteSignature(){
@@ -68,7 +68,7 @@ function bookingRouteHTML(c,hotel=false){
 }
 function bookingDaySelect(){return `<label class="booking-day-label">食事を決める日<select data-route-day>${Array.from({length:S.days||1},(_,i)=>`<option value="${i}" ${i===bookingFoodDay()?'selected':''}>${i+1}日目 · ${esc(fmtDay(dayDate(i)))}</option>`).join('')}</select></label><div class="chips booking-meal-tabs">${MEALS.map(m=>`<button type="button" class="chip" data-route-slot="${m}" aria-pressed="${bookingFoodSlot()===m}">${MEALNAME[m]}</button>`).join('')}</div>`;}
 function bookingMealDecision(){return S.mealDecisions?.[bookingFoodDay()+'|'+bookingFoodSlot()]||'';}
-function bookingDecisionHTML(kind,mode){const food=kind==='food';return `<div class="choices two booking-decisions"><button type="button" class="choice" data-route-${kind}="decided" aria-pressed="${mode==='decided'}"><div class="booking-choice-icon">${food?'✓':'⌂'}</div><div><b>決まっている</b><span>${food?'お店の名前を入れる':'ホテル名を入れる'}</span></div></button><button type="button" class="choice" data-route-${kind}="undecided" aria-pressed="${mode==='undecided'}"><div class="booking-choice-icon">${food?'♧':'◇'}</div><div><b>まだ決まっていない</b><span>${food?'観光ルートとご当地の食事から選ぶ':'観光の順序からおすすめを選ぶ'}</span></div></button></div>`;}
+function bookingDecisionHTML(kind,mode){const food=kind==='food';return `<div class="choices two booking-decisions"><button type="button" class="choice" data-route-${kind}="decided" aria-pressed="${mode==='decided'}"><div class="booking-choice-icon"><img src="img/${food?'ic-food-decided':'ic-hotel'}.png" alt="" width="80" height="80"></div><div><b>決まっている</b><span>${food?'お店の名前を入れる':'ホテル名を入れる'}</span></div></button><button type="button" class="choice" data-route-${kind}="undecided" aria-pressed="${mode==='undecided'}"><div class="booking-choice-icon"><img src="img/${food?'ic-food-undecided':'ic-hotel-undecided'}.png" alt="" width="80" height="80"></div><div><b>まだ決まっていない</b><span>${food?'観光ルートとご当地の食事から選ぶ':'観光の順序からおすすめを選ぶ'}</span></div></button></div>`;}
 function bookingMealPicked(c){return S.wishes.filter(w=>w.food&&w.meal===c.slot&&(S.dayOf?.[w.id]!=null?Number(S.dayOf[w.id])===c.di:w.day===c.di+1));}
 function bookingFoodResultCard(f,i,c){
   const picked=bookingMealPicked(c).some(w=>w.providerId===f.providerId);
@@ -101,18 +101,42 @@ async function bookingRouteFoodSearch(query=''){
   }catch(e){if(S===state&&APP.pid===pid&&seq===ROUTE_UI.foodSeq)ROUTE_UI.food={key,query,items:[],message:bookingMessage(e)};}
   finally{if(seq===ROUTE_UI.foodSeq){ROUTE_UI.foodBusy=false;render();}}
 }
-function bookingStayDecision(){return S.stayDecision||S.hotelMode||'';}
+function bookingStayDecision(){return (S.hotelSplit?S.stayDecisions?.[bookingNightIndex()]:'')||S.stayDecision||S.hotelMode||'';}
 function bookingStaySelections(){
-  const stays=S.hotelSplit?nightsArr().map((n,i)=>({name:n.name,loc:n.loc,night:i})).filter(n=>n.name):S.hotelName?[{name:S.hotelName,loc:S.hotelLoc}]:[];
-  return stays.length?`<div class="booking-selected"><b>予定に入れた宿</b>${stays.map(n=>`<div><span>${n.night!=null?(n.night+1)+'泊目：':''}${esc(n.name)}${!n.loc?'（位置未確認）':''}</span></div>`).join('')}</div>`:'';
+  const stays=S.hotelSplit?nightsArr().slice(0,nNights()).map((n,i)=>({name:n.name,loc:n.loc,night:i})):S.hotelName?[{name:S.hotelName,loc:S.hotelLoc}]:[];
+  if(S.hotelSplit)return `<div class="booking-nights" aria-label="泊ごとのホテル">${stays.map(n=>`<button type="button" class="booking-night-card" data-route-select-night="${n.night}" aria-pressed="${n.night===bookingNightIndex()}"><b>${n.night+1}泊目 · ${esc(fmtDay(new Date(bookingAddDays(bookingDateState().startDate,n.night)+'T12:00:00')))}</b><span>${esc(n.name||'ホテルは未定')}</span><small>${n.name?(n.loc?'予定に追加済み（予約は別途）':'位置未確認'):'この泊の候補を探す'}</small></button>`).join('')}</div>`;
+  return stays.length?`<div class="booking-selected"><b>予定に入れた宿</b>${stays.map(n=>`<div><span>${esc(n.name)}${!n.loc?'（位置未確認）':''}</span></div>`).join('')}</div>`:'';
+}
+function bookingStayComparison(plan=bookingRoutePlan()){
+  if(nNights()<2)return null;
+  const pairs=Array.from({length:nNights()},(_,i)=>({night:i,before:plan.days[i]?.ord.filter(x=>!x.meal).at(-1),after:plan.days[i+1]?.ord.find(x=>!x.meal)}));
+  const points=pairs.flatMap(p=>[p.before,p.after]).filter(bookingPoint);if(points.length<2)return null;
+  const distance=(h,p)=>(bookingPoint(p.before)?hav(h,p.before):0)+(bookingPoint(p.after)?hav(h,p.after):0);
+  const best=(ps)=>points.reduce((a,b)=>ps.reduce((sum,p)=>sum+distance(a,p)-distance(b,p),0)<=0?a:b);
+  const common=best(pairs),rows=pairs.map(p=>({...p,center:best([p])}));
+  const same=pairs.reduce((sum,p)=>sum+distance(common,p),0),split=rows.reduce((sum,p)=>sum+distance(p.center,p),0),gain=Math.max(0,same-split);
+  return {common,rows,same,split,gain,recommend:gain>=12&&gain/Math.max(1,same)>=0.15};
+}
+function bookingStayAdvice(){
+  const c=bookingStayComparison();if(!c)return '';
+  return `<aside class="booking-stay-advice"><h3>${c.recommend?'泊ごとにエリアを変えると、移動を減らせそうです':'連泊と、泊ごとのホテル変更を選べます'}</h3><p>${c.recommend?`同じエリアに連泊する場合と比べて、宿と観光地の往復が合計約${Math.round(c.gain)}km少なくなる目安です。`:'今の観光順序では、宿泊エリアを分ける大きな距離のメリットは見込まれていません。荷物の移動を減らしたい場合は連泊が便利です。'}</p>${c.recommend?`<p>${c.rows.map(p=>`${p.night+1}泊目：${esc(p.center.name)}周辺`).join(' ／ ')}</p>`:''}<p class="note">観光地の位置と直線距離で比較した目安です。道路・交通時間、宿の空室・料金、荷物の持ち運びやチェックインの手間も合わせて選んでください。</p>${c.recommend&&!S.hotelSplit?'<button type="button" class="btn" data-route-split="1">泊ごとにホテルを選ぶ</button>':''}</aside>`;
+}
+function bookingSetSplit(split){
+  bookingCommitDates();S.hotelSplit=split;S.bookingNight=0;NIGHTAREA=null;
+  if(split&&S.hotelName){const ns=nightsArr();for(let i=0;i<nNights();i++)if(!ns[i].name)ns[i]={name:S.hotelName,loc:S.hotelLoc,info:S.hotelInfo};}
+  if(!split&&!S.hotelName){const first=nightsArr().find(n=>n.name);if(first){S.hotelName=first.name;S.hotelLoc=first.loc;S.hotelInfo=first.info;S.hotelMode='decided';}}
+  bookingResetHotelRequest();save();render();if(bookingStayDecision()==='undecided')bookingRouteHotelSearch();
+}
+function bookingSelectNight(ni){
+  bookingCommitDates();S.bookingNight=Math.max(0,Math.min(nNights()-1,Number(ni)||0));bookingResetHotelRequest();save();render();if(bookingStayDecision()==='undecided')bookingRouteHotelSearch();
 }
 stepHotel=function(){
   if(!nNights())return `<section class="panel booking-panel">${head(6,'今回は日帰りの旅行です','宿泊先の入力は不要です。予定表へ進めます。')}<button class="btn" type="button" data-go="1">日程を変更する</button></section>`;
   const mode=bookingStayDecision(),c=bookingStayContext(),r=ROUTE_UI.hotel,valid=r?.key===bookingStayKey(c),fresh=valid&&r.expiresAt>Date.now();
-  let h=`<section class="panel booking-panel booking-flow">${head(6,'宿泊場所は決まっていますか？','未定の場合は、観光の終わりと翌日の始まりをつなぐ宿を提案します。')}${bookingDecisionHTML('stay',mode)}${bookingStaySelections()}`;
+  let h=`<section class="panel booking-panel booking-flow">${head(6,'宿泊場所は決まっていますか？','未定の場合は、観光の終わりと翌日の始まりをつなぐ宿を提案します。')}${bookingStaySelections()}${bookingDecisionHTML('stay',mode)}`;
   if(!mode)return h+'<p class="note">どちらかを選んでください。未定のまま予定表を作ることもできます。</p></section>';
-  if(nNights()>1)h+=`<div class="chips booking-meal-tabs"><button type="button" class="chip" data-route-split="0" aria-pressed="${!S.hotelSplit}">全部同じホテル</button><button type="button" class="chip" data-route-split="1" aria-pressed="${!!S.hotelSplit}">泊ごとに変える</button></div>`;
-  if(S.hotelSplit)h+=`<label class="booking-day-label">宿泊日<select data-route-night>${Array.from({length:nNights()},(_,i)=>`<option value="${i}" ${i===c.ni?'selected':''}>${i+1}泊目 · ${esc(fmtDay(dayDate(i)))}</option>`).join('')}</select></label>`;
+  if(nNights()>1)h+=bookingStayAdvice()+`<div class="chips booking-meal-tabs"><button type="button" class="chip" data-route-split="0" aria-pressed="${!S.hotelSplit}">全部同じホテル</button><button type="button" class="chip" data-route-split="1" aria-pressed="${!!S.hotelSplit}">泊ごとに変える</button></div>`;
+  if(S.hotelSplit)h+=`<label class="booking-day-label">宿泊日<select data-route-night>${Array.from({length:nNights()},(_,i)=>`<option value="${i}" ${i===c.ni?'selected':''}>${i+1}泊目 · ${esc(fmtDay(new Date(bookingAddDays(bookingDateState().startDate,i)+'T12:00:00')))}</option>`).join('')}</select></label>`;
   if(mode==='undecided')h+=`${bookingRouteHTML(c,true)}<p class="booking-area"><b>おすすめの検索エリア</b><span>${esc(c.center.name||'観光地')} 周辺</span></p><button type="button" class="btn primary" data-route-refresh-stay ${ROUTE_UI.hotelBusy?'disabled':''}>${ROUTE_UI.hotelBusy?'候補を確認中…':'観光ルートに合うホテルを見る'}</button>`;
   h+=`<details class="booking-conditions" ${ROUTE_UI.conditionsOpen?'open':''}><summary>宿泊条件：${esc(bookingConditionText())} <span>変更する</span></summary>${bookingHotelFields()}</details>`;
   if(mode==='decided')h+=`<form id="routeHotelSearch" class="booking-search"><label for="routeHotelQuery">決まっているホテルの名前</label><div class="row"><input id="routeHotelQuery" name="query" maxlength="80" placeholder="ホテルの正式名称" value="${esc(DRAFT.routeHotelQuery||'')}"><button class="btn primary" ${ROUTE_UI.hotelBusy?'disabled':''}>ホテルを確認</button></div></form><details class="booking-manual"><summary>ホテルを手入力で登録する</summary><label>ホテル名<input id="routeHotelName" maxlength="80" value="${esc(S.hotelSplit?nightsArr()[c.ni]?.name||'':S.hotelName||'')}"></label><label>緯度・経度（任意）<input id="routeHotelCoords" placeholder="例：34.9858, 135.7588"></label><button class="btn" type="button" data-route-manual-stay>この宿を予定に登録</button></details>`;
@@ -130,7 +154,7 @@ async function bookingRouteHotelSearch(query=''){
   try{
     const j=await BookingAPI.get('/hotels',query?{q:query}:{lat:c.center.lat.toFixed(5),lng:c.center.lng.toFixed(5)});
     if(S!==state||APP.pid!==pid||seq!==ROUTE_UI.hotelSeq||bookingStayKey()!==key)return;
-    const items=bookingRankHotels(j.items.map(h=>({name:h.name,lat:h.lat,lng:h.lng,addr:h.address,kind:'ホテル',type:'hotel',hotel:true,hotelNo:h.id,providerId:'rakuten:'+h.id,osm:'rakuten:'+h.id,rkURL:h.url,apiPhoto:h.photo,apiExpiresAt:j.expiresAt,rate:h.rating,cnt:h.reviewCount,access:h.access,src:'rakuten'})),c);
+    const items=bookingRankHotels(j.items.map(h=>({name:h.name,lat:h.lat,lng:h.lng,addr:h.address,kind:'ホテル',type:'hotel',hotel:true,hotelNo:h.id,providerId:'rakuten:'+h.id,osm:'rakuten:'+h.id,rkURL:h.url,rkPlanURL:h.planUrl,apiPhoto:h.photo,apiExpiresAt:j.expiresAt,rate:h.rating,cnt:h.reviewCount,access:h.access,src:'rakuten'})),c);
     // Candidate refresh never changes a previously selected stay.
     S.hotelCands=items;S.hotelPick=-1;
     ROUTE_UI.hotel={key:bookingStayKey(),items,expiresAt:j.expiresAt,message:items.length?'観光ルートに合う候補です。宿を選んでから、必要に応じて空室を確認できます。':'このエリアの施設が見つかりませんでした。外部サイトで周辺の宿もご確認ください。'};save();
@@ -182,13 +206,13 @@ document.addEventListener('submit',e=>{
 document.addEventListener('change',e=>{
   const t=e.target;
   if(t.hasAttribute('data-route-day')){S.bookingFoodDay=Number(t.value);bookingResetFoodRequest();save();render();if(bookingMealDecision()==='undecided')bookingRouteFoodSearch();}
-  if(t.hasAttribute('data-route-night')){S.bookingNight=Number(t.value);if(S.booking){delete S.booking.checkin;delete S.booking.checkout;}bookingResetHotelRequest();save();render();if(bookingStayDecision()==='undecided')bookingRouteHotelSearch();}
+  if(t.hasAttribute('data-route-night'))bookingSelectNight(t.value);
 });
 document.addEventListener('click',e=>{
-  const t=e.target.closest('[data-route-food],[data-route-stay],[data-route-slot],[data-route-dish],[data-route-refresh-food],[data-route-refresh-stay],[data-route-addfood],[data-route-manual-food],[data-route-manual-stay],[data-route-split],[data-route-open-food],[data-route-open-stay]');if(!t)return;
+  const t=e.target.closest('[data-route-food],[data-route-stay],[data-route-slot],[data-route-dish],[data-route-refresh-food],[data-route-refresh-stay],[data-route-addfood],[data-route-manual-food],[data-route-manual-stay],[data-route-split],[data-route-open-food],[data-route-open-stay],[data-route-select-night]');if(!t)return;
   const d=t.dataset;
   if(d.routeFood){S.mealDecisions={...(S.mealDecisions||{}),[bookingFoodDay()+'|'+bookingFoodSlot()]:d.routeFood};bookingResetFoodRequest();save();render();if(d.routeFood==='undecided')bookingRouteFoodSearch();}
-  if(d.routeStay){S.stayDecision=d.routeStay;if(!S.hotelName)S.hotelMode=d.routeStay;bookingResetHotelRequest();save();render();if(d.routeStay==='undecided')bookingRouteHotelSearch();}
+  if(d.routeStay){if(S.hotelSplit)S.stayDecisions={...(S.stayDecisions||{}),[bookingNightIndex()]:d.routeStay};else S.stayDecision=d.routeStay;if(!S.hotelName)S.hotelMode=d.routeStay;bookingResetHotelRequest();save();render();if(d.routeStay==='undecided')bookingRouteHotelSearch();}
   if(d.routeSlot){S.bookingFoodSlot=d.routeSlot;bookingResetFoodRequest();save();render();if(bookingMealDecision()==='undecided')bookingRouteFoodSearch();}
   if(d.routeDish)bookingRouteFoodSearch(d.routeDish);
   if(t.hasAttribute('data-route-refresh-food'))bookingRouteFoodSearch();
@@ -196,7 +220,8 @@ document.addEventListener('click',e=>{
   if(d.routeAddfood!==undefined){const c=bookingMealContext(),r=ROUTE_UI.food;if(r?.key===bookingMealKey(c)&&r.expiresAt>Date.now()&&r.items[+d.routeAddfood])bookingPutFood(r.items[+d.routeAddfood],c);}
   if(t.hasAttribute('data-route-manual-food')){try{const name=document.getElementById('routeFoodName').value.trim();if(!name)return toast('店名を入力してください');const loc=bookingManualPoint('routeFoodCoords');bookingPutFood({name,lat:loc?.lat??null,lng:loc?.lng??null,src:'mine'},bookingMealContext());}catch(err){toast(err.message);}}
   if(t.hasAttribute('data-route-manual-stay')){try{const name=document.getElementById('routeHotelName').value.trim();if(!name)return toast('ホテル名を入力してください');const loc=bookingManualPoint('routeHotelCoords');if(S.hotelSplit)nightsArr()[bookingStayContext().ni]={name,loc};else{S.hotelName=name;S.hotelLoc=loc;S.hotelInfo=null;S.hotelMode='decided';S.hotelPick=-1;}save();render();}catch(err){toast(err.message);}}
-  if(d.routeSplit!==undefined){S.hotelSplit=d.routeSplit==='1';S.bookingNight=0;NIGHTAREA=null;if(S.booking){delete S.booking.checkin;delete S.booking.checkout;}bookingResetHotelRequest();save();render();if(bookingStayDecision()==='undecided')bookingRouteHotelSearch();}
+  if(d.routeSplit!==undefined)bookingSetSplit(d.routeSplit==='1');
+  if(d.routeSelectNight!==undefined)bookingSelectNight(d.routeSelectNight);
   if(d.routeOpenFood!==undefined){const [di,slot]=d.routeOpenFood.split('|');S.bookingFoodDay=+di;S.bookingFoodSlot=slot;bookingResetFoodRequest();APP.ptab='plan';S.step=5;S.visited=Math.max(5,S.visited||0);save();render();window.scrollTo({top:0});}
-  if(d.routeOpenStay!==undefined){S.bookingNight=+d.routeOpenStay;if(S.hotelSplit&&S.booking){delete S.booking.checkin;delete S.booking.checkout;}bookingResetHotelRequest();APP.ptab='plan';S.step=6;S.visited=Math.max(6,S.visited||0);save();render();window.scrollTo({top:0});}
+  if(d.routeOpenStay!==undefined){bookingCommitDates();S.bookingNight=+d.routeOpenStay;bookingResetHotelRequest();APP.ptab='plan';S.step=6;S.visited=Math.max(6,S.visited||0);save();render();window.scrollTo({top:0});}
 });
