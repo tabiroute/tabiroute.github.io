@@ -1,5 +1,6 @@
 /* たびルート：無料API専用プロキシ。DB/KV/有料サービスへの依存なし。 */
-const VERSION = 'booking-v2-route';
+const VERSION = 'booking-v3-diagnostics';
+const KNOWN_FAULT = Symbol('booking-fault');
 const TTL = {hotels:3600, restaurants:3600, availability:60};
 const circuits = new Map();
 const ipWindows = new Map();
@@ -11,7 +12,7 @@ const HOSTS = {
 export function safeURL(value,provider){
   try {const u=new URL(String(value||''));if(!['https:','http:'].includes(u.protocol)||u.username||u.password)return '';if(!HOSTS[provider]?.includes(u.hostname))return '';u.protocol='https:';return u.href;}catch{return '';}
 }
-function fault(code,status=503,retryAfter=300){return Object.assign(new Error(code),{code,status,retryAfter});}
+function fault(code,status=503,retryAfter=300,diagnostic){return Object.assign(new Error(code),{code,status,retryAfter,diagnostic,[KNOWN_FAULT]:true});}
 function int(v,min,max,def){if(v===null||v===undefined||v==='')return def;const n=Number(v);if(!Number.isInteger(n)||n<min||n>max)throw fault('invalid_request',400,0);return n;}
 function text(v,max=80){v=String(v||'').trim();if(v.length>max)throw fault('invalid_request',400,0);return v;}
 function coord(v,min,max){const n=Number(v);if(v===null||v===''||!Number.isFinite(n)||n<min||n>max)throw fault('invalid_request',400,0);return n.toFixed(5);}
@@ -60,18 +61,22 @@ export function normalizeAvailability(j,hotelNo){
   return [...new Map(plans.map(p=>[p.url,p])).values()].slice(0,6);
 }
 async function upstream(provider,url,headers={}){
-  const until=circuits.get(provider)||0;if(until>Date.now())throw fault('provider_limited',429,Math.ceil((until-Date.now())/1000));
-  let r,j;
-  try{r=await fetch(url,{headers,signal:AbortSignal.timeout(9000),redirect:'error'});}
-  catch{circuits.set(provider,Date.now()+60000);throw fault('provider_unavailable',503,60);}
-  // Classify HTTP failures even when the upstream returns HTML, not JSON.
-  if(r.status===401||r.status===403){circuits.set(provider,Date.now()+1800000);throw fault('provider_config',503,1800);}
-  if(r.status===429||r.status===503){circuits.set(provider,Date.now()+300000);throw fault('provider_limited',429,300);}
-  try{j=await r.json();}catch{circuits.set(provider,Date.now()+60000);throw fault('provider_bad_response',503,60);}
+  const until=circuits.get(provider)||0;if(until>Date.now())throw fault('provider_limited',429,Math.ceil((until-Date.now())/1000),{provider,stage:'cooldown'});
+  let r,j,signal;const started=Date.now();
+  try{signal=AbortSignal.timeout(9000);}catch{throw fault('worker_runtime_error',503,60,{provider,stage:'request_setup'});}
+  try{r=await fetch(url,{headers,signal,redirect:'manual'});}
+  catch(e){const timeout=signal.aborted||e?.name==='TimeoutError'||e?.name==='AbortError';circuits.set(provider,Date.now()+60000);throw fault('provider_unavailable',503,60,{provider,stage:'fetch',reason:timeout?'timeout':'network',elapsedMs:Date.now()-started});}
+  const detail={provider,stage:'upstream_http',upstreamStatus:r.status};
+  // Do not follow redirects with API credentials or include URLs / response bodies.
+  if(r.status>=300&&r.status<400){circuits.set(provider,Date.now()+60000);throw fault('provider_unavailable',503,60,{...detail,reason:'redirect'});}
+  if(r.status===401||r.status===403){circuits.set(provider,Date.now()+1800000);throw fault('provider_config',503,1800,detail);}
+  if(r.status===429||r.status===503){circuits.set(provider,Date.now()+300000);throw fault('provider_limited',429,300,detail);}
+  try{j=await r.json();}catch(e){circuits.set(provider,Date.now()+60000);throw fault('provider_bad_response',503,60,{...detail,stage:'response_body',reason:signal.aborted||e?.name==='TimeoutError'||e?.name==='AbortError'?'timeout':'unreadable'});}
+  if(!j||typeof j!=='object'){circuits.set(provider,Date.now()+60000);throw fault('provider_bad_response',503,60,{...detail,stage:'response_body',reason:'invalid_shape'});}
   if(r.status===404&&j.error==='not_found')return {hotels:[]};
-  if(!r.ok){circuits.set(provider,Date.now()+60000);throw fault('provider_unavailable',503,60);}
-  if(j.error){if(j.error==='not_found')return {hotels:[]};const limited=/too_many|rate|limit/i.test(j.error);circuits.set(provider,Date.now()+300000);throw fault(limited?'provider_limited':'provider_config',503,300);}
-  if(j.results?.error){const e=[].concat(j.results.error)[0];circuits.set(provider,Date.now()+300000);throw fault(String(e.code)==='2000'?'provider_config':'provider_unavailable',503,300);}
+  if(!r.ok){circuits.set(provider,Date.now()+60000);throw fault('provider_unavailable',503,60,detail);}
+  if(j.error){if(j.error==='not_found')return {hotels:[]};const limited=/too_many|rate|limit/i.test(j.error);circuits.set(provider,Date.now()+300000);throw fault(limited?'provider_limited':'provider_config',503,300,{...detail,stage:'provider_error'});}
+  if(j.results?.error){const e=[].concat(j.results.error)[0];circuits.set(provider,Date.now()+300000);throw fault(String(e?.code)==='2000'?'provider_config':'provider_unavailable',503,300,{...detail,stage:'provider_error'});}
   return j;
 }
 async function query(path,p,env){
@@ -98,7 +103,13 @@ async function query(path,p,env){
 function response(data,status,origin,retry){return new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff',...(origin?{'Access-Control-Allow-Origin':origin,'Vary':'Origin','Access-Control-Expose-Headers':'Retry-After'}:{}),...(retry?{'Retry-After':String(retry)}:{})}});}
 async function rateLimit(request,env){
   const ip=request.headers.get('CF-Connecting-IP')||'unknown';
-  if(env.API_RATE_LIMITER){try{const {success}=await env.API_RATE_LIMITER.limit({key:ip});if(!success)throw fault('client_limited',429,60);}catch(e){if(e.code)throw e;throw fault('provider_unavailable',503,60);}return;}
+  if(env.API_RATE_LIMITER){
+    if(typeof env.API_RATE_LIMITER.limit!=='function')throw fault('rate_limiter_unavailable',503,60,{stage:'rate_limit',reason:'invalid_binding'});
+    try{const result=await env.API_RATE_LIMITER.limit({key:ip});
+      if(typeof result?.success!=='boolean')throw fault('rate_limiter_unavailable',503,60,{stage:'rate_limit',reason:'invalid_response'});
+      if(!result.success)throw fault('client_limited',429,60,{stage:'rate_limit',reason:'limit_reached'});
+    }catch(e){if(e?.[KNOWN_FAULT])throw e;throw fault('rate_limiter_unavailable',503,60,{stage:'rate_limit',reason:'binding_failure'});}return;
+  }
   // Dashboard-only deployment also works. This fallback is per-isolate, not a global quota.
   const bucket=Math.floor(Date.now()/60000);const prev=ipWindows.get(ip);const count=prev?.bucket===bucket?prev.count+1:1;ipWindows.set(ip,{bucket,count});
   if(ipWindows.size>2000)for(const[k,v]of ipWindows)if(v.bucket!==bucket)ipWindows.delete(k);
@@ -110,19 +121,20 @@ export default {async fetch(request,env,ctx){
   if(origin&&!allowed.includes(origin))return response({ok:false,code:'origin_denied'},403,null);
   if(request.method==='OPTIONS')return new Response(null,{status:204,headers:{'Access-Control-Allow-Origin':origin||allowed[0],'Access-Control-Allow-Methods':'GET, OPTIONS','Access-Control-Max-Age':'86400','Vary':'Origin'}});
   if(request.method!=='GET')return response({ok:false,code:'method_not_allowed'},405,origin);
-  if(u.pathname==='/health')return response({ok:true,version:VERSION,configured:{rakuten:!!(env.RAKUTEN_APP_ID&&env.RAKUTEN_ACCESS_KEY),hotpepper:!!env.HOTPEPPER_API_KEY,bookingLinks:!!env.RAKUTEN_AFFILIATE_ID},enabled:env.API_ENABLED!=='false'},200,origin);
+  if(u.pathname==='/health')return response({ok:true,version:VERSION,configured:{rakuten:!!(env.RAKUTEN_APP_ID&&env.RAKUTEN_ACCESS_KEY),hotpepper:!!env.HOTPEPPER_API_KEY,bookingLinks:!!env.RAKUTEN_AFFILIATE_ID},enabled:env.API_ENABLED!=='false',checks:{rateLimiter:env.API_RATE_LIMITER?(typeof env.API_RATE_LIMITER.limit==='function'?'binding_present':'invalid_binding'):'local_fallback',timeoutSupported:typeof AbortSignal?.timeout==='function',upstreamTested:false}},200,origin);
+  let stage='validation';
   try{
     if(env.API_ENABLED==='false')throw fault('maintenance',503,1800);
-    const p=validate(u.pathname,u.searchParams);await rateLimit(request,env);
+    const p=validate(u.pathname,u.searchParams);stage='rate_limit';await rateLimit(request,env);stage='cache_read';
     const ttl=TTL[u.pathname.slice(1)], canonical=new URL(request.url);canonical.pathname='/_cache/'+VERSION+u.pathname;canonical.search=new URLSearchParams(p);canonical.searchParams.sort();
     // Cache only normalized public data; no app IDs or API secrets in cache keys/bodies.
     const key=new Request(canonical.href), cache=globalThis.caches?.default;
     const hit=cache&&await cache.match(key);if(hit){const data=await hit.json();if(data.expiresAt>Date.now())return response({...data,cached:true},200,origin);}
     const flightKey=canonical.href;
-    let pending=flights.get(flightKey);
+    stage='provider_query';let pending=flights.get(flightKey);
     if(!pending){pending=query(u.pathname,p,env).then(data=>({...data,ok:true,fetchedAt:Date.now(),expiresAt:Date.now()+ttl*1000}));flights.set(flightKey,pending);pending.finally(()=>flights.delete(flightKey)).catch(()=>{});}
     const data=await pending;
-    if(cache)ctx.waitUntil(cache.put(key,new Response(JSON.stringify(data),{headers:{'Content-Type':'application/json','Cache-Control':'public,max-age='+ttl}})));
+    stage='cache_write';if(cache)ctx.waitUntil(cache.put(key,new Response(JSON.stringify(data),{headers:{'Content-Type':'application/json','Cache-Control':'public,max-age='+ttl}})));
     return response(data,200,origin);
-  }catch(e){return response({ok:false,code:e.code||'provider_unavailable',retryAfter:e.retryAfter||300},e.status||503,origin,e.retryAfter||300);}
+  }catch(e){const known=e?.[KNOWN_FAULT];return response({ok:false,version:VERSION,code:known?e.code:'worker_internal_error',retryAfter:known?e.retryAfter:300,diagnostic:known?(e.diagnostic||{stage}):{stage}},known?e.status:503,origin,known?e.retryAfter:300);}
 }};
