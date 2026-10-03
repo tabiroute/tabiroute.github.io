@@ -1197,7 +1197,7 @@ article.day{content-visibility:auto;contain-intrinsic-size:auto 900px}
 svg.transport-icon{min-width:22px;min-height:22px}.sgi svg.transport-icon,.tl .tripseg .sgi svg.transport-icon{width:25px;height:25px}.chip svg.transport-icon,.btn svg.transport-icon{width:22px;height:22px}.tl svg.transport-icon{margin-right:5px}button[aria-pressed=true] svg.transport-icon{filter:drop-shadow(0 0 1px white)}
 </style>
 
-<link rel="stylesheet" href="booking/style.css?v=6-constraints">
+<link rel="stylesheet" href="booking/style.css?v=7-budget-mobile">
 </head>
 <body>
 <div class="wrap" id="wrap">
@@ -2041,7 +2041,7 @@ function rentalHTML(){
       <a class="btn small" href="https://www.google.com/search?q=${enc(rentQ(c.name,near)+" 予約")}" target="_blank" rel="noopener">${ICON.search}予約を調べる</a>
       ${(S.rentMode==="done")?`<button type="button" class="btn small ${(S.rentBook&&S.rentBook.co===c.name)?"primary":""}" data-rentpick="${esc(c.name)}">${(S.rentBook&&S.rentBook.co===c.name)?"✓ この店":"この店にする"}</button>`:""}</div>`).join("")+`</div>`;
   } else h+=`<div class="row"><button type="button" class="btn primary" data-act="loadRent" ${busy.rent?"disabled":""}>${ICON.search}「${esc((pt&&pt.name)||"受け取り場所")} レンタカー」で探す</button><span class="status">${esc(msg.rent||"")}</span></div>`;
-  h+=`<h3 class="sub3">予約サイトで比べる</h3><div class="snslinks">${rentURLs(pt&&pt.name).map(([l,u])=>`<a class="btn small ghost" href="${u}" target="_blank" rel="noopener">${esc(l)}</a>`).join("")}</div>
+  h+=`<h3 class="sub3">予約サイトで比べる</h3><div class="snslinks">${rentURLs(pt&&pt.name).map(([l,u])=>`<a class="btn small ghost" href="${u}" target="_blank" rel="noopener ${l.includes("【広告】")?"sponsored":""}">${esc(l)}</a>`).join("")}</div>
   <p class="note">料金の目安：軽・コンパクトで1日 5,000〜9,000円、ミニバンで1日 10,000〜18,000円ほど（時期で変わります）。ガソリン代・高速代は予定表に目安を出しています。</p>`;
   return h;
 }
@@ -2339,6 +2339,7 @@ function buildPlan(){
   const last=groups.length-1;
   const days=groups.map((g,di)=>{
     const B=slots[di]["朝"], Lm=slots[di]["昼"], D=slots[di]["夜"];
+    if(slots[di]["休憩"])g=[...g,slots[di]["休憩"]];
     const Hs = (S.hotelSplit&&di>0&&nNights()>0) ? hotelPoint(stops,di-1) : H;   // その日の出発（前の晩の宿）
     const He = (S.hotelSplit&&nNights()>0) ? hotelPoint(stops,Math.min(di,nNights()-1)) : H;  // その日の終わり（その晩の宿）
     const from = di===0 ? (trip? trip.hub : meetStartNode()) : (S.hotelSplit&&nNights()>0? Hs : null);
@@ -2371,7 +2372,7 @@ function buildPlan(){
     if(fixed){ pick=planFor(fixed); pick.mode=fixed; }
     else { const a=planFor("transit"), b=planFor("car"); a.mode="transit"; b.mode="car"; pick=a.cost<=b.cost?a:b; alt=pick===a?b:a; }
     const {seq,r}=pick;
-    const out={di,ord:r.sequence||seq,issues:r.issues||[],overMinutes:r.overMinutes||0,items:r.items,endT:r.t,startT:r.startT,over:r.over,late:r.late,km:r.km,from,to,hotel:He,mode:pick.mode,auto:!fixed,manual:!!(S.dayMode&&S.dayMode[di]),hand:!!(MO&&MO.length),alt:alt?{mode:alt.mode,cost:Math.round(alt.cost),mine:Math.round(pick.cost)}:null};
+    const out={di,ord:r.sequence||seq,issues:r.issues||[],overMinutes:r.overMinutes||0,items:r.items,endT:r.t,startT:r.startT,over:r.over,late:r.late,km:r.km,from,to:r.items.find(x=>x.type==="end")?.node||to,hotel:He,mode:pick.mode,auto:!fixed,manual:!!(S.dayMode&&S.dayMode[di]),hand:!!(MO&&MO.length),alt:alt?{mode:alt.mode,cost:Math.round(alt.cost),mine:Math.round(pick.cost)}:null};
     if(trip) tcKick();
     if(trip&&di===0){ const o=trip.out; out.tripOut=tItems("out",trip.label,o)||o; }
     if(trip&&di===last){ const o=tripBackItems(trip,r.t); out.tripBack=tItems("ret",trip.label,o)||o; }
@@ -2441,6 +2442,7 @@ function dayHTML(d,H){
     else if(it.type==="end" && it.node && it.node.tripHub) h+=`<li><div class="t">${m2t(it.t)}</div><div class="stop" style="--c:var(--hot)"><div class="nm"><span class="pill warn">帰り</span>${esc(it.node.place)}に到着・ここから帰りの移動</div></div></li>`;
     else if(it.type==="start" && it.node && it.node.meet) h+=`<li><div class="t">${m2t(it.t)}</div><div class="stop" style="--c:var(--hot)"><div class="nm"><span class="pill meal">集合</span>${esc(it.node.place)}に全員集合${it.node.carDriver?`　<span class="pill hot">ここから観光スタート</span>`:""}</div><div class="sm">${esc(it.node.note||"")}</div></div></li>`;
     else if(it.type==="start") h+=`<li><div class="t">${m2t(it.t)}</div><div class="stop ${it.node?.area?"":"hasimg"}" style="--c:var(--ink)">${it.node?.area?"":imgSlot({...it.node,hotel:true},"sm")}<div><div class="nm">${ICON.bed.replace("<svg",'<svg width="18" height="18"')} ${esc(it.label)} を出発</div></div></div></li>`;
+    else if(it.type==="end"&&it.node?.tripEnd)h+=`<li><div class="t">${m2t(it.t)}</div><div class="stop"><div class="nm">旅のおわり</div><div class="sm">帰りの駅・空港がある場合は帰路を設定してください。</div></div></li>`;
     else if(it.type==="end") h+=`<li><div class="t">${m2t(it.t)}</div><div class="stop" style="--c:var(--ink)"><div class="nm">${ICON.bed.replace("<svg",'<svg width="18" height="18"')} ${esc(it.label)} に到着${d.di<nNights()?` <button class="btn small" type="button" data-route-open-stay="${d.di}">${it.node?.area?"宿泊先を決める":"宿泊を確認・変更"}</button>`:""}</div></div></li>`;
     else if(it.type==="leg"){const ic=it.mode==="walk"?ICON.walk:it.mode==="car"?ICON.car:ICON.train;const lb=it.mode==="walk"?"徒歩":it.mode==="car"?"車":"電車・バス";
       const gm = it.mode==="walk"?"walking":mm;
@@ -3193,7 +3195,7 @@ async function walkRoutes(){
 const walkFail={};
 
 /* ============ 写真（Wikipedia / Wikimedia Commons、APIキー不要） ============ */
-const IMGK="tabiroute-img-v3";
+const IMGK="tabiroute-img-v7";
 try{ localStorage.removeItem("tabiroute-img-v1"); localStorage.removeItem("tabiroute-img-v2"); }catch(e){}
 let IMG={}; try{ IMG=JSON.parse(localStorage.getItem(IMGK)||"{}")||{}; }catch(e){ IMG={}; }
 const IMGREG={}, imgWait={}; let imgActive=0; const imgQueue=[]; let batchQ=new Set(), batchT=null; let saveImgT=null;
@@ -3438,9 +3440,9 @@ async function findImage(o){
 }
 
 /* ============ 食事（朝・昼・夜） ============ */
-const MEALS=["朝","昼","夜"];
-const MEALNAME={朝:"朝食",昼:"昼食",夜:"夕食"};
-const MEALWIN={朝:{from:7*60,target:8*60,to:9*60+30,stay:45},昼:{from:11*60,target:12*60,to:14*60,stay:60},夜:{from:17*60+30,target:18*60+30,to:20*60+30,stay:90}};
+const MEALS=["朝","昼","休憩","夜"];
+const MEALNAME={休憩:"カフェ・スイーツ",朝:"朝食",昼:"昼食",夜:"夕食"};
+const MEALWIN={休憩:{from:840,target:900,to:1020,stay:45},朝:{from:7*60,target:8*60,to:9*60+30,stay:45},昼:{from:11*60,target:12*60,to:14*60,stay:60},夜:{from:17*60+30,target:18*60+30,to:20*60+30,stay:90}};
 const SPECIAL={"北海道":["ジンギスカン","海鮮丼","スープカレー","味噌ラーメン"],"青森県":["せんべい汁","ホタテ","煮干しラーメン"],"岩手県":["わんこそば","盛岡冷麺","じゃじゃ麺"],"宮城県":["牛タン","ずんだ","笹かまぼこ"],"秋田県":["きりたんぽ","稲庭うどん","比内地鶏"],"山形県":["芋煮","米沢牛","冷たい肉そば"],"福島県":["喜多方ラーメン","ソースカツ丼","ねぎそば"],"茨城県":["あんこう","納豆","しらす"],"栃木県":["餃子","湯波","佐野ラーメン"],"群馬県":["焼きまんじゅう","おっきりこみ","水沢うどん"],"埼玉県":["うなぎ","わらじかつ丼","豚みそ丼"],"千葉県":["なめろう","勝浦タンタンメン","落花生"],"東京都":["もんじゃ","寿司","江戸前天ぷら"],"神奈川県":["しらす丼","中華街","家系ラーメン"],"新潟県":["へぎそば","タレカツ丼","のっぺ"],"富山県":["白えび","ます寿し","富山ブラック"],"石川県":["のどぐろ","治部煮","海鮮丼"],"福井県":["越前ガニ","ソースカツ丼","おろしそば"],"山梨県":["ほうとう","吉田のうどん","鳥もつ煮"],"長野県":["信州そば","おやき","山賊焼き"],"岐阜県":["飛騨牛","朴葉味噌","鮎"],"静岡県":["うなぎ","静岡おでん","桜えび"],"愛知県":["ひつまぶし","味噌カツ","モーニング"],"三重県":["伊勢うどん","松阪牛","てこね寿司"],"滋賀県":["近江牛","鮒寿司","ちゃんぽん"],"京都府":["湯豆腐","おばんざい","抹茶スイーツ"],"大阪府":["たこ焼き","お好み焼き","串カツ"],"兵庫県":["神戸牛","明石焼き","そばめし"],"奈良県":["柿の葉寿司","三輪そうめん","茶粥"],"和歌山県":["和歌山ラーメン","クエ","めはり寿司"],"鳥取県":["カニ","牛骨ラーメン","砂丘らっきょう"],"島根県":["出雲そば","しじみ","のどぐろ"],"岡山県":["デミカツ丼","ばら寿司","白桃パフェ"],"広島県":["お好み焼き","牡蠣","あなごめし"],"山口県":["ふぐ","瓦そば","岩国寿司"],"徳島県":["徳島ラーメン","すだち","鳴門鯛"],"香川県":["讃岐うどん","骨付鳥","しょうゆ豆"],"愛媛県":["鯛めし","じゃこ天","焼豚玉子飯"],"高知県":["カツオのたたき","鍋焼きラーメン","屋台餃子"],"福岡県":["もつ鍋","博多ラーメン","水炊き"],"佐賀県":["佐賀牛","呼子のイカ","シシリアンライス"],"長崎県":["ちゃんぽん","皿うどん","トルコライス"],"熊本県":["馬刺し","熊本ラーメン","太平燕"],"大分県":["とり天","関さば","だんご汁"],"宮崎県":["チキン南蛮","地鶏炭火焼","冷や汁"],"鹿児島県":["黒豚","鶏飯","白熊"],"沖縄県":["沖縄そば","タコライス","ゴーヤーチャンプルー"]};
 const FOODRE=/食堂|ラーメン|らーめん|拉麺|らぁ麺|中華そば|寿司|鮨|すし|そば|蕎麦|うどん|カフェ|喫茶|珈琲|コーヒー|居酒屋|酒場|焼肉|焼き肉|焼き鳥|焼鳥|串カツ|串焼|レストラン|ダイニング|バル|ビストロ|トラットリア|キッチン|屋台|定食|丼|カレー|ベーカリー|パン屋|天ぷら|天麩羅|とんかつ|お好み焼|たこ焼|餃子|ステーキ|甘味|パーラー|ビュッフェ|料理|割烹|料亭|懐石|モーニング|バーガー|ピザ|うなぎ|鰻/;
 const NIGHTRE=/居酒屋|酒場|焼肉|焼き肉|焼き鳥|焼鳥|串|バー$|BAR|Bar|バル|pub|izakaya|割烹|料亭|懐石|もつ鍋|水炊き/i;
@@ -4926,7 +4928,7 @@ function jtDays(){
       (d.items||[]).forEach(it=>{
         if(it.type==="stop") rows.push({t:m2t(it.t),name:it.s.name,meal:it.meal,kind:it.s.kind,di:d.di});
         else if(it.type==="start"&&!st) st={t:m2t(it.t),name:jtPlace(it.label)+" を出発",kind:"hotel",di:d.di};
-        else if(it.type==="end") en={t:m2t(it.t),name:jtPlace(it.label)+" に到着",kind:"hotel",di:d.di};
+        else if(it.type==="end") en={t:m2t(it.t),name:it.node?.tripEnd?"旅のおわり":jtPlace(it.label)+" に到着",kind:it.node?.tripEnd?"end":"hotel",di:d.di};
       });
       out.push({di:d.di,rows:rows,start:st,end:en});
     });
@@ -6583,8 +6585,8 @@ document.addEventListener("submit",e=>{
 function journalHTML(){
   if(!S||!S.pref||!JEN[S.pref]) return `<section class="panel"><h1 class="q">まず行き先を決めてください</h1><button type="button" class="btn primary" data-app="ptab" data-v="plan">旅行プランをつくる</button></section>`;
   const slug=JEN[S.pref].toLowerCase();
-  const src='shiori/templates/'+slug+'.html?v=20261002-memory-v6&embedded=1&project='+encodeURIComponent(APP.pid||'local');
-  return `<section id="journalEmbed" data-journal-key="${esc((APP.pid||'local')+'|'+S.pref)}"><p id="journalLoading" class="note" role="status">しおりを準備しています…</p><p id="journalLoadError" class="note" hidden>しおりを読み込めませんでした。ページを再読み込みしてください。設置時は index.html と shiori フォルダを同じ階層に置いてください。</p><iframe id="journalFrame" title="${esc(S.pref)}の旅のしおり" src="${esc(src)}" style="display:block;width:100%;height:960px;border:0;border-radius:12px;background:#ebe7df" allow="downloads"></iframe></section>`;
+  const src='shiori/templates/'+slug+'.html?v=20261003-budget-v7&embedded=1&project='+encodeURIComponent(APP.pid||'local');
+  return `<section id="journalEmbed" data-journal-key="${esc((APP.pid||'local')+'|'+S.pref)}"><p id="journalLoading" class="note" role="status">しおりを準備しています…</p><p id="journalLoadError" class="note" hidden>しおりを読み込めませんでした。ページを再読み込みしてください。設置時は index.html と shiori フォルダを同じ階層に置いてください。</p><iframe id="journalFrame" title="${esc(S.pref)}の旅のしおり" src="${esc(src)}" style="display:block;width:100%;height:960px;border:0;border-radius:12px;background:#ebe7df" allow="web-share"></iframe></section>`;
 }
 let journalLoadTimer=null;
 function mountJournal(){
@@ -6600,7 +6602,7 @@ function mountJournal(){
 }
 function journalPayload(){
   const schedule=buildPlan();
-  const days=jtDays().map(d=>({...d,mode:(schedule.days||[]).find(p=>p.di===d.di)?.mode||S.transport||'transit',date:fmtDate(S.date,d.di)}));
+  const days=jtDays().map(d=>({...d,isLastDay:d.di===S.days-1,hasOvernight:d.di<nNights(),mode:(schedule.days||[]).find(p=>p.di===d.di)?.mode||S.transport||'transit',date:fmtDate(S.date,d.di)}));
   return {pref:S.pref,date:jDateStr(),days};
 }
 window.addEventListener('message',e=>{
@@ -6635,10 +6637,13 @@ window.addEventListener('scroll',queueJournalViewport,{passive:true});window.add
 
 </script>
 <script src="booking/config.js?v=1"></script>
-<script src="booking/client.js?v=6-constraints"></script>
-<script src="booking/itinerary.js?v=6-constraints"></script>
-<script src="booking/planner-core.js?v=6-constraints"></script>
-<script src="booking/planner.js?v=6-constraints"></script>
+<script src="booking/client.js?v=7-budget-mobile"></script>
+<script src="booking/itinerary.js?v=7-budget-mobile"></script>
+<script src="booking/planner-core.js?v=7-budget-mobile"></script>
+<script src="shiori/assets/mobile-save.js?v=7"></script>
+<script src="booking/planner.js?v=7-budget-mobile"></script>
+<script src="booking/enhancements.js?v=7"></script>
+<script src="booking/attraction-photos.js?v=7"></script>
 <script>
 boot();
 (async()=>{ try{ sample = window.claude? await window.claude.use("sample") : null; }catch(e){ sample=null } if(sample) render(); })();
