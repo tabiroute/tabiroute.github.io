@@ -25,9 +25,9 @@ schedule=function(H,seq,hasLunchRest,from,t0,to,di=0){
  let luggage=null;
  if(changing&&pr.luggage==='previous')luggage={drop:prev,retrieve:prev,duration:+pr.bagMinutes};
  else if(tonight&&nr.luggage==='next'&&(!prev||changing))luggage={drop:tonight,duration:+nr.bagMinutes};
- const meals=MEALS.filter(m=>!seq.some(s=>s.meal===m)&&!S.mealOmissions?.[di+'|'+m]).map(m=>({missing:true,id:'missing-'+di+'-'+m,meal:m,target:m==='朝'?Math.max(start,8*60):m==='昼'?12*60:17*60+30,stay:m==='朝'?30:60}));
+ const meals=MEALS.filter(m=>(m!=='休憩'||S.cafeDays?.[di])&&!seq.some(s=>s.meal===m)&&!S.mealOmissions?.[di+'|'+m]).map(m=>({missing:true,id:'missing-'+di+'-'+m,meal:m,target:m==='朝'?Math.max(start,8*60):m==='昼'?12*60:m==='休憩'?15*60:17*60+30,stay:m==='朝'?30:m==='休憩'?45:60}));
  const active=meals.filter(m=>(m.meal!=='朝'||start<10*60)&&(m.meal!=='夜'||di<nNights()||end>=18*60));
- const r=TravelPlanner.calculate({seq,rules:S.stopRules,date:bookingISO(dayDate(di)),start,end,from:a,to:z,pace:paceK(),buffer:paceBuf(),route:(a,b)=>hav(a,b)<0.01?{min:0,km:0,mode:'walk'}:leg(a,b),checkout,checkin,luggage,meals:dt.off?[]:active});
+ const r=TravelPlanner.calculate({seq,rules:S.stopRules,date:bookingISO(dayDate(di)),start,end,from:a,to:z,pace:paceK(),buffer:paceBuf(),route:(a,b)=>hav(a,b)<0.01?{min:0,km:0,mode:'walk'}:leg(a,b),checkout,checkin,luggage,endAtLast:di===S.days-1&&!to?.tripHub,meals:dt.off?[]:active});
  for(const m of meals.filter(m=>!active.includes(m)))r.items.splice(m.meal==='朝'?1:r.items.length-1,0,{type:'missingMeal',t:m.meal==='朝'?start:r.t,meal:m.meal,dur:0,outside:true});
  return r;
 };
@@ -174,7 +174,7 @@ async function plannerCompare(kind){
    item.routeCheck={complete,minutes:total,handling,routes,reason:!complete?(transitOn()?'取得できない区間があります':'電車の実時刻は未接続のため、該当区間は未確認'):''};
   }
   if(S!==state||APP.pid!==pid||ROUTE_UI[kind]!==r||r.key!==savedKey)return;
-  if(shortlist.every(x=>x.routeCheck?.complete))shortlist.sort((a,b)=>a.routeCheck.minutes+a.routeCheck.handling-b.routeCheck.minutes-b.routeCheck.handling);
+  if(shortlist.every(x=>x.routeCheck?.complete))shortlist.sort((a,b)=>(typeof budgetRank==='function'?budgetRank(a)-budgetRank(b):0)||a.routeCheck.minutes+a.routeCheck.handling-b.routeCheck.minutes-b.routeCheck.handling);
   r.items=[...shortlist,...r.items.filter(x=>!shortlist.includes(x)&&!shortlist.some(h=>bookingID(h)===bookingID(x)))];
   if(kind==='hotel'){S.hotelCands=r.items;S.hotelPick=-1;}
   r.routeCompared=true;bookingRouteMemo=null;r.key=kind==='hotel'?bookingStayKey():bookingMealKey();

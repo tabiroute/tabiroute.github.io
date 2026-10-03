@@ -27,7 +27,7 @@ function calculate(o){
  const fixed=o.seq.filter(s=>rules[s.id]?.fixed&&minutes(rules[s.id].time)!==null).sort((a,b)=>minutes(rules[a.id].time)-minutes(rules[b.id].time));
  const mealStops=o.seq.filter(s=>s.meal&&!fixed.includes(s));
  const flexible=o.seq.filter(s=>!fixed.includes(s)&&!mealStops.includes(s));
- const anchors=[...mealStops.map(s=>({s,target:s.meal==='朝'?Math.max(o.start,480):s.meal==='昼'?720:1050,fixed:false})),...fixed.map(s=>({s,target:minutes(rules[s.id].time),fixed:true})),...(o.meals||[]).map(s=>({s,target:s.target,fixed:false}))].sort((a,b)=>a.target-b.target||Number(b.fixed)-Number(a.fixed));
+ const anchors=[...mealStops.map(s=>({s,target:s.meal==='朝'?Math.max(o.start,480):s.meal==='昼'?720:s.meal==='休憩'?900:1050,fixed:false})),...fixed.map(s=>({s,target:minutes(rules[s.id].time),fixed:true})),...(o.meals||[]).map(s=>({s,target:s.target,fixed:false}))].sort((a,b)=>a.target-b.target||Number(b.fixed)-Number(a.fixed));
  function place(s,fixedTime){
   const r=rules[s.id]||{},dur=duration(s),l=o.route(prev,s),arrival=t+l.min+(l.min||l.km?o.buffer:0),av=availability(r,o.date,arrival,dur);
   if(fixedTime===undefined&&!av.ok){issue(s,'closed',s.name+'：'+av.reason,av.short);items.push({type:'excluded',t,label:s.name+'：'+av.reason,s});return;}
@@ -60,9 +60,9 @@ function calculate(o){
  }
  flexible.forEach(s=>place(s));
  if(o.luggage?.retrieve){travel(o.luggage.retrieve);service('預けた荷物を受け取る',o.luggage.duration,o.luggage.retrieve);}
- travel(o.to);
+ if(!o.endAtLast)travel(o.to);
  if(o.checkin){wait(o.checkin.earliest,'チェックイン受付まで');service('チェックイン・荷物を置く',o.checkin.duration,o.to);if(t>o.checkin.latest)issue(null,'checkin','チェックイン受付終了に'+Math.ceil(t-o.checkin.latest)+'分不足',t-o.checkin.latest);}
- items.push({type:'end',t,label:o.to.name,node:o.to});
+ items.push({type:'end',t,label:o.endAtLast?'旅のおわり':o.to.name,node:o.endAtLast?{...prev,tripEnd:true}:o.to});
  const overMinutes=Math.max(0,Math.ceil(t-o.end));if(overMinutes)issue(null,'overrun','予定の終了を'+overMinutes+'分超過しています',overMinutes);
  return {items,t,km,lunchT,late:null,startT:o.start,over:overMinutes>0,overMinutes,issues,sequence};
 }

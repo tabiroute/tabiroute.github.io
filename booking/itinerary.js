@@ -4,7 +4,7 @@ PLAN_KEYS.push('mealDecisions','bookingFoodDay','bookingFoodSlot','stayDecision'
 const ROUTE_UI={food:null,hotel:null,foodSeq:0,hotelSeq:0,foodBusy:false,hotelBusy:false};
 let bookingRouteMemo=null;
 function bookingRouteSignature(){
-  return JSON.stringify([S.pref,S.city,S.cityOther,S.days,S.date,S.start,S.end,S.pace,S.transport,S.dayMode,S.dayTimes,S.dayOf,S.manualOrd,S.stopRules,S.stayRules,S.visitOrder,S.wishes,S.picks,S.hotelMode,S.hotelName,S.hotelLoc,S.hotelAnchor,S.hotelPick,S.hotelCands,S.hotelSplit,S.nights,APP.pid,APP.project?.starts,APP.project?.meet,S.flight,S.air]);
+  return JSON.stringify([S.pref,S.city,S.cityOther,S.days,S.date,S.start,S.end,S.pace,S.transport,S.dayMode,S.cafeDays,S.foodPreferences,S.hotelBudget,S.dayTimes,S.dayOf,S.manualOrd,S.stopRules,S.stayRules,S.visitOrder,S.wishes,S.picks,S.hotelMode,S.hotelName,S.hotelLoc,S.hotelAnchor,S.hotelPick,S.hotelCands,S.hotelSplit,S.nights,APP.pid,APP.project?.starts,APP.project?.meet,S.flight,S.air]);
 }
 function bookingRoutePlan(){
   const key=bookingRouteSignature();
@@ -26,8 +26,8 @@ function bookingMealContext(di=bookingFoodDay(),slot=bookingFoodSlot(),plan=book
   if(slot==='朝'){before=day?.from||items.find(x=>x.type==='start')?.node;after=sights[0]?.s;}
   else if(slot==='夜'){before=sights.at(-1)?.s;after=day?.to||day?.hotel;}
   else{
-    const lunch=items.find(x=>x.type==='lunch'||x.type==='missingMeal'&&x.meal==='昼'||x.type==='stop'&&x.s.meal==='昼');
-    const t=lunch?.t??MEALWIN.昼.target;
+    const lunch=items.find(x=>x.type==='lunch'&&slot==='昼'||x.type==='missingMeal'&&x.meal===slot||x.type==='stop'&&x.s.meal===slot);
+    const t=lunch?.t??MEALWIN[slot].target;
     before=sights.filter(x=>x.t<=t).at(-1)?.s;
     after=sights.find(x=>x.t>t)?.s;
     if(!before)before=day?.from||items.find(x=>x.type==='start')?.node;
@@ -43,7 +43,7 @@ function bookingMealContext(di=bookingFoodDay(),slot=bookingFoodSlot(),plan=book
   return {di,slot,time:plannedMeal?.t??MEALWIN[slot].target,before,after,center,hasSights:!!sights.length,...bookingLocalAt(center)};
 }
 function bookingMealKey(c=bookingMealContext()){
-  return JSON.stringify([APP.pid,S.pref,S.date,S.transport,S.dayMode,c.di,c.slot,c.time,c.before?.name,c.before?.lat,c.before?.lng,c.after?.name,c.after?.lat,c.after?.lng,c.center]);
+  return JSON.stringify([APP.pid,S.pref,S.date,S.transport,S.dayMode,S.cafeDays,S.foodPreferences,S.hotelBudget,c.di,c.slot,c.time,c.before?.name,c.before?.lat,c.before?.lng,c.after?.name,c.after?.lat,c.after?.lng,c.center]);
 }
 function bookingExtraDistance(p,c){
   if(c.before&&c.after)return Math.max(0,hav(c.before,p)+hav(p,c.after)-hav(c.before,c.after));
@@ -61,7 +61,7 @@ function bookingStayContext(plan=bookingRoutePlan()){
   const center=points.length?points.slice().sort((a,b)=>points.reduce((s,p)=>s+hav(a,p)-hav(b,p),0))[0]:bookingFallbackPoint();
   return {ni,pairs,center,hasSights:points.length>0};
 }
-function bookingStayKey(c=bookingStayContext()){return JSON.stringify([APP.pid,S.pref,S.date,S.days,S.transport,S.dayMode,S.stayRules,!!S.hotelSplit,c.ni,c.pairs,c.center]);}
+function bookingStayKey(c=bookingStayContext()){return JSON.stringify([APP.pid,S.pref,S.date,S.days,S.transport,S.dayMode,S.cafeDays,S.foodPreferences,S.hotelBudget,S.stayRules,!!S.hotelSplit,c.ni,c.pairs,c.center]);}
 function bookingRankHotels(items,c){return items.map(h=>({...h,routeDistance:c.pairs.reduce((v,p)=>v+(p.before?hav(p.before,h):0)+(p.after?hav(h,p.after):0),0)/Math.max(1,c.pairs.length)})).sort((a,b)=>a.routeDistance-b.routeDistance);}
 function bookingRouteHTML(c,hotel=false){
   const pairs=hotel?c.pairs:[c];
@@ -155,7 +155,7 @@ async function bookingRouteHotelSearch(query=''){
   try{
     const j=await BookingAPI.get('/hotels',query?{q:query}:{lat:c.center.lat.toFixed(5),lng:c.center.lng.toFixed(5)});
     if(S!==state||APP.pid!==pid||seq!==ROUTE_UI.hotelSeq||bookingStayKey()!==key)return;
-    const items=bookingRankHotels(j.items.map(h=>({name:h.name,lat:h.lat,lng:h.lng,addr:h.address,kind:'ホテル',type:'hotel',hotel:true,hotelNo:h.id,providerId:'rakuten:'+h.id,osm:'rakuten:'+h.id,rkURL:h.url,rkPlanURL:h.planUrl,apiPhoto:h.photo,apiExpiresAt:j.expiresAt,rate:h.rating,cnt:h.reviewCount,access:h.access,src:'rakuten'})),c);
+    const items=bookingRankHotels(j.items.map(h=>({name:h.name,lat:h.lat,lng:h.lng,addr:h.address,kind:'ホテル',type:'hotel',hotel:true,hotelNo:h.id,providerId:'rakuten:'+h.id,osm:'rakuten:'+h.id,rkURL:h.url,rkPlanURL:h.planUrl,apiPhoto:h.photo,apiExpiresAt:j.expiresAt,rate:h.rating,cnt:h.reviewCount,access:h.access,minCharge:h.minCharge,src:'rakuten'})),c);
     // Candidate refresh never changes a previously selected stay.
     S.hotelCands=items;S.hotelPick=-1;
     ROUTE_UI.hotel={key:bookingStayKey(),items,expiresAt:j.expiresAt,message:items.length?'観光ルートに合う候補です。宿を選んでから、必要に応じて空室を確認できます。':'このエリアの施設が見つかりませんでした。外部サイトで周辺の宿もご確認ください。'};save();

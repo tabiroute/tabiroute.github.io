@@ -13,7 +13,7 @@ const BookingAPI=(()=>{
   async function get(path,params){
     const root=base();if(!root)throw error('not_configured');
     const provider=path==='/restaurants'?'hotpepper':'rakuten';const scope=root+'|'+provider;
-    const url=root+path+'?'+new URLSearchParams(params);const cached=memory.get(url)||read('cache-v5-'+url);
+    const url=root+path+'?'+new URLSearchParams(params);const cached=memory.get(url)||read('cache-v7-'+url);
     if(cached?.expiresAt>Date.now()){memory.set(url,cached);return {...cached,cached:true};}
     const until=read('pause-'+scope)||0;if(until>Date.now())throw error('cooldown',Math.ceil((until-Date.now())/1000));
     if(pending.has(url))return pending.get(url);
@@ -26,7 +26,7 @@ const BookingAPI=(()=>{
       try{j=await r.json();}catch{write('pause-'+scope,Date.now()+300000);throw error(r.status===429?'provider_limited':'network',300);}
       if(!r.ok||j.ok!==true){const seconds=Math.min(3600,Math.max(60,Number(j.retryAfter)||Number(r.headers.get('Retry-After'))||300));if((r.status>=500||r.status===429||r.status===403)&&j.code!=='booking_links_not_configured')write('pause-'+scope,Date.now()+seconds*1000);throw error(j.code||'unavailable',seconds);}
       if(!Array.isArray(j.items)||!Number.isFinite(j.expiresAt))throw error('unavailable');
-      for(const[k,v]of memory)if(v.expiresAt<=Date.now())memory.delete(k);if(memory.size>=35)memory.delete(memory.keys().next().value);memory.set(url,j);write('cache-v5-'+url,j);
+      for(const[k,v]of memory)if(v.expiresAt<=Date.now())memory.delete(k);if(memory.size>=35)memory.delete(memory.keys().next().value);memory.set(url,j);write('cache-v7-'+url,j);
       // Keep the tab cache bounded and remove expired API data, including Recruit data.
       try{const keys=Object.keys(sessionStorage).filter(k=>k.startsWith('tb-api-cache-'));for(const k of keys){const v=JSON.parse(sessionStorage.getItem(k)||'null');if(!v||v.expiresAt<=Date.now())sessionStorage.removeItem(k);}const left=Object.keys(sessionStorage).filter(k=>k.startsWith('tb-api-cache-'));left.slice(0,Math.max(0,left.length-35)).forEach(k=>sessionStorage.removeItem(k));}catch{}
       return j;
@@ -185,7 +185,7 @@ async function bookingAvailability(id){
   const a={key:JSON.stringify(c),project:APP.pid,busy:true};BOOKING_UI.availability[id]=a;render();
   try{a.data=await BookingAPI.get('/availability',{hotelNo:id,...c});}catch(e){a.code=e.code;a.message=bookingMessage(e);}finally{a.busy=false;render();}
 }
-function bookingToFood(h,j,center){return {name:h.name,lat:h.lat,lng:h.lng,addr:h.address,cuisine:h.genre,hours:h.hours,closed:h.closed,budget:h.budget,catch:h.catch,hpId:h.id,providerId:'hotpepper:'+h.id,hpURL:h.url,apiPhoto:h.photo,apiExpiresAt:j.expiresAt,osm:'hotpepper:'+h.id,type:'restaurant',food:true,dist:hav(center,h),sc:0,onR:false,open:null,src:'hotpepper',extra:{web:h.url}};}
+function bookingToFood(h,j,center){return {name:h.name,lat:h.lat,lng:h.lng,addr:h.address,cuisine:h.genre,hours:h.hours,closed:h.closed,budget:h.budget,budgetBand:h.budgetBand,genreCode:h.genreCode,catch:h.catch,hpId:h.id,providerId:'hotpepper:'+h.id,hpURL:h.url,apiPhoto:h.photo,apiExpiresAt:j.expiresAt,osm:'hotpepper:'+h.id,type:'restaurant',food:true,dist:hav(center,h),sc:0,onR:false,open:null,src:'hotpepper',extra:{web:h.url}};}
 async function loadFood(force){
   if(busy.food)return;const state=S,pid=APP.pid,key=foodKey(),slot=S.foodTab||'昼';
   if(!force&&S.food?.key===key&&S.food?.expiresAt>Date.now()&&S.food?.[slot])return;
