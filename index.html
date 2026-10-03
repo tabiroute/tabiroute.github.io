@@ -3195,7 +3195,7 @@ async function walkRoutes(){
 const walkFail={};
 
 /* ============ 写真（Wikipedia / Wikimedia Commons、APIキー不要） ============ */
-const IMGK="tabiroute-img-v7";
+const IMGK="tabiroute-img-v8";
 try{ localStorage.removeItem("tabiroute-img-v1"); localStorage.removeItem("tabiroute-img-v2"); }catch(e){}
 let IMG={}; try{ IMG=JSON.parse(localStorage.getItem(IMGK)||"{}")||{}; }catch(e){ IMG={}; }
 const IMGREG={}, imgWait={}; let imgActive=0; const imgQueue=[]; let batchQ=new Set(), batchT=null; let saveImgT=null;
@@ -3242,10 +3242,10 @@ async function nextPhoto(k){
 function imgBroken(el){
   const ph=el.closest(".ph"); if(!ph) return; const k=ph.dataset.imgkey; const r=IMG[k];
   // 読み込めないときは、別の標準サイズ → 元の画像 → ファイル名から の順に試す
-  const tries=+(el.dataset.retry||0); el.dataset.retry=tries+1;
   if(r&&r.src){
-    const alts=[sizedUrl(r.src,330), sizedUrl(r.src,250), r.orig||origUrl(r.src), r.file?"https://commons.wikimedia.org/wiki/Special:FilePath/"+enc(r.file)+"?width=500":null].filter(u=>u&&u!==el.src);
-    if(tries<alts.length){ el.src=alts[tries]; return; }
+    // Keep a stable list. Rebuilding while excluding the current URL skipped fallback entries.
+    if(!el.photoFallbacks)el.photoFallbacks=[...new Set([sizedUrl(r.src,330),sizedUrl(r.src,250),r.orig||origUrl(r.src),r.file?"https://commons.wikimedia.org/wiki/Special:FilePath/"+enc(r.file)+"?width=500":null].filter(u=>u&&u!==el.src))];
+    const next=el.photoFallbacks.shift();if(next){el.src=next;return;}
   }
   imgFail++; if(imgFail>=6) imgNotice();
   IMG[k]={none:true,t:Date.now(),err:true}; imgSave(); ph.innerHTML=phInner(k,ph.dataset.size);
@@ -3258,7 +3258,7 @@ function creditHTML(r){ if(!r||!r.src) return ""; return `写真：${esc(r.artis
 function hydrateImages(){
   document.querySelectorAll(".ph[data-imgkey]").forEach(el=>{
     const k=el.dataset.imgkey, r=IMG[k];
-    const stale = r&&r.none&&(Date.now()-(r.t||0)>86400000);
+    const stale = r&&r.none&&(Date.now()-(r.t||0)>(r.err?60000:86400000));
     if(!r||stale){ el.classList.add("loading"); imgRequest(k); }
   });
 }
@@ -6636,14 +6636,15 @@ window.addEventListener('message',e=>{const f=document.getElementById('journalFr
 window.addEventListener('scroll',queueJournalViewport,{passive:true});window.addEventListener('resize',queueJournalViewport);window.visualViewport?.addEventListener('resize',queueJournalViewport);window.visualViewport?.addEventListener('scroll',queueJournalViewport);
 
 </script>
-<script src="booking/config.js?v=1"></script>
+<script src="booking/config.js?v=8"></script>
 <script src="booking/client.js?v=7-budget-mobile"></script>
 <script src="booking/itinerary.js?v=7-budget-mobile"></script>
 <script src="booking/planner-core.js?v=7-budget-mobile"></script>
 <script src="shiori/assets/mobile-save.js?v=7"></script>
 <script src="booking/planner.js?v=7-budget-mobile"></script>
 <script src="booking/enhancements.js?v=7"></script>
-<script src="booking/attraction-photos.js?v=7"></script>
+<script src="booking/photo-catalog.js?v=8"></script>
+<script src="booking/attraction-photos.js?v=8"></script>
 <script>
 boot();
 (async()=>{ try{ sample = window.claude? await window.claude.use("sample") : null; }catch(e){ sample=null } if(sample) render(); })();
