@@ -1233,7 +1233,7 @@ svg.transport-icon{min-width:22px;min-height:22px}.sgi svg.transport-icon,.tl .t
 </section>
   <p class="foot" id="foot">人気順は、SNSでよく投稿・検索される定番スポットをもとにした参考順位です（Instagramのリアルタイムの投稿数ではありません）。車の移動時間は道路の経路から計算し、電車・バスの移動時間は距離からの目安です。実際の所要時間は各区間のリンク（電車・バスは「乗換案内」、車は「経路」）で確認してください。</p>
   <p class="foot">地図：<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">国土地理院</a>／場所・住所・ホテル情報：© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>（Nominatim・Overpass API）、国土地理院 地名検索／車の経路：<a href="https://project-osrm.org/" target="_blank" rel="noopener">OSRM</a>／宿泊・グルメ情報：楽天トラベル／ホットペッパー グルメ（取得できた場合）。観光地の写真：<a href="https://commons.wikimedia.org/" target="_blank" rel="noopener">Wikimedia Commons</a>（撮影者とライセンスは写真の上にマウスを置くか「詳細を見る」で表示）</p>
-  <footer class="sitefoot"><a href="privacy.html">プライバシーポリシー</a><span>地図：国土地理院／地図データ：© OpenStreetMap contributors／写真：Wikimedia Commons</span><span class="bver">v10</span></footer>
+  <footer class="sitefoot"><a href="privacy.html">プライバシーポリシー</a><span>地図：国土地理院／地図データ：© OpenStreetMap contributors／写真：Wikimedia Commons</span><span class="bver">v10 · 写真 national-v9</span></footer>
 </div>
 
 <div class="navbar" id="navbar" hidden><div class="in">
@@ -1342,7 +1342,7 @@ function isoToday(add){const d=new Date();d.setDate(d.getDate()+add);return d.to
 function wishFrom(q,pref){
   const w={id:newId(), q, name:q, lat:null, lng:null, stay:60, status:"none", anchor:"", src:""};
   const m = matchSpot(q,pref);
-  if(m){Object.assign(w,{name:m.name,lat:m.lat,lng:m.lng,stay:m.stay,status:"ok",src:m.src==="ai"?"ai":"base"})}
+  if(m){Object.assign(w,{name:m.name,lat:m.lat,lng:m.lng,stay:m.stay,status:"ok",src:m.src==="ai"?"ai":"base",extra:m.extra||null})}
   if(FOODRE.test(q) && !/茶屋街|商店街|横丁$|市場$/.test(q)) setFood(w,true,guessMeal(q,""));
   return w;
 }
@@ -1363,7 +1363,7 @@ function t2m(t){const [h,m]=t.split(":").map(Number);return h*60+m}
 function m2t(m){m=Math.round(m);const h=Math.floor(m/60),mm=m%60;return h+":"+String(mm).padStart(2,"0")}
 function fmtDate(iso,add){try{const d=new Date(iso+"T00:00:00");d.setDate(d.getDate()+add);return (d.getMonth()+1)+"/"+d.getDate()+"（"+"日月火水木金土"[d.getDay()]+"）"}catch(e){return ""}}
 /* ---- 各都道府県の候補を増やす：Wikipediaの「〇〇県の観光地」などのカテゴリから、閲覧数の多い順に ---- */
-const WSK="tabiroute-wspots-v1-"; const WSPOTS={}; const wsBusy={}; const wsFail={};
+const WSK="tabiroute-wspots-v2-"; const WSPOTS={}; const wsBusy={}; const wsFail={};
 function wsLoadCache(pref){ if(WSPOTS[pref]) return WSPOTS[pref]; try{ const c=JSON.parse(localStorage.getItem(WSK+pref)||"null"); if(c&&Date.now()-c.t<7*86400000){ WSPOTS[pref]=c.list; return c.list; } }catch(e){} return null; }
 const WSCATS=["観光地","観光スポット","名所","神社","寺院","城","公園","庭園","博物館","美術館","温泉","山","滝","島","湖","水族館","動物園","遊園地","テーマパーク","展望台","商店街","繁華街","海水浴場","峡谷","岬","史跡","町並み"];
 function wsStay(t,d){ const x=t+" "+(d||""); if(/テーマパーク|遊園地|ランド|ワールド/.test(x)) return 240; if(/山$|島$|峡|渓谷|高原/.test(x)) return 150; if(/水族館|動物園|博物館|美術館|記念館|資料館/.test(x)) return 90; if(/温泉|庭園|公園|城/.test(x)) return 90; if(/商店街|通り|横丁|繁華街|市場/.test(x)) return 75; return 60; }
@@ -1374,8 +1374,8 @@ async function loadWikiSpots(pref){
     const pages=new Map();
     for(let g=0; g<WSCATS.length; g+=9){
       const cats=WSCATS.slice(g,g+9).map(c=>pref+"の"+c).join("|");
-      try{ const j=await jget(WP+"action=query&generator=search&gsrnamespace=0&gsrlimit=50&gsrsort=incoming_links_desc&gsrsearch="+enc("incategory:"+cats)+"&prop=coordinates|description|pageviews&pvipdays=30&colimit=max");
-        ((j.query&&j.query.pages)||[]).forEach(p=>{ if(p.coordinates&&p.coordinates[0]&&!pages.has(p.pageid)) pages.set(p.pageid,{...p,index:(p.index||0)+g*10}); }); }catch(e){}
+      try{ const j=await jget(WP+"action=query&generator=search&gsrnamespace=0&gsrlimit=50&gsrsort=incoming_links_desc&gsrsearch="+enc("incategory:"+cats)+"&prop=coordinates|description|pageviews|pageimages|pageprops|langlinks&lllang=en&lllimit=50&ppprop=disambiguation&piprop=name&pilicense=free&pilimit=50&pvipdays=30&colimit=max");
+        ((j.query&&j.query.pages)||[]).forEach(p=>{ if(p.coordinates&&p.coordinates[0]&&!Object.prototype.hasOwnProperty.call(p.pageprops||{},"disambiguation")&&!pages.has(p.pageid)) pages.set(p.pageid,{...p,index:(p.index||0)+g*10}); }); }catch(e){}
     }
     if(!pages.size) throw new Error("none");
     const base=PREF[pref].spots.map(x=>norm(x.name.replace(/（.*?）/g,"")));
@@ -1383,7 +1383,7 @@ async function loadWikiSpots(pref){
     let list=[...pages.values()].map(p=>{ const pv=Object.values(p.pageviews||{}).reduce((a,v)=>a+(+v||0),0);
       const name=p.title.replace(/\s*[（(][^）)]*[）)]$/,""); const lat=+(+p.coordinates[0].lat).toFixed(5), lng=+(+p.coordinates[0].lon).toFixed(5);
       const near=PREF[pref].spots.reduce((b,x)=>{ const d=hav(x,{lat,lng}); return d<b.d?{x,d}:b; },{x:null,d:1e9});
-      return {name,lat,lng,stay:wsStay(name,p.description),city:near.x&&near.d<15?near.x.city:"",src:"wiki",pv,idx:p.index||999,desc:p.description||""}; })
+      return {name,lat,lng,stay:wsStay(name,p.description),city:near.x&&near.d<15?near.x.city:"",src:"wiki",extra:{wiki:"ja:"+p.title,photoArticle:{title:p.title,pageimage:p.pageimage,coordinates:p.coordinates,pageprops:p.pageprops,langlinks:p.langlinks}},pv,idx:p.index||999,desc:p.description||""}; })
       .filter(x=>hav(pc,x)<=pc.r && !base.some(b=>b&&(norm(x.name).includes(b)||b.includes(norm(x.name)))) && !/一覧|^.{0,1}$|の歴史|線$|駅$|高等学校|大学$|中学校|小学校|市役所|町役場|県庁/.test(x.name));
     list.sort((a,b)=>(b.pv-a.pv)||(a.idx-b.idx));
     list=list.slice(0,80).map((x,i)=>({...x,rank:PREF[pref].spots.length+i+1}));
@@ -2637,7 +2637,7 @@ async function searchGSI(q){
 async function wikiFind(q){
   const j=await jget(WP+"action=query&generator=search&gsrlimit=10&gsrsearch="+enc(q+" "+S.pref)+"&prop=coordinates|description|pageprops&ppprop=disambiguation&colimit=max");
   const pages=((j.query&&j.query.pages)||[]).filter(p=>p.coordinates&&p.coordinates[0]&&!(p.pageprops&&"disambiguation" in p.pageprops)).sort((a,b)=>(a.index||0)-(b.index||0));
-  return pages.map(p=>({name:p.title.replace(/\s*[（(][^）)]*[）)]$/,""),lat:+(+p.coordinates[0].lat).toFixed(6),lng:+(+p.coordinates[0].lon).toFixed(6),addr:p.description||S.pref,kind:"",type:"",cat:"wiki",extra:null,osm:"wp/"+p.pageid,src:"web",wiki:true})).filter(inPref);
+  return pages.map(p=>({name:p.title.replace(/\s*[（(][^）)]*[）)]$/,""),lat:+(+p.coordinates[0].lat).toFixed(6),lng:+(+p.coordinates[0].lon).toFixed(6),addr:p.description||S.pref,kind:"",type:"",cat:"wiki",extra:{wiki:"ja:"+p.title},osm:"wp/"+p.pageid,src:"web",wiki:true})).filter(inPref);
 }
 // 名物や商品名（例：しろくま）で探したとき、その記事からリンクされている県内のお店・名所を候補にする
 const ADMINRE=/(都|道|府|県|市|町|村|区|郡)$|駅$|線$|空港$|大学$|高等学校$|中学校$|小学校$|^日本$/;
@@ -2647,7 +2647,7 @@ async function famousFind(q){
   const out=[]; const seen=new Set();
   const add=(pg,why,via)=>{ if(!pg.coordinates||!pg.coordinates[0]) return; const c={lat:+pg.coordinates[0].lat,lng:+pg.coordinates[0].lon}; if(!inPref(c)) return;
     const name=pg.title.replace(/\s*[（(][^）)]*[）)]$/,""); if(seen.has(name)||ADMINRE.test(name)) return; seen.add(name);
-    out.push({name,lat:+c.lat.toFixed(6),lng:+c.lng.toFixed(6),addr:pg.description||S.pref,kind:"",type:SHOPRE.test(name+(pg.description||""))?"restaurant":"",cat:"wiki",extra:null,osm:"wp/"+pg.pageid,src:"web",wiki:true,famous:true,why,via}); };
+    out.push({name,lat:+c.lat.toFixed(6),lng:+c.lng.toFixed(6),addr:pg.description||S.pref,kind:"",type:SHOPRE.test(name+(pg.description||""))?"restaurant":"",cat:"wiki",extra:{wiki:"ja:"+pg.title},osm:"wp/"+pg.pageid,src:"web",wiki:true,famous:true,why,via}); };
   const j=await jget(WP+"action=query&generator=search&gsrlimit=8&gsrsearch="+enc(q+" "+S.pref.replace(/[都府県]$/,""))+"&prop=coordinates|description|extracts&exintro=1&explaintext=1&exchars=120&exlimit=max&colimit=max");
   const pages=((j.query&&j.query.pages)||[]).sort((a,b)=>(a.index||0)-(b.index||0));
   pages.forEach(pg=>add(pg,(pg.extract||pg.description||"").replace(/\s+/g," ").slice(0,70),null));
@@ -3195,7 +3195,7 @@ async function walkRoutes(){
 const walkFail={};
 
 /* ============ 写真（Wikipedia / Wikimedia Commons、APIキー不要） ============ */
-const IMGK="tabiroute-img-v8";
+const IMGK="tabiroute-img-v9";
 try{ localStorage.removeItem("tabiroute-img-v1"); localStorage.removeItem("tabiroute-img-v2"); }catch(e){}
 let IMG={}; try{ IMG=JSON.parse(localStorage.getItem(IMGK)||"{}")||{}; }catch(e){ IMG={}; }
 const IMGREG={}, imgWait={}; let imgActive=0; const imgQueue=[]; let batchQ=new Set(), batchT=null; let saveImgT=null;
@@ -4786,7 +4786,7 @@ async function quickStart(q){
   const patch={}; let title=q+"の旅", step=0;
   if(x){ patch.pref=x.pref; step=1; title=(x.kind==="spot"?x.spot.name:(x.city||x.pref.replace(/[府県]$/,"")))+"の旅";
     if(x.city){ const cities=[...new Set(PREF[x.pref].spots.map(v=>v.city))]; if(cities.includes(x.city)) patch.city=x.city; else { patch.city="__other"; patch.cityOther=x.city; } }
-    if(x.kind==="spot") patch.wishes=[{id:newId(),q:x.spot.name,name:x.spot.name,lat:+(+x.spot.lat).toFixed(6),lng:+(+x.spot.lng).toFixed(6),stay:x.spot.stay||60,status:"ok",src:"base",anchor:"",addr:"",day:0}];
+    if(x.kind==="spot") patch.wishes=[{id:newId(),q:x.spot.name,name:x.spot.name,lat:+(+x.spot.lat).toFixed(6),lng:+(+x.spot.lng).toFixed(6),stay:x.spot.stay||60,status:"ok",src:"base",anchor:"",addr:"",extra:x.spot.extra||null,day:0}];
   } else APP.pendingDest=q;
   APP.pendingStep=step; DRAFT.qsQ="";
   await newProject(title,patch);
@@ -6643,8 +6643,8 @@ window.addEventListener('scroll',queueJournalViewport,{passive:true});window.add
 <script src="shiori/assets/mobile-save.js?v=7"></script>
 <script src="booking/planner.js?v=7-budget-mobile"></script>
 <script src="booking/enhancements.js?v=7"></script>
-<script src="booking/photo-catalog.js?v=8"></script>
-<script src="booking/attraction-photos.js?v=8"></script>
+<script src="booking/photo-catalog.js?v=9"></script>
+<script src="booking/attraction-photos.js?v=9"></script>
 <script>
 boot();
 (async()=>{ try{ sample = window.claude? await window.claude.use("sample") : null; }catch(e){ sample=null } if(sample) render(); })();
