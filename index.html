@@ -1233,7 +1233,7 @@ svg.transport-icon{min-width:22px;min-height:22px}.sgi svg.transport-icon,.tl .t
 </section>
   <p class="foot" id="foot">人気順は、SNSでよく投稿・検索される定番スポットをもとにした参考順位です（Instagramのリアルタイムの投稿数ではありません）。車の移動時間は道路の経路から計算し、電車・バスの移動時間は距離からの目安です。実際の所要時間は各区間のリンク（電車・バスは「乗換案内」、車は「経路」）で確認してください。</p>
   <p class="foot">地図：<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">国土地理院</a>／場所・住所・ホテル情報：© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>（Nominatim・Overpass API）、国土地理院 地名検索／車の経路：<a href="https://project-osrm.org/" target="_blank" rel="noopener">OSRM</a>／宿泊・グルメ情報：楽天トラベル／ホットペッパー グルメ（取得できた場合）。観光地の写真：<a href="https://commons.wikimedia.org/" target="_blank" rel="noopener">Wikimedia Commons</a>（撮影者とライセンスは写真の上にマウスを置くか「詳細を見る」で表示）</p>
-  <footer class="sitefoot"><a href="privacy.html">プライバシーポリシー</a><span>地図：国土地理院／地図データ：© OpenStreetMap contributors／写真：Wikimedia Commons</span><span class="bver">v10 · 写真 national-v9</span></footer>
+  <footer class="sitefoot"><a href="privacy.html">プライバシーポリシー</a><span>地図：国土地理院／地図データ：© OpenStreetMap contributors／写真：Wikimedia Commons</span><span class="bver">v10 · 写真 photo-v10</span></footer>
 </div>
 
 <div class="navbar" id="navbar" hidden><div class="in">
@@ -3194,250 +3194,9 @@ async function walkRoutes(){
 }
 const walkFail={};
 
-/* ============ 写真（Wikipedia / Wikimedia Commons、APIキー不要） ============ */
-const IMGK="tabiroute-img-v9";
-try{ localStorage.removeItem("tabiroute-img-v1"); localStorage.removeItem("tabiroute-img-v2"); }catch(e){}
-let IMG={}; try{ IMG=JSON.parse(localStorage.getItem(IMGK)||"{}")||{}; }catch(e){ IMG={}; }
-const IMGREG={}, imgWait={}; let imgActive=0; const imgQueue=[]; let batchQ=new Set(), batchT=null; let saveImgT=null;
-function imgSave(){ clearTimeout(saveImgT); saveImgT=setTimeout(()=>{ try{ const ks=Object.keys(IMG); if(ks.length>500) ks.slice(0,ks.length-500).forEach(k=>delete IMG[k]); localStorage.setItem(IMGK,JSON.stringify(IMG)); }catch(e){} },300); }
-function imgKey(o){ return norm(o.name)+"@"+(o.lat!=null?(+o.lat).toFixed(3)+","+(+o.lng).toFixed(3):""); }
-function imgSlot(o,size){
-  if(!o||!o.name) return "";
-  const k=imgKey(o); IMGREG[k]={name:o.name,lat:o.lat,lng:o.lng,extra:o.extra||null,hotel:!!o.hotel||/hotel|guest_house|hostel|motel/.test(o.type||""),food:!!o.food||!!o.cuisine||!!o.meal};
-  const swap=/hero|card|pc|day/.test(size)?`<button type="button" class="ph-swap" data-nextimg="${esc(k)}" title="別の写真にする" aria-label="別の写真にする">⟳</button>`:"";
-  return `<div class="ph ph-${size}" data-imgkey="${esc(k)}" data-size="${size}">${phInner(k,size)}${swap}</div>`;
-}
-// Wikimediaは決められた幅（20,40,60,120,250,330,500,960…）以外の画像を拒否（429）するため、この幅だけを使う
-const WM_W=[120,250,330,500,960];
-function sizedUrl(u,w){ return String(u||"").replace(/\/(\d+)px-/,"/"+w+"px-"); }
-function origUrl(u){ return String(u||"").replace(/\/thumb(\/[0-9a-f]\/[0-9a-f]{2}\/[^/]+)\/\d+px-[^/]+$/,"$1"); }
-function phInner(k,size){
-  const r=IMG[k]; const o=IMGREG[k]||{};
-  if(r&&r.src){
-    const w = /hero|card|pc|day|pop/.test(size)?500 : 250;
-    return `<img src="${esc(sizedUrl(r.src,w))}" alt="${esc(o.name||"")}" loading="lazy" decoding="async" onload="this.classList.add('ok')" onerror="imgBroken(this)" title="${esc(creditText(r))}">${r.dish&&!/sm|thumb/.test(size)?`<span class="near">料理のイメージ</span>`:""}`;
-  }
-  const icon=o.hotel?ICON.bed:ICON.img;
-  if(r&&r.none) return /^(sm|thumb|nearcard)$/.test(size)?`<div class="phi">${icon}</div>`:`<div class="phi">${icon}${r.err?"写真を読み込めませんでした":"写真が見つかりませんでした"}<span><button type="button" class="linkbtn" style="font-size:11px;padding:0 4px" data-act="retryImg">再読み込み</button><a href="https://www.google.com/search?tbm=isch&q=${enc(o.name+" "+(S?S.pref:""))}" target="_blank" rel="noopener">写真を検索</a></span></div>`;
-  return `<div class="phi">${icon}${/hero|card|pc|day/.test(size)&&size!=="nearcard"?"写真を探しています…":""}</div>`;
-}
-// その場所の近くで撮られた写真の一覧（別の写真に切り替えるときに使う）
-async function altPhotos(k){
-  const o=IMGREG[k]; if(!o||o.lat==null) return [];
-  const r=IMG[k]; if(r&&r.alts) return r.alts;
-  try{
-    const j=await jget(CM+`action=query&generator=geosearch&ggscoord=${o.lat}|${o.lng}&ggsradius=${o.hotel||o.food?300:900}&ggslimit=30&ggsnamespace=6&prop=imageinfo&iiprop=url&iiurlwidth=500`);
-    const list=((j.query&&j.query.pages)||[]).map(p=>{ const ii=p.imageinfo&&p.imageinfo[0]; return ii?{file:p.title.replace(/^File:/,""),src:ii.thumburl||ii.url,page:"https://commons.wikimedia.org/wiki/"+enc(p.title)}:null; })
-      .filter(x=>x&&!BADIMG.test(x.file)&&!OLDIMG.test(x.file)&&/\.(jpe?g|png|webp)$/i.test(x.file));
-    if(r) { r.alts=list; imgSave(); }
-    return list;
-  }catch(e){ return []; }
-}
-async function nextPhoto(k){
-  const list=await altPhotos(k); if(!list.length){ toast("ほかの写真が見つかりませんでした"); return; }
-  const r=IMG[k]||{}; const cur=(r.ai==null?-1:r.ai); const ni=(cur+1)%list.length; const pick=list[ni];
-  IMG[k]={...r,src:pick.src,file:pick.file,page:pick.page,artist:"",license:"",lazyCredit:true,ai:ni,alts:list,none:false,near:true};
-  imgSave(); paintKey(k); const c=document.querySelector(`.credit[data-credit="${CSS.escape(k)}"]`); if(c) ensureCredit(k);
-}
-function imgBroken(el){
-  const ph=el.closest(".ph"); if(!ph) return; const k=ph.dataset.imgkey; const r=IMG[k];
-  // 読み込めないときは、別の標準サイズ → 元の画像 → ファイル名から の順に試す
-  if(r&&r.src){
-    // Keep a stable list. Rebuilding while excluding the current URL skipped fallback entries.
-    if(!el.photoFallbacks)el.photoFallbacks=[...new Set([sizedUrl(r.src,330),sizedUrl(r.src,250),r.orig||origUrl(r.src),r.file?"https://commons.wikimedia.org/wiki/Special:FilePath/"+enc(r.file)+"?width=500":null].filter(u=>u&&u!==el.src))];
-    const next=el.photoFallbacks.shift();if(next){el.src=next;return;}
-  }
-  imgFail++; if(imgFail>=6) imgNotice();
-  IMG[k]={none:true,t:Date.now(),err:true}; imgSave(); ph.innerHTML=phInner(k,ph.dataset.size);
-}
-let imgFail=0, imgNoticed=false;
-function imgNotice(){ if(imgNoticed) return; imgNoticed=true; toast("写真の読み込みに失敗しています。通信状態を確認して、しばらくしてから「写真を再読み込み」を押してください。"); }
-function retryImages(){ Object.keys(IMG).forEach(k=>{ if(IMG[k]&&IMG[k].none) delete IMG[k]; }); Object.keys(imgWait).forEach(k=>delete imgWait[k]); imgFail=0; imgNoticed=false; imgSave(); render(); }
-function creditText(r){ if(!r||!r.src) return ""; return "写真："+(r.artist||"Wikipedia / Wikimedia Commons")+(r.license?"（"+r.license+"）":""); }
-function creditHTML(r){ if(!r||!r.src) return ""; return `写真：${esc(r.artist||"確認中…")}${r.license?"（"+esc(r.license)+"）":""}　<a href="${esc(r.page)}" target="_blank" rel="noopener">出典・ライセンス</a>${r.dish?"　※料理のイメージ写真です":""}`; }
-function hydrateImages(){
-  document.querySelectorAll(".ph[data-imgkey]").forEach(el=>{
-    const k=el.dataset.imgkey, r=IMG[k];
-    const stale = r&&r.none&&(Date.now()-(r.t||0)>(r.err?60000:86400000));
-    if(!r||stale){ el.classList.add("loading"); imgRequest(k); }
-  });
-}
-function paintKey(k){
-  if(HOVER&&HOVER.k===k) HOVER.paint();
-  document.querySelectorAll(`.ph[data-imgkey="${CSS.escape(k)}"]`).forEach(el=>{ el.classList.remove("loading"); el.innerHTML=phInner(k,el.dataset.size); });
-  const c=document.querySelector(`.credit[data-credit="${CSS.escape(k)}"]`); if(c){ c.innerHTML=creditHTML(IMG[k]); if(IMG[k]&&IMG[k].lazyCredit) ensureCredit(k); }
-}
-// まとめて取得：名前でWikipediaの記事を最大50件ずつ一度に引く（1回の通信で多数の写真が決まる）
-function imgRequest(k){
-  if(imgWait[k]) return; imgWait[k]=true; batchQ.add(k);
-  clearTimeout(batchT); batchT=setTimeout(runBatch,40);
-}
-function titleCands(name){
-  const n=String(name).trim(); const out=[n];
-  const base=n.replace(/（.*?）|\(.*?\)/g,"").trim(); if(base&&base!==n) out.push(base);
-  const par=n.match(/（(.+?)）|\((.+?)\)/); if(par) out.push(par[1]||par[2]);
-  base.split(/[・\s　]+/).filter(x=>x.length>=2).sort((a,b)=>b.length-a.length).forEach(x=>out.push(x));
-  return [...new Set(out)].slice(0,4);
-}
-async function runBatch(){
-  const keys=[...batchQ]; batchQ.clear(); if(!keys.length) return;
-  const items=keys.map(k=>({k,o:IMGREG[k]})).filter(x=>x.o);
-  const direct=items.filter(x=>!x.o.hotel&&!x.o.food);
-  const titles=[...new Set(direct.flatMap(x=>titleCands(x.o.name)))];
-  const page={}; // 入力した題名 → ページ
-  for(let i=0;i<titles.length;i+=50){
-    const chunk=titles.slice(i,i+50);
-    try{
-      const j=await jget(WP+"action=query&redirects=1&prop=pageimages|coordinates&piprop=thumbnail|name&pithumbsize=500&pilicense=free&pilimit=50&colimit=50&titles="+enc(chunk.join("|")));
-      const q=j.query||{}; const map={}; chunk.forEach(t=>map[t]=t);
-      (q.normalized||[]).forEach(x=>{ Object.keys(map).forEach(t=>{ if(map[t]===x.from) map[t]=x.to; }); });
-      (q.redirects||[]).forEach(x=>{ Object.keys(map).forEach(t=>{ if(map[t]===x.from) map[t]=x.to; }); });
-      const byTitle={}; (q.pages||[]).forEach(p=>byTitle[p.title]=p);
-      chunk.forEach(t=>{ const p=byTitle[map[t]]; if(p&&!p.missing) page[t]=p; });
-    }catch(e){}
-  }
-  const rest=[];
-  items.forEach(({k,o})=>{
-    if(o.hotel||o.food){ rest.push(k); return; }
-    let hit=null;
-    let oldHit=null;
-    for(const t of titleCands(o.name)){
-      const p=page[t]; if(!p||!p.thumbnail||!p.pageimage||BADIMG.test(p.pageimage)) continue;
-      const c=p.coordinates&&p.coordinates[0];
-      if(c&&o.lat!=null&&hav({lat:c.lat,lng:c.lon},o)>8) continue; // 同名の別の場所
-      if(OLDIMG.test(p.pageimage)){ oldHit=oldHit||{p,t}; continue; } // 古い写真は後まわし
-      hit={p,t}; break;
-    }
-    if(!hit&&oldHit&&o.lat!=null){ rest.push(k); return; } // 近くの新しい写真を探す
-    if(!hit&&oldHit) hit=oldHit;
-    if(hit){
-      IMG[k]={src:hit.p.thumbnail.source,page:"https://ja.wikipedia.org/wiki/File:"+enc(hit.p.pageimage),file:hit.p.pageimage,artist:"",license:"",near:false,lazyCredit:true};
-      delete imgWait[k]; paintKey(k);
-    } else rest.push(k);
-  });
-  imgSave();
-  rest.forEach(k=>{ imgQueue.push(k); }); pumpImg();
-}
-let foodHideT;
-function pumpImg(){
-  while(imgActive<8&&imgQueue.length){
-    const k=imgQueue.shift(); imgActive++;
-    const wasFood=!!(IMGREG[k]&&IMGREG[k].food);
-    findImage(IMGREG[k]).then(r=>{ IMG[k]=r||{none:true,t:Date.now()}; }).catch(()=>{ /* 通信失敗時は保存せず、次回また試す */ })
-      .finally(()=>{ imgActive--; delete imgWait[k]; if(IMG[k]) imgSave(); paintKey(k);
-        // 料理の写真が見つからなかったお店は一覧から消す
-        if(wasFood&&IMG[k]&&IMG[k].none){ clearTimeout(foodHideT); foodHideT=setTimeout(()=>{ if(S&&S.step===5) render(); },400); }
-        pumpImg(); });
-  }
-}
-// 撮影者・ライセンスは「詳細を見る」を開いたときだけ取得（一覧を速くするため）
-async function ensureCredit(k){
-  const r=IMG[k]; if(!r||!r.src||!r.lazyCredit) return;
-  try{
-    const j=await jget(WP+"action=query&prop=imageinfo&iiprop=url|extmetadata&titles="+enc("File:"+r.file));
-    const p=j.query&&j.query.pages&&j.query.pages[0]; const ii=p&&p.imageinfo&&p.imageinfo[0];
-    if(ii){ const m=ii.extmetadata||{}; r.artist=stripHtml(m.Artist&&m.Artist.value)||"不明"; r.license=(m.LicenseShortName&&m.LicenseShortName.value)||""; r.page=ii.descriptionurl||r.page; r.orig=ii.url; r.lazyCredit=false; imgSave(); paintKey(k); }
-  }catch(e){}
-}
+/* Shared place-search API helper. Photo resolution lives in booking/photo-core.js. */
 const WP="https://ja.wikipedia.org/w/api.php?format=json&formatversion=2&origin=*&";
-const CM="https://commons.wikimedia.org/w/api.php?format=json&formatversion=2&origin=*&";
-async function jget(u){ const r=await fetchT(u,{},10000); if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); }
-const OLDIMG=/\b1[5-8]\d{2}\b|\b19[0-5]\d\b|eruption|噴火|明治\d|大正\d|昭和\d|戦前|絵葉書|絵はがき|postcard|monochrome|black.?and.?white|historic|Historic|古写真|浮世絵|ukiyo|engraving|lithograph/;
-const BADIMG=/\.svg$|\.gif$|map|Map|地図|位置|logo|Logo|Flag|flag|紋|Emblem|emblem|icon|Icon|diagram|平面図|路線図|location/;
-function stripHtml(h){ const d=document.createElement("div"); d.innerHTML=String(h||""); return (d.textContent||"").trim().replace(/\s+/g," ").slice(0,80); }
-function fromInfo(ii,title,near){
-  if(!ii) return null; const m=ii.extmetadata||{};
-  return {src:ii.thumburl||ii.url, orig:ii.url, page:ii.descriptionurl||("https://commons.wikimedia.org/wiki/"+enc(title)), artist:stripHtml(m.Artist&&m.Artist.value)||"", license:(m.LicenseShortName&&m.LicenseShortName.value)||"", near:!!near};
-}
-async function fileInfo(file,near){
-  const t=/^File:/i.test(file)?file:"File:"+file;
-  const j=await jget(CM+"action=query&prop=imageinfo&iiprop=url|extmetadata&iiurlwidth=500&titles="+enc(t));
-  const p=j.query&&j.query.pages&&j.query.pages[0]; return fromInfo(p&&p.imageinfo&&p.imageinfo[0],t,near);
-}
-async function wikiPageImage(title,lang="ja"){
-  const j=await jget(`https://${lang}.wikipedia.org/w/api.php?format=json&formatversion=2&origin=*&action=query&redirects=1&prop=pageimages&piprop=name&pilicense=free&titles=`+enc(title));
-  const p=j.query&&j.query.pages&&j.query.pages[0]; return p&&p.pageimage&&!BADIMG.test(p.pageimage)?p.pageimage:null;
-}
-// 一括取得で見つからなかったもの：Wikipedia検索 → Commonsの名前検索 の順に1件ずつ
-// 「その場所の写真」を最優先し、関係のない付近の写真は使わない
-function nameKeys(name){
-  const core=String(name).replace(/（.*?）|\(.*?\)/g,"").replace(/[・\s　]+/g," ").trim();
-  const out=[core];
-  const head=core.split(" ")[0]; if(head&&head!==core) out.push(head);
-  const strip=core.replace(/(店|本店|支店|通り|駅|前)$/,""); if(strip&&strip.length>=2) out.push(strip);
-  return [...new Set(out.filter(x=>x&&x.length>=2))];
-}
-function titleHit(title,name){
-  const t=norm(title); const keys=nameKeys(name).map(norm);
-  return keys.some(k=>k.length>=2&&t.includes(k));
-}
-// お店：何を食べる店かがわかる料理名（写真はこの料理で探す）
-const DISHW=/沖縄そば|ソーキそば|タコライス|ゴーヤーチャンプルー|ラーメン|つけ麺|中華そば|うどん|そば|蕎麦|寿司|鮨|天ぷら|とんかつ|かつ丼|カレー|海鮮丼|刺身|焼肉|焼き鳥|焼鳥|お好み焼き|たこ焼き|餃子|うなぎ|ひつまぶし|牛タン|牛たん|ちゃんぽん|皿うどん|きりたんぽ|ほうとう|もつ鍋|水炊き|チキン南蛮|冷や汁|鶏飯|馬刺し|とり天|だんご汁|芋煮|わんこそば|冷麺|じゃじゃ麺|味噌カツ|串カツ|湯豆腐|おばんざい|懐石|しゃぶしゃぶ|すき焼き|おでん|パフェ|ケーキ|パンケーキ|かき氷|ぜんざい|ソフトクリーム|唐揚げ|からあげ|ハンバーグ|ステーキ|オムライス|定食|丼|鍋/;
-const GENERIC=/^(飲食店|レストラン|食堂|ファストフード|バー|パブ|居酒屋)$/;
-function dishOf(f){
-  if(!f) return "";
-  const nm=String(f.name||"");
-  const m=nm.match(DISHW); if(m) return m[0];                                   // 店名に料理名が入っている
-  const sp=localFoods().find(k=>nm.includes(k)); if(sp) return sp;              // 店名にご当地の名物
-  const c=String(f.cuisine||"").split(/[・,\/]/)[0].trim();                      // OpenStreetMapの料理ジャンル
-  if(c&&!GENERIC.test(c)) return c;
-  if(f.local) return localFoods()[0]||"";                                        // 名物の店
-  return "";                                                                     // 何の店か分からないものは写真を出さない
-}
-// 料理の写真を出せるお店か（写真が無いものは一覧に出さない）
-function hasDish(f){
-  if(!f||!dishOf(f)) return false;
-  const r=IMG[imgKey({name:f.name,lat:f.lat,lng:f.lng})];
-  return !(r&&r.none);
-}
-async function commonsByName(q,wantFood,phrase){
-  const j=await jget(CM+"action=query&generator=search&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url|extmetadata|mime|size&iiurlwidth=500&gsrsearch="+enc(phrase?'"'+phrase+'" '+q:q));
-  const list=((j.query&&j.query.pages)||[]).sort((a,b)=>a.index-b.index)
-    .filter(p=>{ const ii=p.imageinfo&&p.imageinfo[0];
-      return ii&&/^image\/(jpeg|png|webp)$/.test(ii.mime)&&!BADIMG.test(p.title)&&!OLDIMG.test(p.title)&&ii.width>=400; });
-  if(!list.length) return null;
-  const land=list.filter(p=>p.imageinfo[0].width>=p.imageinfo[0].height);
-  const pick=(wantFood||phrase)?(land[0]||list[0]):(land.find(p=>titleHit(p.title,q))||list.find(p=>titleHit(p.title,q))||land[0]||list[0]);
-  return pick?{...fromInfo(pick.imageinfo[0],pick.title,false),title:pick.title,alts:list.map(p=>({file:p.title.replace(/^File:/,""),src:p.imageinfo[0].thumburl||p.imageinfo[0].url,page:p.imageinfo[0].descriptionurl}))}:null;
-}
-async function findImage(o){
-  if(!o) return null;
-  const e=o.extra||{};
-  if(e.commons){ const r=await fileInfo(e.commons); if(r) return r; }
-  if(e.wiki){ const m=e.wiki.match(/^(\w+):(.+)$/); if(m){ const f=await wikiPageImage(m[2],m[1]); if(f){ const r=await fileInfo(f); if(r) return r; } } }
-
-  // お店：その店の料理がわかる写真を、料理名でCommonsから探す
-  if(o.food){
-    const dish=dishOf(o);
-    if(!dish) return {none:true,t:Date.now()};
-    const r=await commonsByName(dish+" 料理",true)||await commonsByName(dish,true);
-    return r?{...r,dish:dish,lazyCredit:false}:{none:true,t:Date.now()};
-  }
-
-  const core=String(o.name).replace(/（.*?）|\(.*?\)/g,"").trim();
-  // 1) 日本語Wikipediaの記事（その場所そのものの代表写真）
-  try{
-    const j=await jget(WP+"action=query&generator=search&gsrnamespace=0&gsrlimit=5&prop=pageimages|coordinates&piprop=thumbnail|name&pithumbsize=500&pilicense=free&gsrsearch="+enc(core));
-    const pages=((j.query&&j.query.pages)||[]).sort((a,b)=>a.index-b.index);
-    for(const p of pages){
-      if(!p.pageimage||!p.thumbnail||BADIMG.test(p.pageimage)||OLDIMG.test(p.pageimage)) continue;
-      const c=p.coordinates&&p.coordinates[0];
-      // 記事名が短すぎる一般記事（例：「水族館」）に引っかからないようにする
-      const nameOk=titleHit(p.title,core)||(p.title.length>=core.length*0.6&&titleHit(core,p.title));
-      const posOk=c&&o.lat!=null ? hav({lat:c.lat,lng:c.lon},o) < (o.hotel?0.6:3) : false;
-      if(posOk||(nameOk&&(!c||o.lat==null)))
-        return {src:p.thumbnail.source,page:"https://ja.wikipedia.org/wiki/File:"+enc(p.pageimage),file:p.pageimage,artist:"",license:"",near:false,lazyCredit:true};
-    }
-  }catch(err){}
-  // 2) Commonsを「その場所の名前」の完全一致で検索
-  //    （説明文に名前がそのまま入っている写真＝その場所の写真なので、記事がない場所でも当たる）
-  const area=(o.city||cityLabel()||S.pref||"");
-  for(const q of [area, ""]){
-    try{ const r=await commonsByName(q,false,core); if(r) return {...r,lazyCredit:false}; }catch(err){}
-  }
-  // 3) 名前で見つからなければ写真なし（関係のない付近の写真は出さない）
-  return {none:true,t:Date.now()};
-}
+async function jget(u){const r=await fetchT(u,{},10000);if(!r.ok)throw Error("HTTP "+r.status);return r.json();}
 
 /* ============ 食事（朝・昼・夜） ============ */
 const MEALS=["朝","昼","休憩","夜"];
@@ -6637,14 +6396,14 @@ window.addEventListener('scroll',queueJournalViewport,{passive:true});window.add
 
 </script>
 <script src="booking/config.js?v=8"></script>
+<script src="booking/photo-core.js?v=10"></script>
+<script src="booking/attraction-photos.js?v=10"></script>
 <script src="booking/client.js?v=7-budget-mobile"></script>
 <script src="booking/itinerary.js?v=7-budget-mobile"></script>
 <script src="booking/planner-core.js?v=7-budget-mobile"></script>
 <script src="shiori/assets/mobile-save.js?v=7"></script>
 <script src="booking/planner.js?v=7-budget-mobile"></script>
 <script src="booking/enhancements.js?v=7"></script>
-<script src="booking/photo-catalog.js?v=9"></script>
-<script src="booking/attraction-photos.js?v=9"></script>
 <script>
 boot();
 (async()=>{ try{ sample = window.claude? await window.claude.use("sample") : null; }catch(e){ sample=null } if(sample) render(); })();
