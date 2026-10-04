@@ -1,0 +1,9 @@
+(()=>{const C=TabiroutePhotoCore,transport=C.transport(),resolver=C.resolver({api:transport.api});let until=0;
+ document.querySelector('#test').onsubmit=async e=>{e.preventDefault();const out=document.querySelector('#result'),preview=document.querySelector('#preview'),button=e.target.querySelector('button');if(Date.now()<until){out.textContent='再試行まで約'+Math.ceil((until-Date.now())/1000)+'秒お待ちください。';return;}button.disabled=true;preview.replaceChildren();out.textContent='場所と写真を確認しています…';
+ try{const p=C.place({name:document.querySelector('#name').value,lat:document.querySelector('#lat').value,lng:document.querySelector('#lng').value,wiki:document.querySelector('#wiki').value});let data;const base=String(window.TABIROUTE_BOOKING?.apiBase||'').replace(/\/$/,'');
+ if(base){const r=await fetch(base+'/photos?'+new URLSearchParams(p),{signal:AbortSignal.timeout(55000)});data=await r.json();if(!r.ok||!data.ok)throw C.fail(data.code||'provider_unavailable',C.retrySeconds(r.headers.get('Retry-After')||data.retryAfter));}else data=await resolver.resolve(p);
+ const labels={ready:'写真取得成功',missing:'確認できる公開写真が未登録',unverified:'場所の特定が必要'};out.textContent=JSON.stringify({方式:base?'Worker経由':'ブラウザー直接取得',version:data.version,状態:labels[data.status],場所:data.identity,共有キャッシュ:!!data.cached,前回の成功結果:!!data.stale,写真候補:data.photos?.length||0},null,2);
+ if(data.status==='ready'){const p=data.photos[0],im=new Image();im.alt=document.querySelector('#name').value;im.src=p.src;await im.decode();const a=document.createElement('a');a.href=p.page;a.target='_blank';a.rel='noopener';a.textContent=p.artist+' · '+p.license;preview.append(im,a);}
+ }catch(e){until=Date.now()+(e.retryAfter||60)*1000;out.textContent=JSON.stringify({状態:'取得を完了できませんでした',理由:e.code||'image_or_network_error',再試行まで秒:e.retryAfter||60,案内:e.code==='not_found'?'Workerをv10へ更新してください。':'写真未登録とは区別しています。表示された時間を空けて再確認してください。'},null,2);}finally{button.disabled=false;}
+ };
+})();
