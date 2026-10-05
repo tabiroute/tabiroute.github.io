@@ -2,7 +2,8 @@
 PLAN_KEYS.push('stopRules','stayRules','visitOrder','mealOmissions');
 const plannerRule=id=>S.stopRules?.[id]||{};
 const plannerStay=i=>({checkin:'15:00',checkinEnd:'23:00',checkout:'10:00',inMinutes:15,outMinutes:15,bagMinutes:15,luggage:'carry',burden:30,...S.stayRules?.[i]});
-const plannerSame=(a,b)=>a&&b&&!a.area&&!b.area&&((bookingID(a)&&bookingID(a)===bookingID(b))||(a.name===b.name&&hav(a,b)<0.1));
+// 宿が未定（エリアの目安）のときは、同じエリアなら連泊とみなす。片方だけ未定なら別の宿として扱う。
+const plannerSame=(a,b)=>!!(a&&b)&&(a.area||b.area?(!!a.area&&!!b.area&&hav(a,b)<0.1):((bookingID(a)&&bookingID(a)===bookingID(b))||(a.name===b.name&&hav(a,b)<0.1)));
 const plannerOldOrder=orderPath;
 orderPath=function(A,B,arr){if(!['near','far'].includes(S.visitOrder))return plannerOldOrder(A,B,arr);return arr.slice().sort((a,b)=>(hav(A,a)-hav(A,b))*(S.visitOrder==='far'?-1:1));};
 const plannerReservationDay=r=>r.date?Math.round((Date.parse(r.date+'T12:00:00Z')-Date.parse(bookingISO(dayDate(0))+'T12:00:00Z'))/86400000):Number(r.day)||0;
@@ -26,8 +27,8 @@ schedule=function(H,seq,hasLunchRest,from,t0,to,di=0){
  if(changing&&pr.luggage==='previous')luggage={drop:prev,retrieve:prev,duration:+pr.bagMinutes};
  else if(tonight&&nr.luggage==='next'&&(!prev||changing))luggage={drop:tonight,duration:+nr.bagMinutes};
  const meals=MEALS.filter(m=>(m!=='休憩'||S.cafeDays?.[di])&&!seq.some(s=>s.meal===m)&&!S.mealOmissions?.[di+'|'+m]).map(m=>({missing:true,id:'missing-'+di+'-'+m,meal:m,target:m==='朝'?Math.max(start,8*60):m==='昼'?12*60:m==='休憩'?15*60:17*60+30,stay:m==='朝'?30:m==='休憩'?45:60}));
- const active=meals.filter(m=>(m.meal!=='朝'||start<10*60)&&(m.meal!=='夜'||di<nNights()||end>=18*60));
- const r=TravelPlanner.calculate({seq,rules:S.stopRules,date:bookingISO(dayDate(di)),start,end,from:a,to:z,pace:paceK(),buffer:paceBuf(),route:(a,b)=>hav(a,b)<0.01?{min:0,km:0,mode:'walk'}:leg(a,b),checkout,checkin,luggage,endAtLast:di===S.days-1&&!to?.tripHub,meals:dt.off?[]:active});
+ const active=meals.filter(m=>(m.meal!=='朝'||start<10*60)&&(m.meal!=='夜'||di<nNights()||end>=19*60));
+ const r=TravelPlanner.calculate({seq,rules:S.stopRules,date:bookingISO(dayDate(di)),start,end,from:a,to:z,pace:paceK(),buffer:paceBuf(),route:(a,b)=>hav(a,b)<0.01?{min:0,km:0,mode:'walk'}:leg(a,b),checkout,checkin,luggage,endAtLast:di===S.days-1&&!to?.tripHub,eveningAfterEnd:di<nNights()&&!to?.tripHub,meals:dt.off?[]:active});
  for(const m of meals.filter(m=>!active.includes(m)))r.items.splice(m.meal==='朝'?1:r.items.length-1,0,{type:'missingMeal',t:m.meal==='朝'?start:r.t,meal:m.meal,dur:0,outside:true});
  return r;
 };
@@ -63,18 +64,21 @@ stepHotel=function(){return plannerOldHotel()+plannerHotelForm();};
 const plannerOldResult=stepResult;
 stepResult=function(){return `<div class="planner-order"><label>観光地を回る順序<select id="plannerOrder"><option value="auto" ${!S.visitOrder||S.visitOrder==='auto'?'selected':''}>移動を少なくする</option><option value="far" ${S.visitOrder==='far'?'selected':''}>出発地から遠いところから</option><option value="near" ${S.visitOrder==='near'?'selected':''}>出発地から近いところから</option></select></label><p class="note">各日の出発地からの距離で並べます。営業時間と固定予約を優先するため、順序が変わる場合があります。</p></div>`+plannerOldResult();};
 function plannerSimulate(mutate){const state={stopRules:S.stopRules,dayOf:S.dayOf,manualOrd:S.manualOrd};S.stopRules=JSON.parse(JSON.stringify(S.stopRules||{}));S.dayOf={...S.dayOf};S.manualOrd={...S.manualOrd};try{mutate();return buildPlan();}finally{Object.assign(S,state);bookingRouteMemo=null;}}
-const plannerSuggestions=new Map();
+const plannerSuggestions=new Map(),plannerProposalMemo=new Map();
 function plannerProblems(d){
  const unknown=d.ord.filter(s=>!plannerRule(s.id).hours).length;
  let h=`<div class="planner-status">${unknown?`<p class="note">営業時間未確認：${unknown}か所。営業時間・休館日の設定欄で確認できます。</p>`:''}`;
  if(d.issues?.length){h+=`<div class="banner warn"><div><b>予定の調整が必要です</b><ul>${d.issues.map(x=>`<li>${esc(x.message)}</li>`).join('')}</ul></div></div>`;
  const score=p=>p.days.reduce((v,x)=>v+(x.overMinutes||0)+(x.issues||[]).filter(i=>i.code!=='overrun').reduce((v,i)=>v+Math.max(60,i.short||0),0),0);
  const base=score(window.__plan),candidates=d.ord.filter(s=>!plannerRule(s.id).fixed&&!s.meal).sort((a,b)=>(plannerRule(a.id).priority||2)-(plannerRule(b.id).priority||2)).slice(0,3);
- const proposals=[];
+ const memoKey=(typeof bookingRouteSignature==='function'?bookingRouteSignature():'')+'|'+JSON.stringify([S.mealOmissions,S.dayOf,S.manualOrd,d.di]);
+ let proposals=plannerProposalMemo.get(memoKey);
+ if(!proposals){proposals=[];
  for(const s of candidates){const r=plannerRule(s.id),dur=r.duration||Math.round(s.stay*paceK()/5)*5;
  if(dur>30){const duration=Math.max(30,dur-30),p=plannerSimulate(()=>{S.stopRules[s.id]={...r,duration};});if(score(p)<base)proposals.push({label:`${s.name}の滞在を${duration}分にする`,id:s.id,duration,improvement:base-score(p),over:p.days[d.di].overMinutes});}
- for(let i=0;i<S.days;i++){if(i===d.di||dayTime(i).off)continue;const p=plannerSimulate(()=>{S.dayOf[s.id]=i;delete S.manualOrd[i];delete S.manualOrd[d.di];});if(score(p)<base&&p.days[i].ord.some(x=>x.id===s.id)&&!p.days[i].issues.length){proposals.push({label:`${s.name}を${i+1}日目へ移す`,id:s.id,day:i,over:p.days[d.di].overMinutes});break;}}
+ for(let i=0;i<S.days;i++){if(i===d.di||dayTime(i).off)continue;const p=plannerSimulate(()=>{S.dayOf[s.id]=i;delete S.manualOrd[i];delete S.manualOrd[d.di];});if(score(p)<base&&p.days[i].ord.some(x=>x.id===s.id)&&!p.days[i].issues.length){proposals.push({label:`${s.name}を${i+1}日目へ移す`,id:s.id,day:i,from:d.di,over:p.days[d.di].overMinutes});break;}}
  }
+ if(plannerProposalMemo.size>40)plannerProposalMemo.clear();plannerProposalMemo.set(memoKey,proposals);}
  h+='<div class="planner-proposals">'+proposals.slice(0,4).map((p,i)=>{const k=d.di+'-'+i;plannerSuggestions.set(k,{...p,project:APP.pid});return `<button type="button" class="btn small" data-pl-apply="${k}">${esc(p.label)}（この日の超過 ${p.over||0}分）</button>`;}).join('')+'</div>';
  const late=d.issues.find(x=>x.code==='reservation-late');if(late)h+=`<p class="note">予約前に削る候補：${candidates.map(s=>esc(s.name)).join('、')||'変更可能な観光地がありません'}。予約に不足する時間は${late.short}分です。営業時間・予約の設定から滞在時間を調整できます。</p>`;
  if(!proposals.length)h+='<p class="note">自動で提案できる改善案がありません。終了時刻や観光地の数を見直してください。予約は動かしていません。</p>';
@@ -99,7 +103,7 @@ document.addEventListener('change',e=>{
 });
 document.addEventListener('click',e=>{
  const t=e.target.closest('[data-pl-apply],[data-pl-omit],[data-pl-restore]');if(!t)return;
- if(t.dataset.plApply){const p=plannerSuggestions.get(t.dataset.plApply);if(!p||p.project!==APP.pid||plannerRule(p.id).fixed)return;const r=plannerRule(p.id);if(p.duration)S.stopRules={...S.stopRules,[p.id]:{...r,duration:p.duration}};else{S.dayOf={...S.dayOf,[p.id]:p.day};S.manualOrd={};}plannerCommit();}
+ if(t.dataset.plApply){const p=plannerSuggestions.get(t.dataset.plApply);if(!p||p.project!==APP.pid||plannerRule(p.id).fixed)return;const r=plannerRule(p.id);if(p.duration)S.stopRules={...S.stopRules,[p.id]:{...r,duration:p.duration}};else{S.dayOf={...S.dayOf,[p.id]:p.day};S.manualOrd={...S.manualOrd};delete S.manualOrd[p.day];delete S.manualOrd[p.from];}plannerCommit();}
  if(t.dataset.plOmit){S.mealOmissions={...S.mealOmissions,[t.dataset.plOmit]:true};plannerCommit();}
  if(t.dataset.plRestore){S.mealOmissions={...S.mealOmissions};delete S.mealOmissions[t.dataset.plRestore];plannerCommit();}
 });

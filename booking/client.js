@@ -24,7 +24,7 @@ const BookingAPI=(()=>{
       try{r=await fetch(url,{credentials:'omit',signal:AbortSignal.timeout(12000)});}
       catch{write('pause-'+scope,Date.now()+300000);throw error('network',300);}
       try{j=await r.json();}catch{write('pause-'+scope,Date.now()+300000);throw error(r.status===429?'provider_limited':'network',300);}
-      if(!r.ok||j.ok!==true){const seconds=Math.min(3600,Math.max(60,Number(j.retryAfter)||Number(r.headers.get('Retry-After'))||300));if((r.status>=500||r.status===429||r.status===403)&&j.code!=='booking_links_not_configured')write('pause-'+scope,Date.now()+seconds*1000);throw error(j.code||'unavailable',seconds);}
+      if(!r.ok||j.ok!==true){const seconds=Math.min(3600,Math.max(60,[j.retryAfter,r.headers.get('Retry-After')].map(Number).find(n=>Number.isFinite(n)&&n>0)||300));if((r.status>=500||r.status===429||r.status===403)&&j.code!=='booking_links_not_configured')write('pause-'+scope,Date.now()+seconds*1000);throw error(j.code||'unavailable',seconds);}
       if(!Array.isArray(j.items)||!Number.isFinite(j.expiresAt))throw error('unavailable');
       for(const[k,v]of memory)if(v.expiresAt<=Date.now())memory.delete(k);if(memory.size>=35)memory.delete(memory.keys().next().value);memory.set(url,j);write('cache-v7-'+url,j);
       // Keep the tab cache bounded and remove expired API data, including Recruit data.
@@ -96,7 +96,11 @@ function jalanHotelURL(name){
   return 'https://www.jalan.net/uw/uwp2011/uww2011init.do?distCd=06&rootCd=7701&screenId=FWPCTOP&keyword='+bookingEncodeSJIS(name||cityLabel()||S.pref);
 }
 function bookingJalanURL(h){const u=bookingSafeURL(bookingMedia(h).jalanUrl);try{if(u&&new URL(u).hostname==='www.jalan.net')return u;}catch{}return jalanHotelURL(h?.name);}
-function bookingHotelLinks(h){return `<div class="booking-actions"><a class="btn small" href="${esc(bookingHotelURL(h))}" target="_blank" rel="noopener">${h?.rkPlanURL||h?.rkURL||h?.url?'楽天で空室・宿泊プランを確認':'楽天でホテルを探す'}</a><a class="btn small ghost" href="${esc(bookingJalanURL(h))}" target="_blank" rel="noopener">じゃらんで探す</a><button type="button" class="btn small ghost" data-bk-copy="${esc(h?.name||'')}">宿泊条件をコピー</button></div><p class="note">直接開く場合は予約サイトで日程・人数を確認してください。じゃらんは施設を選び直す場合があります。</p>`;}
+// 楽天のアフィリエイトリンク（hb.afl.rakuten.co.jp）は【広告】と表示し、rel="sponsored" を付ける（ステマ規制・Google のリンク指針）。
+function bookingIsAd(u){try{return /(^|\.)afl\.rakuten\.co\.jp$/.test(new URL(u).hostname)}catch{return false}}
+function bookingRel(u){return bookingIsAd(u)?'noopener sponsored':'noopener'}
+function bookingAdLabel(u){return bookingIsAd(u)?'【広告】':''}
+function bookingHotelLinks(h){const hu=bookingHotelURL(h);return `<div class="booking-actions"><a class="btn small" href="${esc(hu)}" target="_blank" rel="${bookingRel(hu)}">${bookingAdLabel(hu)}${h?.rkPlanURL||h?.rkURL||h?.url?'楽天で空室・宿泊プランを確認':'楽天でホテルを探す'}</a><a class="btn small ghost" href="${esc(bookingJalanURL(h))}" target="_blank" rel="noopener">じゃらんで探す</a><button type="button" class="btn small ghost" data-bk-copy="${esc(h?.name||'')}">宿泊条件をコピー</button></div><p class="note">直接開く場合は予約サイトで日程・人数を確認してください。じゃらんは施設を選び直す場合があります。</p>`;}
 function hpSearchURL(q){return 'https://www.hotpepper.jp/CSP/psh010/doBasic?keyword='+enc(q||cityLabel()||S.pref);}
 function hpURL(f){const u=bookingSafeURL(f?.hpURL);try{if(u&&['www.hotpepper.jp','hotpepper.jp','hpr.jp'].includes(new URL(u).hostname))return u;}catch{}return hpSearchURL([f?.name,cityLabel()||S.pref].filter(Boolean).join(' '));}
 function bookingPhoto(o,size){
@@ -151,7 +155,7 @@ function bookingHotelCard(h,i){
   return `<article class="booking-card"><div class="booking-card-top">${bookingPhoto({...h,hotel:true},'card')}<div><span class="booking-eyebrow">STAY / 楽天トラベル</span><h3>${esc(h.name)}</h3><p class="note">${esc(h.addr||'')}</p>${h.apiExpiresAt>Date.now()&&h.rate?rateBadge(h.rate,h.cnt,'楽天トラベル'):''}<p class="note">${esc(h.access||'')}</p></div></div>
     <div class="booking-actions"><button type="button" class="btn primary" data-bk-availability="${esc(h.hotelNo)}" ${!BookingAPI.configured()||!bookingValid(c)||c.children||(current&&(a.busy||a.code==='booking_links_not_configured'))?'disabled':''}>${current&&a.busy?'空室を確認中…':'この条件で宿泊プランを見る'}</button><button type="button" class="btn ${picked?'primary':''}" data-bk-pick="${i}">${picked?'✓ 予定に追加済み':'この宿を予定に追加'}</button></div>
     ${current&&a.message?`<p class="booking-notice" role="status">${esc(a.message)}</p>`:''}
-    ${fresh?`<div class="booking-plans"><p class="note">${esc(bookingConditionText())}<br>${new Date(a.data.fetchedAt).toLocaleTimeString('ja-JP')}取得。料金・最終的な空室は楽天で確認してください。</p>${a.data.items.map(p=>`<a class="booking-plan" href="${esc(bookingSafeURL(p.url))}" target="_blank" rel="noopener"><b>${esc(p.name)}</b><span>${esc(p.room)} → 楽天で確認</span></a>`).join('')}${!a.data.items.length?`<p class="note">${esc(bookingAvailabilityMessage(a.data))}</p>`:''}</div>`:''}
+    ${fresh?`<div class="booking-plans"><p class="note">${esc(bookingConditionText())}<br>${new Date(a.data.fetchedAt).toLocaleTimeString('ja-JP')}取得。料金・最終的な空室は楽天で確認してください。</p>${a.data.items.map(p=>{const pu=bookingSafeURL(p.url);return `<a class="booking-plan" href="${esc(pu)}" target="_blank" rel="${bookingRel(pu)}"><b>${esc(p.name)}</b><span>${esc(p.room)} → ${bookingAdLabel(pu)}楽天で確認</span></a>`}).join('')}${!a.data.items.length?`<p class="note">${esc(bookingAvailabilityMessage(a.data))}</p>`:''}</div>`:''}
     ${bookingHotelLinks(fresh&&a.data.facilityUrl?{...h,rkPlanURL:a.data.facilityUrl}:h)}</article>`;
 }
 function stepHotel(){

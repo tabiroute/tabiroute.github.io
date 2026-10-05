@@ -1,4 +1,6 @@
 /* Shared resolver, used unchanged by the browser and the Worker. No per-place files/catalogue. */
+// iOS 15 以前の Safari には AbortSignal.timeout が無く、fetch の前に例外になるため補う。
+if(typeof AbortSignal!=='undefined'&&typeof AbortSignal.timeout!=='function'&&typeof AbortController==='function')AbortSignal.timeout=ms=>{const c=new AbortController();setTimeout(()=>{try{c.abort(new DOMException('signal timed out','TimeoutError'))}catch{c.abort()}},ms);return c.signal};
 (function(root){'use strict';
 const VERSION='photo-v10',DAY=86400000;
 const HOSTS={wiki:'https://ja.wikipedia.org/w/api.php',data:'https://www.wikidata.org/w/api.php',commons:'https://commons.wikimedia.org/w/api.php'};
