@@ -1,7 +1,7 @@
 /* v6: explicit constraints, protected reservations and editable recovery proposals. */
 PLAN_KEYS.push('stopRules','stayRules','visitOrder','mealOmissions');
 const plannerRule=id=>S.stopRules?.[id]||{};
-const plannerStay=i=>({checkin:'15:00',checkinEnd:'23:00',checkout:'10:00',inMinutes:15,outMinutes:15,bagMinutes:15,luggage:'carry',burden:30,...S.stayRules?.[i]});
+const plannerStay=i=>({checkin:'15:00',checkinEnd:'23:00',checkout:'10:00',inMinutes:15,outMinutes:15,bagMinutes:15,luggage:'carry',...S.stayRules?.[i],burden:0});
 // 宿が未定（エリアの目安）のときは、同じエリアなら連泊とみなす。片方だけ未定なら別の宿として扱う。
 const plannerSame=(a,b)=>!!(a&&b)&&(a.area||b.area?(!!a.area&&!!b.area&&hav(a,b)<0.1):((bookingID(a)&&bookingID(a)===bookingID(b))||(a.name===b.name&&hav(a,b)<0.1)));
 const plannerOldOrder=orderPath;
@@ -27,9 +27,14 @@ schedule=function(H,seq,hasLunchRest,from,t0,to,di=0){
  if(changing&&pr.luggage==='previous')luggage={drop:prev,retrieve:prev,duration:+pr.bagMinutes};
  else if(tonight&&nr.luggage==='next'&&(!prev||changing))luggage={drop:tonight,duration:+nr.bagMinutes};
  const meals=MEALS.filter(m=>(m!=='休憩'||S.cafeDays?.[di])&&!seq.some(s=>s.meal===m)&&!S.mealOmissions?.[di+'|'+m]).map(m=>({missing:true,id:'missing-'+di+'-'+m,meal:m,target:m==='朝'?Math.max(start,8*60):m==='昼'?12*60:m==='休憩'?15*60:17*60+30,stay:m==='朝'?30:m==='休憩'?45:60}));
- const active=meals.filter(m=>(m.meal!=='朝'||start<10*60)&&(m.meal!=='夜'||di<nNights()||end>=19*60));
+ // 食事の枠を観光の予定に入れる条件。朝食は10時より前に始まる日だけ。
+ // 昼食・夕食は、その時間帯に観光しているときだけ入れる（到着が夕方なら昼食は行きの移動中に回す）。
+ const active=meals.filter(m=>m.meal==='朝'?start<10*60:m.meal==='昼'?(start<=13*60+30&&end>=12*60+30):m.meal==='休憩'?(start<=15*60+30&&end>=16*60):(start<=20*60&&(di<nNights()||end>=19*60)));
+ globalThis.ODPT_DAYKEY=bookingISO(dayDate(di)); // その日の時刻表の結果だけを使う（booking/odpt.js）
  const r=TravelPlanner.calculate({seq,rules:S.stopRules,date:bookingISO(dayDate(di)),start,end,from:a,to:z,pace:paceK(),buffer:paceBuf(),route:(a,b)=>hav(a,b)<0.01?{min:0,km:0,mode:'walk'}:leg(a,b),checkout,checkin,luggage,endAtLast:di===S.days-1&&!to?.tripHub,eveningAfterEnd:di<nNights()&&!to?.tripHub,meals:dt.off?[]:active});
- for(const m of meals.filter(m=>!active.includes(m)))r.items.splice(m.meal==='朝'?1:r.items.length-1,0,{type:'missingMeal',t:m.meal==='朝'?start:r.t,meal:m.meal,dur:0,outside:true});
+ globalThis.ODPT_DAYKEY=null;
+ // 観光の時間に入らなかった昼食・夕食は、行き・帰りの移動中（空港・乗り換え・長い乗車）に置けるか、あとで確かめる
+ r.travelMeals=dt.off?[]:meals.filter(m=>!active.includes(m)&&(m.meal==='昼'||m.meal==='夜')).map(m=>m.meal);
  return r;
 };
 function plannerItemHTML(it,d){
@@ -57,7 +62,7 @@ stepWish=function(){return plannerOldWish()+plannerRulesHTML(plannerBaseStops())
 function plannerHotelForm(){
  if(!nNights())return '';const i=bookingNightIndex(),r=plannerStay(i);
  const inp=(k,l,type)=>`<label>${l}<input data-pl-stay="${i}" data-field="${k}" type="${type}" value="${esc(r[k])}" ${type==='number'?'min="0" max="180" step="5"':''}></label>`;
- return `<details class="planner-panel"><summary>${S.hotelSplit?`${i+1}泊目`:'各泊共通'}のチェックイン・荷物の時間</summary><div class="planner-fields">${inp('checkin','チェックイン受付開始','time')}${inp('checkinEnd','受付終了','time')}${inp('checkout','チェックアウト期限','time')}${inp('inMinutes','チェックイン所要時間（分）','number')}${inp('outMinutes','チェックアウト所要時間（分）','number')}${inp('bagMinutes','荷物の預け・受取（各・分）','number')}${inp('burden','ホテル変更時の荷造り・持ち運び負担（分）','number')}<label>荷物の扱い<select data-pl-stay="${i}" data-field="luggage">${[['carry','持ち歩く'],['next','次の宿に先に預ける'],['previous','前の宿に預けて観光後に受け取る']].map(([v,l])=>`<option value="${v}" ${r.luggage===v?'selected':''}>${l}</option>`).join('')}</select></label></div><p class="note">初期値は所要時間の目安です。受付時刻と荷物預かりの可否は宿に確認してください。連泊中はチェックアウト・チェックインを繰り返しません。</p></details>`;
+ return `<details class="planner-panel"><summary>${S.hotelSplit?`${i+1}泊目`:'各泊共通'}のチェックイン・荷物の時間</summary><div class="planner-fields">${inp('checkin','チェックイン受付開始','time')}${inp('checkinEnd','受付終了','time')}${inp('checkout','チェックアウト期限','time')}${inp('inMinutes','チェックイン所要時間（分）','number')}${inp('outMinutes','チェックアウト所要時間（分）','number')}${inp('bagMinutes','荷物の預け・受取（各・分）','number')}<label>荷物の扱い<select data-pl-stay="${i}" data-field="luggage">${[['carry','持ち歩く'],['next','次の宿に先に預ける'],['previous','前の宿に預けて観光後に受け取る']].map(([v,l])=>`<option value="${v}" ${r.luggage===v?'selected':''}>${l}</option>`).join('')}</select></label></div><p class="note">初期値は所要時間の目安です。受付時刻と荷物預かりの可否は宿に確認してください。連泊中はチェックアウト・チェックインを繰り返しません。</p></details>`;
 }
 const plannerOldHotel=stepHotel;
 stepHotel=function(){return plannerOldHotel()+plannerHotelForm();};
@@ -193,8 +198,7 @@ function plannerCompareHTML(kind){const r=ROUTE_UI[kind];if(!r?.items.length)ret
 const plannerFoodUI=stepFood;stepFood=function(){return plannerFoodUI()+plannerCompareHTML('food');};
 const plannerHotelUI=stepHotel;stepHotel=function(){return plannerHotelUI()+plannerCompareHTML('hotel');};
 document.addEventListener('click',e=>{const t=e.target.closest('[data-pl-compare]');if(t)plannerCompare(t.dataset.plCompare);});
-const plannerPreviousStayAdvice=bookingStayAdvice;
-bookingStayAdvice=function(){const c=bookingStayComparison();if(!c)return '';const burden=Array.from({length:Math.max(0,nNights()-1)},(_,i)=>+plannerStay(i).outMinutes+ +plannerStay(i+1).inMinutes+ +plannerStay(i+1).burden).reduce((a,b)=>a+b,0);return plannerPreviousStayAdvice()+`<p class="booking-stay-advice">ホテルを毎晩変えると、荷造り・受付・荷物の持ち運びに合計${burden}分を見込みます。実経路比較では前泊のホテルも候補に含め、移動の短縮より手間が大きい場合は連泊が上位になります。</p>`;};
+// （以前の「ホテルを毎晩変えると…合計◯分」の説明は、泊まり方の選択欄にまとめた）
 // Failed route services must never cause an endless render/retry loop.
 osrmRoutes=async function(){
  const plan=window.__plan,state=S;if(!plan||busy.osrm)return;const todo=[];
@@ -207,3 +211,32 @@ const plannerSearchFood=bookingRouteFoodSearch;
 bookingRouteFoodSearch=async function(query=''){await plannerSearchFood(query);if(!query&&S.step===5)await plannerCompare('food');};
 const plannerSearchHotel=bookingRouteHotelSearch;
 bookingRouteHotelSearch=async function(query=''){await plannerSearchHotel(query);if(!query&&S.step===6)await plannerCompare('hotel');};
+
+// 行き・帰りの移動中の食事（例：到着が夕方の日の昼食を、出発空港で）。
+const PLANNER_MEAL_WINDOW={'昼':[11*60,14*60+30,45],'夜':[17*60+30,20*60+30,60]};
+function plannerTravelMeal(list,meal,di){
+ const [w0,w1,dur]=PLANNER_MEAL_WINDOW[meal];let best=null;
+ list.forEach((it,i)=>{
+  let a,b,place,how,pref=0;
+  if(it.type==='trip'&&it.seg?.flight){a=it.t;b=it.t+(it.seg.chk||(typeof FLY_CHK!=='undefined'?FLY_CHK:60));place=String(it.seg.from||'空港');how='空港で（搭乗前に）';pref=30;}
+  else if(it.type==='xfer'&&it.min>=25){a=it.t;b=it.t+it.min;place=it.place||'乗り換え駅';how='乗り換えの合間に';pref=10;}
+  else if(it.type==='trip'&&it.seg&&!it.seg.flight&&it.seg.min>=60&&!/car|drive/.test(it.seg.kind||'')){a=it.t;b=it.t+it.seg.min;place=it.seg.line||'車内';how='車内で（駅弁など）';}
+  else return;
+  const s0=Math.max(a,w0),ov=Math.min(b,w1)-s0;if(ov<20)return;
+  const score=ov+pref;if(!best||score>best.score)best={score,i,t:s0,dur:Math.min(dur,Math.max(20,ov)),place,how};
+ });
+ if(!best)return false;
+ list.splice(best.i,0,{type:'tripmeal',t:best.t,meal,dur:best.dur,place:best.place,how:best.how,di});return true;
+}
+function plannerTravelMeals(out,r){
+ for(const meal of r?.travelMeals||[]){
+  if(S.mealOmissions?.[out.di+'|'+meal])continue;
+  const lists=[out.tripOut,out.tripBack].filter(Array.isArray);
+  for(const list of lists)if(plannerTravelMeal(list,meal,out.di))break;
+ }
+}
+const plannerOldTripItem=tripItemHTML;
+tripItemHTML=function(it,trip,di){
+ if(it.type!=='tripmeal')return plannerOldTripItem(it,trip,di);
+ return `<li class="trip planner-event"><div class="t">${m2t(it.t)}</div><div class="stop" style="--c:var(--hot)"><div class="nm"><span class="pill meal">${esc(MEALNAME[it.meal])}</span>${esc(it.place)}で${esc(MEALNAME[it.meal])}</div><div class="sm">${esc(it.how)}・約${it.dur}分。移動の合間にとる想定です。</div><button class="linkbtn" data-pl-omit="${it.di}|${it.meal}">この食事は不要</button></div></li>`;
+};

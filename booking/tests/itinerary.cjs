@@ -26,7 +26,7 @@ const server=http.createServer((req,res)=>{const url=new URL(req.url,'http://loc
   assert.equal(calls.length,0,'initial question does not request APIs');
   assert.equal(await page.locator('#routeFoodSearch').count(),0);
   await page.click('[data-route-food="undecided"]');await page.waitForFunction(()=>!ROUTE_UI.foodBusy);
-  assert.equal(calls.length,1);assert(await page.locator('.booking-local').isVisible());
+  assert.equal(calls.length,1);assert(await page.locator('.pref-chips').isVisible());
   assert(/清水寺|八坂神社/.test(await page.locator('.booking-route').innerText()));
   assert.equal(await page.locator('.booking-card h3').textContent(),shop.name);
   await page.evaluate(()=>window.scrollTo(0,0));await page.screenshot({path:path.join(root,'booking/docs/route-food-mobile.png'),fullPage:true});
@@ -75,7 +75,7 @@ const server=http.createServer((req,res)=>{const url=new URL(req.url,'http://loc
   await page.evaluate(()=>bookingRouteFoodSearch('限度テスト'));await page.waitForFunction(()=>!ROUTE_UI.foodBusy);
   assert(/混み合っています|一時休止/.test(await page.locator('.booking-notice').innerText()));
   const limited=calls.length;await page.evaluate(()=>bookingRouteFoodSearch('二度目'));await page.waitForFunction(()=>!ROUTE_UI.foodBusy);assert.equal(calls.length,limited);
-  assert(await page.locator('.booking-local').isVisible());assert(await page.locator('a[href*="hotpepper.jp/CSP"]').count());
+  assert(await page.locator('.pref-chips').isVisible());assert(await page.locator('a[href*="hotpepper.jp/CSP"]').count());
   await page.evaluate(()=>{BOOKING_CFG.apiBase='';S.step=6;S.hotelSplit=false;render();});await page.click('[data-route-refresh-stay]');await page.waitForFunction(()=>!ROUTE_UI.hotelBusy);
   assert((await page.locator('.booking-notice').innerText()).includes('予約サイト'));
   assert(await page.locator('.booking-route').isVisible());

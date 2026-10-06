@@ -68,7 +68,7 @@ function bookingRouteHTML(c,hotel=false){
   return `<div class="booking-route"><span class="booking-eyebrow">${hotel?'STAY LOCATION':'YOUR ROUTE'}</span><h3>${hotel?'観光のつながりから、泊まるエリアを提案':'この時間帯の観光ルート'}</h3>${pairs.map(p=>`<div class="booking-route-line">${hotel?`<small>${p.night+1}泊目</small>`:''}<span>${esc(p.before?.name||'出発地周辺')}</span><b>${hotel?'宿泊':'食事'}</b><span>${esc(p.after?.name||'次の予定まで')}</span></div>`).join('')}${!c.hasSights?'<p class="note">観光地がまだ選ばれていません。先に行きたい場所を選ぶと、回る順序に沿って提案できます。</p><button class="btn small" type="button" data-go="4">観光地を選ぶ</button>':`<p class="note">${hotel?'当日の最後と翌日の最初の観光地への移動を考慮します。同じ宿に連泊する場合は全泊分を比較します。':'前後の観光地と予定時刻から検索地点を決め、寄り道の少なさと地域の料理で候補を並べます。'} 距離は直線距離の目安です。</p>`}</div>`;
 }
 function bookingDaySelect(){return `<label class="booking-day-label">食事を決める日<select data-route-day>${Array.from({length:S.days||1},(_,i)=>`<option value="${i}" ${i===bookingFoodDay()?'selected':''}>${i+1}日目 · ${esc(fmtDay(dayDate(i)))}</option>`).join('')}</select></label><div class="chips booking-meal-tabs">${MEALS.map(m=>`<button type="button" class="chip" data-route-slot="${m}" aria-pressed="${bookingFoodSlot()===m}">${MEALNAME[m]}</button>`).join('')}</div>`;}
-function bookingMealDecision(){return S.mealDecisions?.[bookingFoodDay()+'|'+bookingFoodSlot()]||'';}
+function bookingMealDecision(){const m=S.mealDecisions?.[bookingFoodDay()+'|'+bookingFoodSlot()]||'';return m==='direction'?'undecided':m;}
 function bookingDecisionHTML(kind,mode){const food=kind==='food';return `<div class="choices two booking-decisions"><button type="button" class="choice" data-route-${kind}="decided" aria-pressed="${mode==='decided'}"><div class="booking-choice-icon"><img src="img/${food?'ic-food-decided':'ic-hotel'}.png" alt="" width="80" height="80"></div><div><b>決まっている</b><span>${food?'お店の名前を入れる':'ホテル名を入れる'}</span></div></button><button type="button" class="choice" data-route-${kind}="undecided" aria-pressed="${mode==='undecided'}"><div class="booking-choice-icon"><img src="img/${food?'ic-food-undecided':'ic-hotel-undecided'}.png" alt="" width="80" height="80"></div><div><b>まだ決まっていない</b><span>${food?'観光ルートとご当地の食事から選ぶ':'観光の順序からおすすめを選ぶ'}</span></div></button></div>`;}
 // 日にち「おまかせ」(day:0) のお店は、計算済みの予定表で入った日を使う（以前はどの日にも数えられず「未定」のままだった）。
 function bookingFoodDayOf(w){if(S.dayOf&&S.dayOf[w.id]!=null&&S.dayOf[w.id]!=='')return Number(S.dayOf[w.id]);if(Number(w.day)>0)return Number(w.day)-1;const d=window.__plan?.days?.find(d=>(d.ord||[]).some(s=>s.id===w.id));return d?d.di:-1;}
@@ -120,9 +120,12 @@ function bookingStayComparison(plan=bookingRoutePlan()){
   const same=pairs.reduce((sum,p)=>sum+distance(common,p),0),split=rows.reduce((sum,p)=>sum+distance(p.center,p),0),gain=Math.max(0,same-split);
   return {common,rows,same,split,gain,recommend:gain>=12&&gain/Math.max(1,same)>=0.15};
 }
+// 泊まり方（連泊か、泊ごとに変えるか）を、2つのボタンで選ぶ。おすすめと理由を1行で添える。
 function bookingStayAdvice(){
-  const c=bookingStayComparison();if(!c)return '';
-  return `<aside class="booking-stay-advice"><h3>${c.recommend?'泊ごとにエリアを変えると、移動を減らせそうです':'連泊と、泊ごとのホテル変更を選べます'}</h3><p>${c.recommend?`同じエリアに連泊する場合と比べて、宿と観光地の往復が合計約${Math.round(c.gain)}km少なくなる目安です。`:'今の観光順序では、宿泊エリアを分ける大きな距離のメリットは見込まれていません。荷物の移動を減らしたい場合は連泊が便利です。'}</p>${c.recommend?`<p>${c.rows.map(p=>`${p.night+1}泊目：${esc(p.center.name)}周辺`).join(' ／ ')}</p>`:''}<p class="note">観光地の位置と直線距離で比較した目安です。道路・交通時間、宿の空室・料金、荷物の持ち運びやチェックインの手間も合わせて選んでください。</p>${c.recommend&&!S.hotelSplit?'<button type="button" class="btn" data-route-split="1">泊ごとにホテルを選ぶ</button>':''}</aside>`;
+  const c=bookingStayComparison();
+  const rec=c?.recommend,why=rec?`泊ごとに宿のエリアを変えると、宿と観光地の行き来が約${Math.round(c.gain)}km短くなります。`:'宿のエリアを分けても移動はあまり短くならないので、荷物の移動がない連泊がおすすめです。';
+  const opt=(v,title,sub,on)=>`<button type="button" class="stay-opt" data-route-split="${v}" aria-pressed="${on}"><b>${title}${(v==='1')===!!rec?'<span class="stay-rec">おすすめ</span>':''}</b><small>${sub}</small></button>`;
+  return `<div class="stay-plan"><p class="stay-plan-h">泊まり方</p><div class="stay-opts">${opt('0','同じホテルに連泊','荷物を置いたまま観光できる',!S.hotelSplit)}${opt('1','泊ごとにホテルを選ぶ','日ごとの観光地の近くに泊まれる',!!S.hotelSplit)}</div>${c?`<p class="stay-why">${esc(why)}${rec?`<br><small>${c.rows.map(p=>`${p.night+1}泊目：${esc(p.center.name)}周辺`).join(' ／ ')}</small>`:''}</p>`:''}</div>`;
 }
 function bookingSetSplit(split){
   bookingCommitDates();S.hotelSplit=split;S.bookingNight=0;NIGHTAREA=null;
@@ -138,7 +141,7 @@ stepHotel=function(){
   const mode=bookingStayDecision(),c=bookingStayContext(),r=ROUTE_UI.hotel,valid=r?.key===bookingStayKey(c),fresh=valid&&r.expiresAt>Date.now();
   let h=`<section class="panel booking-panel booking-flow">${head(6,'宿泊場所は決まっていますか？','未定の場合は、観光の終わりと翌日の始まりをつなぐ宿を提案します。')}${bookingStaySelections()}${bookingDecisionHTML('stay',mode)}`;
   if(!mode)return h+'<p class="note">どちらかを選んでください。未定のまま予定表を作ることもできます。</p></section>';
-  if(nNights()>1)h+=bookingStayAdvice()+`<div class="chips booking-meal-tabs"><button type="button" class="chip" data-route-split="0" aria-pressed="${!S.hotelSplit}">全部同じホテル</button><button type="button" class="chip" data-route-split="1" aria-pressed="${!!S.hotelSplit}">泊ごとに変える</button></div>`;
+  if(nNights()>1)h+=bookingStayAdvice();
   if(S.hotelSplit)h+=`<label class="booking-day-label">宿泊日<select data-route-night>${Array.from({length:nNights()},(_,i)=>`<option value="${i}" ${i===c.ni?'selected':''}>${i+1}泊目 · ${esc(fmtDay(new Date(bookingAddDays(bookingDateState().startDate,i)+'T12:00:00')))}</option>`).join('')}</select></label>`;
   if(mode==='undecided')h+=`${bookingRouteHTML(c,true)}<p class="booking-area"><b>おすすめの検索エリア</b><span>${esc(c.center.name||'観光地')} 周辺</span></p><button type="button" class="btn primary" data-route-refresh-stay ${ROUTE_UI.hotelBusy?'disabled':''}>${ROUTE_UI.hotelBusy?'候補を確認中…':'観光ルートに合うホテルを見る'}</button>`;
   h+=`<details class="booking-conditions" ${ROUTE_UI.conditionsOpen?'open':''}><summary>宿泊条件：${esc(bookingConditionText())} <span>変更する</span></summary>${bookingHotelFields()}</details>`;

@@ -28,3 +28,78 @@
 @media(max-width:600px){.planner-panel,.planner-status{padding:12px}.planner-event .btn{white-space:normal;text-align:left}.planner-fields{grid-template-columns:1fr}.planner-order select{width:100%}}
 .planner-photo-block{width:110px;flex:none;min-width:0}.planner-photo-block .booking-photo{width:100%}.planner-photo-tools .linkbtn{font-size:11px;padding:4px 0}.planner-photo-tools summary{font-size:10px;cursor:pointer}.planner-photo-tools input{width:100%;font-size:12px}
 .budget-editor{margin:20px 0;padding:18px;border:1px solid #bed2ed;background:#f2f7ff;border-radius:16px}.budget-editor>label{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;color:#214570;font-weight:600}.budget-editor input[type=number]{width:130px;max-width:100%;padding:10px;border:1px solid #abc4e2;border-radius:10px;background:white}.budget-check{display:flex;align-items:center;gap:9px;font-size:14px;margin:12px 0}.budget-check input{width:18px;height:18px;accent-color:#245b98}.budget-status{font-size:13px;color:#24568b;background:#eef5ff;border-radius:8px;padding:9px 12px}.food-choices{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:20px 0}.food-choices .choice{display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;padding:18px 10px;background:#f5f9ff;border:1px solid #c7d9ee;border-radius:16px;color:#214570;min-width:0}.food-choices .choice[aria-pressed=true]{background:#e2efff;border:2px solid #2c639f}.food-choices .choice span{font-size:12px;line-height:1.6}.food-choices .choice img{object-fit:contain}.booking-search input{min-width:0}.external-login{max-width:520px;margin:auto}.external-login textarea{width:100%;box-sizing:border-box;min-height:90px;font-size:13px}.external-login .btn{margin:8px 0;white-space:normal}@media(max-width:520px){.food-choices{gap:7px}.food-choices .choice{padding:13px 6px}.food-choices .choice b{font-size:13px}.food-choices .choice img{width:46px;height:46px}.budget-editor{padding:14px}.budget-editor>label{font-size:14px}}
+/* v8: 食事・宿の希望と予算を、1つの小さな欄にまとめる */
+.sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.food-choices.two{grid-template-columns:repeat(2,minmax(0,1fr))}
+.pref-bar{margin:16px 0;padding:12px 14px;border:1px solid #c7d9ee;background:#f5f9ff;border-radius:14px}
+.pref-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.pref-row .pref-q{flex:1 1 220px;min-width:0;margin:0}
+.pref-row .pref-q input{width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #abc4e2;border-radius:10px;background:#fff;font:inherit}
+.pref-row select{padding:10px 8px;border:1px solid #abc4e2;border-radius:10px;background:#fff;font:inherit;color:#163d70;max-width:100%}
+.pref-row .btn{flex:none;margin:0}.pref-row .pref-check{margin:0}
+.pref-label{font-size:13px;font-weight:700;color:#214570}
+.pref-chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:10px}
+.pref-chips>span{font-size:12px;color:#5b6f86;margin-right:2px}
+.pref-chips .chip{padding:5px 10px;font-size:12px}
+.pref-check{display:inline-flex;align-items:center;gap:6px;margin:8px 0 0;font-size:12px;color:#425a74}
+.pref-check input{width:16px;height:16px;accent-color:#245b98}
+.pref-hint{margin:6px 0 0;font-size:11.5px;color:#5b6f86;line-height:1.6}
+.stay-plan{margin:16px 0;padding:12px 14px;border:1px solid #c7d9ee;background:#f5f9ff;border-radius:14px}
+.stay-plan-h{margin:0 0 8px;font-size:13px;font-weight:700;color:#214570}
+.stay-opts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stay-opt{display:flex;flex-direction:column;gap:3px;align-items:flex-start;text-align:left;padding:10px 12px;border:1px solid #c7d9ee;border-radius:12px;background:#fff;color:#214570;cursor:pointer;font:inherit}
+.stay-opt b{font-size:14px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.stay-opt small{font-size:11.5px;color:#5b6f86}
+.stay-opt[aria-pressed=true]{border:2px solid #2c639f;background:#e8f2ff;padding:9px 11px}
+.stay-rec{font-size:10.5px;font-weight:700;color:#fff;background:#e0644f;border-radius:999px;padding:1px 7px}
+.stay-why{margin:8px 0 0;font-size:12px;color:#425a74;line-height:1.6}
+@media(max-width:520px){.pref-row .pref-q{flex-basis:100%}.pref-row select{flex:1 1 auto}.stay-opts{grid-template-columns:1fr}}
+/* v9: 公共交通オープンデータ（飛行機の便・電車の時刻） */
+/* v10：遠くへの移動（飛行機・新幹線）と、時刻の登録 */
+.odpt-ports{display:flex;align-items:flex-end;gap:8px;flex-wrap:wrap;margin:10px 0 4px}
+.odpt-ports label{display:flex;flex-direction:column;gap:4px;flex:1 1 130px;min-width:0;font-size:12px;font-weight:700;color:var(--muted)}
+.odpt-ports select{padding:9px 8px;border:1px solid var(--line);border-radius:10px;background:var(--surface);font:inherit;font-weight:400;color:var(--ink);width:100%}
+.odpt-arrow{padding-bottom:10px;color:var(--muted)}
+.odpt-flights{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:6px}
+.odpt-fl{display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding:7px 9px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);font:inherit;cursor:pointer;text-align:left;min-height:44px}
+.odpt-fl b{font-size:14px}.odpt-fl small{font-size:11px;color:var(--muted)}
+.odpt-fl[aria-pressed=true]{border:2px solid var(--accent);background:var(--accent-soft);padding:6px 8px}
+.odpt-credit{margin:10px 0 0;font-size:11px;color:var(--muted);line-height:1.5}
+.odpt-leg{display:block;font-size:12px;color:var(--muted);margin:2px 0}
+.odpt-src{display:inline-block;font-size:10.5px;color:var(--muted);margin-left:4px}
+.pill.est{background:transparent;color:var(--warn);border:1px dashed var(--warn);padding:0 8px}
+.ride-cards{display:grid;gap:10px;margin-top:10px}
+@media (min-width:720px){.ride-cards{grid-template-columns:1fr 1fr}}
+.ride-card{border:1px solid var(--line);border-radius:14px;padding:12px;background:var(--surface);min-width:0}
+.ride-hd{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.ride-hd b{font-size:15px;color:var(--ink)}
+.ride-route{font-size:13px;color:var(--ink);margin:0 0 6px}
+.ride-hd .ride-route{margin:0}
+.ride-state{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:8px 0;font-size:14px}
+.ride-est{font-size:13px;color:var(--muted)}
+.ride-sub{font-size:12px;color:var(--muted);margin:6px 0 4px}
+.ride-acts{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px}
+.ride-ocr{position:relative;overflow:hidden;cursor:pointer}
+.ride-ocr svg{width:16px;height:16px;margin-right:4px;vertical-align:-3px}
+.ride-ocr input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:0}
+.ride-links{display:flex;gap:4px 12px;flex-wrap:wrap;align-items:center;margin-top:10px;font-size:13px}
+.ride-links span{font-size:12px;color:var(--muted)}
+.ridereg{display:flex;gap:6px 12px;flex-wrap:wrap;align-items:center;margin-top:8px;font-size:13px}
+.fixno{font-size:13px;margin-left:4px}
+.conflegend{display:flex;gap:4px 6px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--muted);margin:8px 0}
+.conflegend span:not(.pill){margin-right:10px}
+.rreg-ocr{margin:12px 0;padding:10px 12px;border-radius:12px;background:var(--surface-2)}
+.rreg-ocr>small{display:block;font-size:11.5px;color:var(--muted);margin-top:6px}
+.rreg-ocr .status{margin:8px 0 0}
+.rreg-times{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:8px}
+.rreg-times>span{width:100%;font-size:12px;color:var(--muted)}
+.rreg-form{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
+.rreg-form label{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:700;color:var(--muted)}
+.rreg-form input{flex:none;height:auto;padding:10px;border:1px solid var(--line);border-radius:10px;font:inherit;font-size:16px;background:var(--surface);color:var(--ink);min-width:0;width:100%;box-sizing:border-box}
+.rreg-tm{display:flex;align-items:flex-end;gap:8px}
+.rreg-tm label{flex:1;min-width:0}
+.rreg-tm>span{padding-bottom:12px;color:var(--muted)}
+.rreg-tm label.on input{border:2px solid var(--accent);padding:9px}
+.rreg-btns{justify-content:flex-end;margin-top:14px;gap:8px}
+.rreg-ocr .btn.ghost{background:var(--surface);border:1px solid var(--line)}
+.ride-ocr.is-off{opacity:.5;pointer-events:none}

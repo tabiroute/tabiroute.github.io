@@ -30,9 +30,9 @@ function calculate(o){
  if(o.checkout&&anchors[0]?.s.missing&&anchors[0].s.meal==='朝'&&anchors[0].target<=t+30){const a=anchors.shift();wait(a.target,'朝食の時間まで');items.push({type:'missingMeal',t,meal:'朝',dur:a.s.stay});t+=a.s.stay;}
  if(o.checkout){if(t+o.checkout.duration>o.checkout.latest)issue(null,'checkout','チェックアウト期限に'+Math.ceil(t+o.checkout.duration-o.checkout.latest)+'分間に合いません',t+o.checkout.duration-o.checkout.latest);service('チェックアウト・荷物整理',o.checkout.duration,prev);}
  if(o.luggage?.drop){travel(o.luggage.drop);service('荷物を預ける（受付可否を宿に確認）',o.luggage.duration,o.luggage.drop);}
- // 食事（予約なし）の時刻には幅を持たせる。昼食は最大90分、休憩・夕食は60分まで後ろにずらして、
+ // 食事（予約なし）の時刻には幅を持たせる。昼食・夕食は最大120分（14時・19時半ごろまで）、休憩は60分まで後ろにずらして、
  // 午前の観光を入れられるようにする（以前は12時までに終わらない観光を昼食後に回し、午前が空いていた）。
- const SLACK={'朝':0,'昼':90,'休憩':60,'夜':60};
+ const SLACK={'朝':0,'昼':120,'休憩':60,'夜':120};
  function place(s,fixedTime){
   const r=rules[s.id]||{},dur=duration(s),l=o.route(prev,s),arrival=t+l.min+(l.min||l.km?o.buffer:0),av=availability(r,o.date,arrival,dur);
   if(fixedTime===undefined&&!av.ok){issue(s,'closed',s.name+'：'+av.reason,av.short);items.push({type:'excluded',t,label:s.name+'：'+av.reason,s});return;}

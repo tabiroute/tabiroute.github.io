@@ -47,7 +47,9 @@ function transport({fetcher=(...a)=>fetch(...a),store=memoryStore(),now=Date.now
   const pending=chain.catch(()=>{}).then(async()=>{
    if((pauses.get(host)||0)>now())throw fail('provider_limited',Math.ceil((pauses.get(host)-now())/1000));
    const wait=Math.max(0,gap-(now()-last));if(wait)await new Promise(r=>setTimeout(r,wait));last=now();
-   let r,j;try{r=await fetcher(u.href,{headers,signal:AbortSignal.timeout(9000),redirect:'error'});}catch{throw fail('provider_unavailable');}
+   // Cloudflare Workers は redirect:'error' を受け付けない（例外になり、写真が全件「通信エラー」になっていた）。manual で受けて転送は断る。
+   let r,j;try{r=await fetcher(u.href,{headers,signal:AbortSignal.timeout(9000),redirect:'manual'});}catch{throw fail('provider_unavailable');}
+   if(r.type==='opaqueredirect'||(r.status>=300&&r.status<400))throw fail('provider_bad_response',300);
    if(r.status===429||r.status===503){const retry=retrySeconds(r.headers.get('Retry-After'),now());pauses.set(host,now()+retry*1000);throw fail('provider_limited',retry);}
    if(!r.ok)throw fail(r.status===403?'provider_denied':'provider_unavailable',r.status===403?300:60);
    try{j=await r.json();}catch{throw fail('provider_bad_response');}

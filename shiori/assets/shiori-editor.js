@@ -333,24 +333,54 @@ $('reset').onclick=()=>{if(!confirm('現在のしおりを初期化しますか�
 /* ---------- PDF・PNG 保存 ---------- */
 let exportBusy=false;
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
+// 紙の質感（細かいノイズ）。テンプレートは SVG フィルターの背景画像で描いているが、
+// iPhone の Safari では SVG を画像として描くとキャンバスが「汚染」され、保存時に SecurityError になる。
+// 書き出しのときだけ、同じ雰囲気のノイズを自前のキャンバスで描く。
+let noiseTile=null;
+function paperNoise(){if(noiseTile)return noiseTile;const c=document.createElement('canvas');c.width=c.height=180;const ctx=c.getContext('2d'),img=ctx.createImageData(180,180);let seed=20261005;const rnd=()=>(seed=(seed*1664525+1013904223)>>>0)/4294967296;for(let i=0;i<img.data.length;i+=4){const v=rnd()*255|0;img.data[i]=v;img.data[i+1]=(v+rnd()*60)%255|0;img.data[i+2]=(v+rnd()*60)%255|0;img.data[i+3]=Math.round(66*rnd());}ctx.putImageData(img,0,0);noiseTile=c;return c}
 async function capturePage(pg,width=1440){
  await document.fonts.ready;await Promise.all([...pg.querySelectorAll('img')].map(im=>im.decode().catch(()=>{})));
  const bounds=pg.getBoundingClientRect(),scale=width/bounds.width,made=[];
- const photos=[...pg.querySelectorAll('.photo-hit img')];photos.forEach((im,i)=>im.dataset.cap=i);
+ // 画像はすべて、こちらで書き出す大きさのキャンバスに描いてから渡す（html2canvas に画像を読み込ませない）
+ const imgs=[...pg.querySelectorAll('img')];imgs.forEach((im,i)=>im.dataset.cap=i);
+ const W=Math.round(bounds.width*scale),H=Math.round(bounds.height*scale);
  let canvas=null;
  try{
- canvas=await html2canvas(pg,{scale,backgroundColor:null,logging:false,imageTimeout:20000,
+ canvas=await html2canvas(pg,{scale,backgroundColor:null,logging:false,imageTimeout:20000,useCORS:false,allowTaint:false,
   // ほかのページや編集用の画面は複製しない（スマホのメモリ不足対策）
   ignoreElements:el=>(el.classList?.contains('page')&&el!==pg)||el.tagName==='DIALOG'||el.id==='syncNote',
   onclone:doc=>{
   doc.body.classList.add('exporting');doc.querySelectorAll('.page-controls,.photo-hit .empty').forEach(el=>el.style.display='none');
+  // html2canvas は ::before/::after を複製時に実体の要素に置き換えるので、その背景画像（SVG のノイズ）を外す
+  const st=doc.createElement('style');st.textContent='.page:after,.page:before{background-image:none!important}';doc.head.append(st);
+  doc.querySelectorAll('html2canvaspseudoelement').forEach(el=>{if(/url\(/.test(el.style.backgroundImage||''))el.style.backgroundImage='none'});
   doc.querySelectorAll('select.transport').forEach(el=>{const span=doc.createElement('span');span.className=el.className;span.textContent=el.value;el.replaceWith(span)});
-  // 写真は書き出す大きさで切り抜いて描く（背景画像として拡大すると、ぼやけてメモリも多く使う）
-  doc.querySelectorAll('.photo-hit img').forEach(im=>{const src=photos[+im.dataset.cap];if(!src||!src.naturalWidth){im.remove();return}const w=Math.max(1,Math.round((src.offsetWidth||src.getBoundingClientRect().width)*scale)),h=Math.max(1,Math.round((src.offsetHeight||src.getBoundingClientRect().height)*scale)),cv=doc.createElement('canvas');cv.width=w;cv.height=h;made.push(cv);const ctx=cv.getContext('2d'),[px,py]=String(src.style.objectPosition||'50% 50%').split(' ').map(v=>parseFloat(v)/100),s=Math.max(w/src.naturalWidth,h/src.naturalHeight),dw=src.naturalWidth*s,dh=src.naturalHeight*s;ctx.drawImage(src,(w-dw)*(Number.isFinite(px)?px:.5),(h-dh)*(Number.isFinite(py)?py:.5),dw,dh);cv.style.cssText='display:block;width:100%;height:100%';im.replaceWith(cv)});
+  doc.querySelectorAll('img').forEach(im=>{
+   const src=imgs[+im.dataset.cap];if(!src||!src.naturalWidth){im.remove();return}
+   const cv=doc.createElement('canvas');made.push(cv);
+   if(src.closest('.photo-hit')){
+    // 写真：枠の大きさで、object-fit:cover と同じ切り抜き
+    const w=Math.max(1,Math.round((src.offsetWidth||1)*scale)),h=Math.max(1,Math.round((src.offsetHeight||1)*scale));cv.width=w;cv.height=h;
+    const ctx=cv.getContext('2d'),[px,py]=String(src.style.objectPosition||'50% 50%').split(' ').map(v=>parseFloat(v)/100),k=Math.max(w/src.naturalWidth,h/src.naturalHeight),dw=src.naturalWidth*k,dh=src.naturalHeight*k;
+    ctx.drawImage(src,(w-dw)*(Number.isFinite(px)?px:.5),(h-dh)*(Number.isFinite(py)?py:.5),dw,dh);
+    cv.style.cssText='display:block;width:100%;height:100%';
+   }else{
+    // 飾りの絵：はみ出し部分を切り取る窓（親の枠）ごと描く
+    const box=src.parentElement,w=Math.max(1,Math.round(box.clientWidth*scale)),h=Math.max(1,Math.round(box.clientHeight*scale));cv.width=w;cv.height=h;
+    let x=src.offsetLeft,y=src.offsetTop,iw=src.offsetWidth,ih=src.offsetHeight;if(src.offsetParent!==box){const pr=box.getBoundingClientRect(),ir=src.getBoundingClientRect(),f=box.clientWidth/(pr.width||1);x=(ir.left-pr.left)*f;y=(ir.top-pr.top)*f;iw=ir.width*f;ih=ir.height*f;}
+    cv.getContext('2d').drawImage(src,x*scale,y*scale,iw*scale,ih*scale);
+    cv.style.cssText='position:absolute;left:0;top:0;width:100%;height:100%;display:block';
+   }
+   im.replaceWith(cv);
+  });
+  // 紙の質感
+  const page=doc.querySelector('.page');if(page){const n=doc.createElement('canvas');made.push(n);n.width=Math.max(1,Math.round(W/2));n.height=Math.max(1,Math.round(H/2));const ctx=n.getContext('2d');ctx.fillStyle=ctx.createPattern(paperNoise(),'repeat');ctx.fillRect(0,0,n.width,n.height);n.style.cssText='position:absolute;inset:0;width:100%;height:100%;z-index:5;pointer-events:none;opacity:.22';page.append(n);}
   doc.querySelectorAll('.field').forEach(el=>{const div=doc.createElement('div');div.className=el.className;div.style.cssText=el.style.cssText;div.textContent=el.value;div.style.whiteSpace='pre-wrap';div.style.wordBreak='break-word';el.replaceWith(div)});
  }});
+ // 書き出せる状態か（汚染されていないか）を、ここで確かめる
+ try{canvas.getContext('2d').getImageData(0,0,1,1)}catch(e){throw Object.assign(Error('画像の安全確認に失敗しました（'+(e?.name||'')+'）'),{name:e?.name||'SecurityError'})}
  const out=canvas;canvas=null;return out;
- }finally{releaseCanvas(canvas);made.forEach(releaseCanvas);photos.forEach(im=>delete im.dataset.cap)}
+ }finally{releaseCanvas(canvas);made.forEach(releaseCanvas);imgs.forEach(im=>delete im.dataset.cap)}
 }
 // うまくいかないときは、解像度を下げてやり直す（iPhone の Safari はキャンバスの合計メモリに上限がある）
 async function captureWithRetry(pg,widths){let last;for(const w of widths){try{return await capturePage(pg,w)}catch(e){last=e;console.warn('capture',w,e);await wait(250)}}throw last}

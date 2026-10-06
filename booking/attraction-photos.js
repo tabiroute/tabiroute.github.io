@@ -4,13 +4,13 @@ const PHOTO_META='tabiroute-photo-meta-v10',PHOTO_BYTES='tabiroute-photo-bytes-v
 const photoMeta=new Map();try{for(const [k,v]of JSON.parse(localStorage.getItem(PHOTO_META)||'[]'))if(v.staleUntil>Date.now())photoMeta.set(k,v);}catch{}
 let metaSave;const photoStore={async get(k){return photoMeta.get(k)||null;},async set(k,v){photoMeta.delete(k);photoMeta.set(k,v);while(photoMeta.size>180)photoMeta.delete(photoMeta.keys().next().value);clearTimeout(metaSave);metaSave=setTimeout(()=>{try{localStorage.setItem(PHOTO_META,JSON.stringify([...photoMeta]));}catch{}},200);},async delete(k){photoMeta.delete(k);}};
 const directTransport=PHOTO_CORE.transport({store:photoStore}),directResolver=PHOTO_CORE.resolver({api:directTransport.api,store:photoStore});
-let photoWorkerUnsupported=false,photoWorkerPause=0,photoActive=0,photoRetryTimer=0;const photoJobs=[],photoURLs=new Map();
+let photoWorkerBrokenUntil=0,photoWorkerUnsupported=false,photoWorkerPause=0,photoActive=0,photoRetryTimer=0;const photoJobs=[],photoURLs=new Map();
 function imgKey(o){try{return PHOTO_CORE.key(PHOTO_CORE.place(o));}catch{return norm(o?.name)+'@'+(o?.lat??'')+','+(o?.lng??'');}}
 function photoBase(){try{const u=new URL(window.TABIROUTE_BOOKING?.apiBase||'');return ['https:','http:'].includes(u.protocol)&&!u.username&&!u.password?u.href.replace(/\/$/,''):'';}catch{return '';}}
 function photoInput(o){return {...o,pref:o.pref||S?.pref||''};}
 async function photoResolve(o,force=false){
  const p=PHOTO_CORE.place(photoInput(o)),base=photoBase(),k='worker:'+base+':'+PHOTO_CORE.key(p),old=await photoStore.get(k);
- if(base&&!photoWorkerUnsupported){
+ if(base&&!photoWorkerUnsupported&&photoWorkerBrokenUntil<Date.now()){
   if(!force&&old?.until>Date.now())return {...old.data,cached:true};
   try{
    if(photoWorkerPause>Date.now())throw PHOTO_CORE.fail('provider_limited',Math.ceil((photoWorkerPause-Date.now())/1000));
@@ -25,16 +25,25 @@ async function photoResolve(o,force=false){
     if(data.status==='ready'&&!data.photos.length)throw PHOTO_CORE.fail('provider_bad_response');
     await photoStore.set(k,{data,until:Number(j.expiresAt)||Date.now()+300000,staleUntil:(Number(data.fetchedAt)||Date.now())+(data.status==='ready'?7*PHOTO_CORE.DAY:300000)});return data;
    }
-  }catch(e){if(old?.data?.status==='ready'&&old.staleUntil>Date.now())return {...old.data,stale:true,retryAfter:e.retryAfter||60};throw e;}
+  }catch(e){
+   if(old?.data?.status==='ready'&&old.staleUntil>Date.now())return {...old.data,stale:true,retryAfter:e.retryAfter||60};
+   // Worker 側の写真取得が使えないとき（設定・障害）は、このブラウザから直接ウィキメディアに問い合わせる。
+   // 混雑（429）のときだけは、間隔をあけるためそのまま待つ。
+   if(/limited/.test(e.code||''))throw e;
+   photoWorkerBrokenUntil=Date.now()+10*60*1000;
+  }
  }
  return directResolver.resolve(p,{force});
 }
 async function trimPhotoBytes(cache){try{const keys=await cache.keys();let total=0;const keep=[];for(const k of keys){const r=await cache.match(k),size=Number(r?.headers.get('X-Photo-Bytes')||0);keep.push({k,size});total+=size;}while(keep.length>60||total>24*1024*1024){const x=keep.shift();await cache.delete(x.k);total-=x.size;}}catch{}}
 async function photoBytes(photo){
+ try{return await photoBytesFrom(photo,photo.src)}catch(e){const remote=PHOTO_CORE.imageURL(photo.remote||'');if(remote&&remote!==photo.src&&!/limited/.test(e.code||''))return await photoBytesFrom(photo,remote);throw e}
+}
+async function photoBytesFrom(photo,url){
  const cacheKey=new URL('./_photo-cache/'+PHOTO_VERSION+'?file='+encodeURIComponent(photo.file),document.baseURI).href;let cache,hit;
  try{cache=await caches.open(PHOTO_BYTES);hit=await cache.match(cacheKey);}catch{}
  if(hit&&Date.now()-Number(hit.headers.get('X-Photo-Saved'))<7*PHOTO_CORE.DAY){const blob=await hit.blob();return {blob,cached:true};}
- let r;try{r=await fetch(photo.src,{credentials:'omit',signal:AbortSignal.timeout(20000)});}catch{throw PHOTO_CORE.fail('image_network');}
+ let r;try{r=await fetch(url,{credentials:'omit',signal:AbortSignal.timeout(20000)});}catch{throw PHOTO_CORE.fail('image_network');}
  if(r.status===429||r.status===503){let j={};try{j=await r.json();}catch{}throw PHOTO_CORE.fail(j.code||'provider_limited',PHOTO_CORE.retrySeconds(r.headers.get('Retry-After')||j.retryAfter));}
  if(r.status===404)throw PHOTO_CORE.fail('image_missing',60);if(!r.ok)throw PHOTO_CORE.fail('image_network');
  if(!/^image\/(jpeg|png|webp)(?:;|$)/i.test(r.headers.get('Content-Type')||''))throw PHOTO_CORE.fail('image_invalid');
