@@ -11,7 +11,12 @@ function wikiTitle(v){let s=String(v||'');if(s.startsWith('https://ja.wikipedia.
 function place(o){const e=o.extra||{};const lat=Number(o.lat),lng=Number(o.lng);if(o.lat==null||o.lng==null||!Number.isFinite(lat)||!Number.isFinite(lng)||lat<20||lat>46||lng<122||lng>154)throw fail('location_required',0);const name=text(o.name).slice(0,160);if(name.length<2)throw fail('name_required',0);return {name,lat:+lat.toFixed(5),lng:+lng.toFixed(5),wiki:wikiTitle(o.wiki||e.wiki||e.wikipedia),qid:/^Q[1-9]\d*$/.test(o.qid||e.wikidata||'')?o.qid||e.wikidata:'',pref:text(o.pref).slice(0,10)};}
 function key(p){return JSON.stringify([VERSION,p.name,p.lat,p.lng,p.wiki||'',p.qid||'']);}
 function distance(a,b){const r=Math.PI/180,x=(b.lat-a.lat)*r,y=(b.lng-a.lng)*r,z=Math.sin(x/2)**2+Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin(y/2)**2;return 12742*Math.asin(Math.min(1,Math.sqrt(z)));}
-function titles(p){const n=p.name,b=n.replace(/[（(][^）)]*[）)]/g,'').trim(),inside=n.match(/[（(]([^）)]+)[）)]/);return [...new Set([p.wiki,n,b,...b.split(/\s+/).filter(s=>s.length>=3),inside?.[1],b.replace(/(?:展望台|展望デッキ|ロープウェイ|の町並み|の街並み)$/,'')].filter(s=>s&&s.length>=2))].slice(0,7);}
+function titles(p){
+ // 「八坂神社・祇園」「嵐山 竹林の小径」のような名前は、区切って1つずつ照合する（2文字の地名も試す。位置が15km以内のものだけ採用）
+ const n=p.name,b=n.replace(/[（(][^）)]*[）)]/g,'').trim(),inside=n.match(/[（(]([^）)]+)[）)]/)?.[1];
+ const parts=b.split(/[\s・／/、“”"]+/).filter(s=>s.length>=2);
+ const cut=s=>s.replace(/(?:展望台|展望デッキ|展望館|ロープウェイ|ロープウェー|の町並み|の街並み|町並み|城下町|跡公園|本館)$/,'');
+ return [...new Set([p.wiki,n,b,...parts.slice().reverse(),inside,...[b,...parts].map(cut)].filter(s=>s&&s.length>=2))].slice(0,10);}
 function fail(code,retryAfter=60){return Object.assign(new Error(code),{code,retryAfter});}
 function retrySeconds(v,now=Date.now()){const s=String(v||'');const n=/^\d+$/.test(s)?Number(s):Math.ceil((Date.parse(s)-now)/1000);return Number.isFinite(n)&&n>0?Math.min(86400,n):60;}
 function imageURL(v){try{const u=new URL(v);return u.protocol==='https:'&&!u.username&&!u.password&&['upload.wikimedia.org','thumb.wikimedia.org'].includes(u.hostname)?u.href:'';}catch{return '';}}
@@ -72,7 +77,7 @@ function resolver({api,store=memoryStore(),now=Date.now}={}){
   let j={};try{j=await request('wiki',{...query,titles:titles(p).join('|')});}catch(e){if(!entity)throw e;deferredError=e;}let pages=j.query?.pages||[];
   // Redirects are accepted as exact identity only when the input title resolved to that page.
   const redirects=j.query?.redirects||[];if(p.wiki)for(const r of redirects)if(norm(r.from)===norm(p.wiki))p={...p,wiki:r.to};
-  const choose=list=>{const ranked=list.map(a=>({a,s:articleScore(p,a)})).filter(x=>x.s>=0).sort((a,b)=>b.s-a.s);return ranked.length&&(!(ranked.length>1&&ranked[0].s-ranked[1].s<3)||ranked[0].s>=140)?ranked[0].a:null;};
+  const choose=list=>{const ranked=list.map(a=>({a,s:articleScore(p,a)})).filter(x=>x.s>=0).sort((a,b)=>b.s-a.s||b.a.title.length-a.a.title.length);return ranked[0]?.a||null;}; // 候補はどれも名前が完全に一致し15km以内なので、近いもの（同点なら長い名前）を使う
   article=choose(pages);
   if(!article&&!entity){j=await request('wiki',{...query,generator:'search',gsrnamespace:'0',gsrlimit:'6',gsrsearch:p.name+' '+p.pref});article=choose(j.query?.pages||[]);}
   if(!article&&!entity){

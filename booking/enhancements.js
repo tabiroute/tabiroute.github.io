@@ -26,11 +26,55 @@ if(!mode)return h+'<p class="note">食事やカフェは、あとから決める
 if(mode==='decided')h+=`<form id="routeFoodSearch" class="booking-search"><label>決まっている店名<input id="routeFoodQuery" name="query" maxlength="80" value="${esc(p.query)}" placeholder="店名・支店名"></label><button class="btn primary">お店を探す</button></form><details class="booking-manual"><summary>お店を手入力で登録</summary><label>店名<input id="routeFoodName"></label><label>緯度・経度<input id="routeFoodCoords" placeholder="34.9858, 135.7588"></label><button class="btn" data-route-manual-food>この食事に登録</button></details>`;
 else{const dishes=cafe?['カフェ','パフェ','ケーキ','抹茶','コーヒー']:c.foods;
  h+=`${bookingRouteHTML(c)}<form id="foodPreferenceSearch" class="pref-bar"><div class="pref-row"><label class="pref-q"><span class="sr-only">食べたいもの</span><input name="query" data-food-query maxlength="80" value="${esc(p.query)}" placeholder="${cafe?'食べたいもの（例：パフェ）':'食べたいもの（例：黒豚・寿司）'}"></label>${budgetSelect('food',c.slot)}<button class="btn primary small" ${ROUTE_UI.foodBusy?'disabled':''}>${ROUTE_UI.foodBusy?'検索中…':'探す'}</button></div>${dishes.length?`<div class="pref-chips"><span>${cafe?'人気':'ご当地'}</span>${dishes.slice(0,8).map(x=>`<button type="button" class="chip" data-route-dish="${esc(x)}">${esc(x)}</button>`).join('')}</div>`:''}${budgetUnknownCheck('food')}<p class="pref-hint">空欄のまま「探す」で、観光ルートの近くのお店を出します。予算は${esc(MEALNAME[c.slot])}の掲載目安（1人）で比べます。</p></form>`;}
-const fq=[c.city||S.pref,ROUTE_UI.food?.key===bookingMealKey(c)?ROUTE_UI.food.query:p.query,cafe?'カフェ':c.slot==='昼'?'ランチ':c.slot==='朝'?'朝食':''].filter(Boolean).join(' ');
-return h+bookingFoodResults(c)+plannerCompareHTML('food')+`<div class="booking-fallback"><p>お店の情報が取得できないときも、食事はあとから決められます。</p><a class="btn ghost" href="${esc(hpSearchURL(fq))}" target="_blank" rel="noopener">ホットペッパーで探す</a></div>`+'<p class="note">アレルギー対応は店舗で確認してください。</p></section>';};
+const fq=[c.city,(ROUTE_UI.food?.key===bookingMealKey(c)?ROUTE_UI.food.query:p.query)||(cafe?'カフェ':'')].filter(Boolean).join(' ');
+return h+bookingFoodResults(c)+plannerCompareHTML('food')+`<div class="booking-fallback"><p>お店の情報が取得できないときも、食事はあとから決められます。</p><a class="btn ghost" href="${esc(hpSearchURL(fq,c.pref,cafe?'G014':''))}" target="_blank" rel="noopener">ホットペッパーで探す</a></div>`+'<p class="note">アレルギー対応は店舗で確認してください。</p></section>';};
 const budgetHotelUI=stepHotel;stepHotel=function(){const h=budgetHotelUI();if(!nNights()||bookingStayDecision()!=='undecided')return h;return h.replace('<button type="button" class="btn primary" data-route-refresh-stay',budgetEditor('hotel')+'<button type="button" class="btn primary" data-route-refresh-stay');};
 function storeFoodQuery(q){const k=bookingFoodDay()+'|'+bookingFoodSlot();S.foodPreferences={...S.foodPreferences,[k]:{...foodPreference(),query:String(q||'').trim().slice(0,80)}};}
-bookingRouteFoodSearch=async function(query){if(query===undefined)query=foodPreference().query;storeFoodQuery(query);if(bookingFoodSlot()==='休憩')S.cafeDays={...S.cafeDays,[bookingFoodDay()]:true};const c=bookingMealContext(),key=bookingMealKey(c),state=S,pid=APP.pid,seq=++ROUTE_UI.foodSeq;ROUTE_UI.foodBusy=true;ROUTE_UI.food={key,query,items:[],message:''};save();render();try{const j=await BookingAPI.get('/restaurants',{lat:c.center.lat.toFixed(5),lng:c.center.lng.toFixed(5),...(query?{q:query}:{}),...(c.slot==='休憩'?{cafe:1}:{})});if(S!==state||APP.pid!==pid||seq!==ROUTE_UI.foodSeq||bookingMealKey()!==key)return;const items=bookingRankFood(j.items.map(h=>bookingToFood(h,j,c.center)),c);ROUTE_UI.food={key,query,items,expiresAt:j.expiresAt,message:items.length?`${c.di+1}日目の${MEALNAME[c.slot]}：予算・希望・観光の前後を考えた候補です。`:'予算・希望に合う候補は見つかりませんでした。予算や検索語、料金未確認の候補を含める設定を見直してください。'};}catch(e){if(S===state&&seq===ROUTE_UI.foodSeq)ROUTE_UI.food={key,query,items:[],message:bookingMessage(e)};}finally{if(S===state&&seq===ROUTE_UI.foodSeq){ROUTE_UI.foodBusy=false;render();}}if(S===state&&seq===ROUTE_UI.foodSeq&&S.step===5&&ROUTE_UI.food?.items.length)await plannerCompare('food');};
+/* 食べたいものの検索。
+   ホットペッパーのキーワードは「全部の語に一致するお店」だけを返すため、「抹茶スイーツ」「鹿児島ラーメン」では0件になりやすい。
+   ①そのままの言葉 → ②言葉を分けて（抹茶／スイーツ、ラーメン）→ ③料理のジャンル（カフェ・スイーツ、ラーメン）の順に広げ、
+   場所も「食事の前後の観光地」と「その間」で探して、まとめて並べる。 */
+const FOOD_GENRES=[[/ラーメン|らーめん|拉麺|つけ麺|つけめん/,'G013'],[/スイーツ|カフェ|パフェ|ケーキ|抹茶|甘味|和菓子|かき氷|珈琲|コーヒー|パンケーキ|ぜんざい|団子|だんご|白熊|しろくま|パン/,'G014'],[/焼肉|ホルモン|ジンギスカン/,'G008'],[/お好み焼き|もんじゃ|たこ焼き/,'G016'],[/中華|餃子|ぎょうざ|ちゃんぽん|皿うどん|担々麺|小籠包/,'G007'],[/イタリアン|パスタ|ピザ|フレンチ/,'G006'],[/洋食|ハンバーグ|オムライス|ステーキ|ハンバーガー/,'G005'],[/韓国/,'G017'],[/カレー|エスニック|タイ料理|ベトナム/,'G009'],[/居酒屋|酒場|焼き鳥|焼鳥|もつ鍋/,'G001'],[/和食|寿司|すし|鮨|そば|蕎麦|うどん|天ぷら|天麩羅|とんかつ|うなぎ|鰻|海鮮|刺身|定食|おばんざい|湯豆腐|豆腐|懐石|割烹|しゃぶしゃぶ|すき焼き|黒豚|鶏飯|牛タン|ふぐ|かに|蟹|郷土料理|丼|地鶏|さつま揚げ/,'G004']];
+const FOOD_WORDS=['ラーメン','つけ麺','スイーツ','抹茶','カフェ','パフェ','ケーキ','和菓子','かき氷','白熊','焼肉','ホルモン','ジンギスカン','お好み焼き','もんじゃ','たこ焼き','餃子','ちゃんぽん','皿うどん','寿司','鮨','そば','蕎麦','うどん','天ぷら','とんかつ','黒豚','うなぎ','海鮮','刺身','定食','おばんざい','湯豆腐','しゃぶしゃぶ','すき焼き','鶏飯','牛タン','カレー','ステーキ','ハンバーグ','焼き鳥','居酒屋','郷土料理','さつま揚げ','地鶏','もつ鍋','ふぐ','かに','丼'];
+function foodQueryPlan(q,c){
+ const raw=String(q||'').normalize('NFKC').replace(/\s+/g,' ').trim();if(!raw)return [];
+ const out=[],add=(q,genre,tier)=>{if(!out.some(x=>x.q===q&&x.genre===genre))out.push({q,genre,tier});};
+ add(raw,'',0);
+ // 地名（鹿児島ラーメン・京ラーメンの「鹿児島」「京」）を外し、料理の言葉ごとに分ける
+ const places=[...new Set([...tripPrefs(),c.pref].filter(Boolean).flatMap(p=>[p,p.replace(/[都道府県]$/,'')]).concat(c.city?[c.city,c.city.replace(/[市区町村]$/,'')]:[],'京'))].filter(x=>x.length>=1).sort((a,b)=>b.length-a.length);
+ let rest=raw;for(const p of places)if(rest.startsWith(p)&&rest.length>p.length){rest=rest.slice(p.length).trim();break;}
+ const words=FOOD_WORDS.filter(w=>rest.includes(w)).sort((a,b)=>rest.indexOf(a)-rest.indexOf(b));
+ if(rest!==raw)add(rest,'',1);
+ for(const w of words.slice(0,3))add(w,'',1);
+ const g=FOOD_GENRES.find(([re])=>re.test(raw));if(g)add('',g[1],2);
+ return out;
+}
+function foodPoints(c){const pts=[];for(const p of [c.center,c.before,c.after])if(p&&Number.isFinite(+p.lat)&&Number.isFinite(+p.lng)&&!pts.some(x=>hav(x,p)<1.2))pts.push({lat:+p.lat,lng:+p.lng});return pts.slice(0,3);}
+async function foodSearchAll(c,query,exact){
+ const cafe=c.slot==='休憩',pts=foodPoints(c),plan=query?(exact?[{q:String(query).trim(),genre:'',tier:0}]:foodQueryPlan(query,c)):[{q:'',genre:'',tier:0}],found=new Map();let calls=0,lastErr=null,ok=0,expires=Infinity;
+ const run=async(v,pt)=>{if(calls>=6)return;calls++;try{const j=await BookingAPI.get('/restaurants',{lat:pt.lat.toFixed(5),lng:pt.lng.toFixed(5),...(v.q?{q:v.q}:{}),...(v.genre?{genre:v.genre}:cafe?{cafe:1}:{})});ok++;expires=Math.min(expires,j.expiresAt||Infinity);
+   for(const h of j.items||[]){if(v.genre&&h.genreCode&&h.genreCode!==v.genre)continue; // 古い Worker はジャンル指定を受け付けないので、ここでも絞る
+    const f={...bookingToFood(h,j,c.center),pref:c.pref,matchTier:v.tier,matchedBy:v.q||v.genre},old=found.get(f.providerId);if(!old||old.matchTier>f.matchTier)found.set(f.providerId,f);}}
+  catch(e){lastErr=e;if(/limit|cooldown/.test(e.code||''))calls=99;}};
+ // 段階ごとに探し、十分な数（8件）がそろったら止める（問い合わせは最大6回。まず観光ルートの中心で探し、少ないときだけ前後の場所でも探す）
+ const t0=plan.filter(v=>v.tier===0),t1=plan.filter(v=>v.tier===1).slice(0,2),t2=plan.filter(v=>v.tier===2),[c0,...others]=pts;
+ const stages=[t0.map(v=>[v,c0]),[...t1,...t2].map(v=>[v,c0]),others.flatMap(pt=>t0.map(v=>[v,pt])),others.flatMap(pt=>[...t1.slice(0,1),...t2].map(v=>[v,pt]))];
+ for(const st of stages){if(!st.length||!c0)continue;await Promise.all(st.map(([v,pt])=>run(v,pt)));if(found.size>=8||calls>=6)break;}
+ if(!ok&&lastErr)throw lastErr;
+ return {items:[...found.values()],expiresAt:Number.isFinite(expires)?expires:Date.now()+600000,plan};
+}
+bookingRouteFoodSearch=async function(query){if(query===undefined)query=foodPreference().query;storeFoodQuery(query);if(bookingFoodSlot()==='休憩')S.cafeDays={...S.cafeDays,[bookingFoodDay()]:true};const c=bookingMealContext(),key=bookingMealKey(c),state=S,pid=APP.pid,seq=++ROUTE_UI.foodSeq;ROUTE_UI.foodBusy=true;ROUTE_UI.food={key,query,items:[],message:''};save();render();
+ try{const r=await foodSearchAll(c,query,bookingMealDecision()==='decided');   // 店名が決まっているときは、その名前だけで探す
+ if(S!==state||APP.pid!==pid||seq!==ROUTE_UI.foodSeq||bookingMealKey()!==key)return;
+  const items=bookingRankFood(r.items,c).sort((a,b)=>(a.matchTier||0)-(b.matchTier||0)||budgetRank(a)-budgetRank(b)||a.routeScore-b.routeScore);
+  const exact=items.filter(x=>!x.matchTier).length,words=[...new Set(items.filter(x=>x.matchTier).map(x=>x.matchedBy).filter(x=>!/^G0/.test(x)))];
+  const msg=!items.length?(query?`「${query}」のお店は、観光ルートの近くでは見つかりませんでした。言葉を短くするか、下の「ホットペッパーで探す」をお試しください。`:'観光ルートの近くでは見つかりませんでした。下の「ホットペッパーで探す」をお試しください。')
+   :query&&!exact?`「${query}」そのものは見つからなかったため、${words.length?'「'+words.join('」「')+'」や':''}同じジャンルのお店を出しています。`
+   :`${c.di+1}日目の${MEALNAME[c.slot]}：観光の前後から行きやすい順です。`;
+  ROUTE_UI.food={key,query,items,expiresAt:r.expiresAt,message:msg};}
+ catch(e){if(S===state&&seq===ROUTE_UI.foodSeq)ROUTE_UI.food={key,query,items:[],message:bookingMessage(e)};}
+ finally{if(S===state&&seq===ROUTE_UI.foodSeq){ROUTE_UI.foodBusy=false;render();}}
+ if(S===state&&seq===ROUTE_UI.foodSeq&&S.step===5&&ROUTE_UI.food?.items.length)await plannerCompare('food');};
 const foodPutV6=bookingPutFood;bookingPutFood=function(f,c){if(bookingMealPicked(c).some(w=>plannerRule(w.id).fixed))return toast('予約済みの食事です。予約の設定を解除してから変更してください。');if(c.slot==='休憩')S.cafeDays={...S.cafeDays,[c.di]:true};S.mealOmissions={...S.mealOmissions,[c.di+'|'+c.slot]:false};foodPutV6(f,c);};
 document.addEventListener('change',e=>{const t=e.target;if(t.dataset.budget){const kind=t.dataset.budget,k=t.dataset.budgetField,p=kind==='food'?foodPreference():hotelPreference();p[k]=k==='includeUnknown'?t.checked:Math.max(0,Math.min(1000000,Math.round(+t.value||0)));if(kind==='food'){S.foodPreferences={...S.foodPreferences,[bookingFoodDay()+'|'+bookingFoodSlot()]:p};bookingResetFoodRequest();}else{S.hotelBudget={...S.hotelBudget,[S.hotelSplit?bookingNightIndex():'all']:p};bookingResetHotelRequest();}save();render();}if(t.hasAttribute('data-cafe-enable')){const di=bookingFoodDay(),picked=bookingMealPicked(bookingMealContext());if(!t.checked&&picked.some(w=>plannerRule(w.id).fixed)){t.checked=true;return toast('予約済みのカフェです。予約の設定を解除してから外してください。');}if(!t.checked){S.wishes=S.wishes.filter(w=>!picked.includes(w));for(const w of picked)if(S.dayOf)delete S.dayOf[w.id];for(const k of Object.keys(S.manualOrd||{}))S.manualOrd[k]=S.manualOrd[k].filter(id=>!picked.some(w=>w.id===id));}S.cafeDays={...S.cafeDays,[di]:t.checked};S.mealOmissions={...S.mealOmissions,[di+'|休憩']:!t.checked};bookingRouteMemo=null;save();render();}});
 document.addEventListener('input',e=>{if(e.target.hasAttribute('data-food-query')){storeFoodQuery(e.target.value);save();}});

@@ -14,11 +14,12 @@ function bookingRoutePlan(){
 function bookingFoodDay(){return Math.max(0,Math.min((S.days||1)-1,Number(S.bookingFoodDay)||0));}
 function bookingFoodSlot(){return MEALS.includes(S.bookingFoodSlot)?S.bookingFoodSlot:'昼';}
 function bookingPoint(p){return p&&Number.isFinite(p.lat)&&Number.isFinite(p.lng);}
-function bookingFallbackPoint(){const p=PREF[S.pref]||{lat:35.68,lng:139.76};return {lat:p.lat,lng:p.lng,name:cityLabel()||S.pref||'旅行先'};}
+function bookingFallbackPoint(){const p=PREF[S.pref]||{lat:35.68,lng:139.76};return {lat:p.lat,lng:p.lng,name:(multiPref()?'':cityLabel())||S.pref||'旅行先'};}
 function bookingLocalAt(center){
-  const nearest=allSpots(S.pref).filter(bookingPoint).map(s=>({s,d:hav(center,s)})).sort((a,b)=>a.d-b.d)[0];
-  const city=nearest&&nearest.d<20?nearest.s.city:(cityLabel()||'');
-  return {city,foods:[...new Set([...(LOCAL[city]||[]),...(SPECIAL[S.pref]||[])])].slice(0,6)};
+  const nearest=allSpotsTrip().filter(bookingPoint).map(s=>({s,d:hav(center,s)})).sort((a,b)=>a.d-b.d)[0];
+  const pref=(nearest&&nearest.d<60&&nearest.s.pref)||(typeof prefAt==='function'?prefAt(center):'')||S.pref;
+  const city=nearest&&nearest.d<20?nearest.s.city:(multiPref()?'':cityLabel()||'');
+  return {city,pref,foods:[...new Set([...(LOCAL[city]||[]),...(SPECIAL[pref]||[])])].slice(0,6)};
 }
 function bookingMealContext(di=bookingFoodDay(),slot=bookingFoodSlot(),plan=bookingRoutePlan()){
   const day=plan.days[di],items=day?.items||[],sights=items.filter(x=>x.type==='stop'&&!x.s.meal&&!x.s.conflict);
@@ -57,6 +58,8 @@ function bookingStayContext(plan=bookingRoutePlan()){
   const indices=S.hotelSplit?[ni]:Array.from({length:nights},(_,i)=>i);
   const pairs=indices.map(i=>({before:plan.days[i]?.ord.filter(x=>!x.meal).at(-1),after:plan.days[i+1]?.ord.find(x=>!x.meal),night:i})).filter(p=>p.before||p.after);
   const points=pairs.flatMap(p=>[p.before,p.after]).filter(bookingPoint);
+  // 県をまたぐ夜は、次の日に回る県で探す（予定表の宿泊エリアと同じ考え方）
+  if(multiPref()&&(S.hotelSplit||nNights()===1)){const nx=pairs.at(-1)?.after;if(nx){const np=prefAt(nx),f=points.filter(x=>prefAt(x)===np);if(f.length&&f.length<points.length)points.splice(0,points.length,...f);}}
   // Choose a real sightseeing endpoint with minimum total straight-line travel.
   const center=points.length?points.slice().sort((a,b)=>points.reduce((s,p)=>s+hav(a,p)-hav(b,p),0))[0]:bookingFallbackPoint();
   return {ni,pairs,center,hasSights:points.length>0};
@@ -90,7 +93,7 @@ stepFood=function(){
   if(mode==='decided')h+=`<form class="booking-search" id="routeFoodSearch"><label for="routeFoodQuery">決まっているお店の名前</label><div class="row"><input id="routeFoodQuery" name="query" maxlength="80" placeholder="店名・支店名" value="${esc(DRAFT.routeFoodQuery||'')}"><button class="btn primary" ${ROUTE_UI.foodBusy?'disabled':''}>お店を確認</button></div></form><details class="booking-manual"><summary>お店を手入力で登録する</summary><label>店名<input id="routeFoodName" maxlength="80" placeholder="お店の正式名称"></label><label>緯度・経度（任意）<input id="routeFoodCoords" placeholder="例：34.9858, 135.7588"></label><p class="note">位置が未確認でも名前を保存できます。位置を確認すると回るルートに反映されます。</p><button class="btn" type="button" data-route-manual-food>この食事に登録</button></details>`;
   else h+=`${bookingRouteHTML(c)}<div class="booking-local"><span class="booking-eyebrow">LOCAL FOOD</span><h3>${esc(c.city||S.pref)}で食べたい、ご当地の食事</h3><p class="note">食べたいものを選ぶと、観光ルート周辺のお店を探せます。</p><div class="chips">${c.foods.map(x=>`<button class="chip" type="button" data-route-dish="${esc(x)}" ${ROUTE_UI.foodBusy?'disabled':''}>${esc(x)}</button>`).join('')}</div></div><button type="button" class="btn primary" data-route-refresh-food ${ROUTE_UI.foodBusy?'disabled':''}>${ROUTE_UI.foodBusy?'候補を確認中…':'このルートのおすすめ店を見る'}</button>`;
   h+=bookingFoodResults(c);
-  h+=`<div class="booking-fallback"><p>お店の情報が取得できないときも、食事はあとから決められます。</p><a class="btn ghost" href="${esc(hpSearchURL([c.city||S.pref,ROUTE_UI.food?.key===bookingMealKey(c)?ROUTE_UI.food.query:'',c.slot==='昼'?'ランチ':c.slot==='朝'?'朝食':''].filter(Boolean).join(' ')))}" target="_blank" rel="noopener">ホットペッパーで探す</a><p class="note">店舗写真と口コミは同じお店の情報を確認します。口コミ点数はAPIでは取得できません。</p></div></section>`;
+  h+=`<div class="booking-fallback"><p>お店の情報が取得できないときも、食事はあとから決められます。</p><a class="btn ghost" href="${esc(hpSearchURL([c.city,ROUTE_UI.food?.key===bookingMealKey(c)?ROUTE_UI.food.query:''].filter(Boolean).join(' '),c.pref))}" target="_blank" rel="noopener">ホットペッパーで探す</a><p class="note">店舗写真と口コミは同じお店の情報を確認します。口コミ点数はAPIでは取得できません。</p></div></section>`;
   return h;
 };
 async function bookingRouteFoodSearch(query=''){

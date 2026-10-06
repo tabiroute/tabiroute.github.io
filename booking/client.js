@@ -19,7 +19,7 @@ const BookingAPI=(()=>{
     if(pending.has(url))return pending.get(url);
     const task=(async()=>{
       let quota=read('usage-'+root)||{start:Date.now(),count:0};if(Date.now()-quota.start>=3600000)quota={start:Date.now(),count:0};
-      if(quota.count>=60)throw error('session_limit',Math.ceil((quota.start+3600000-Date.now())/1000));quota.count++;write('usage-'+root,quota);
+      if(quota.count>=150)throw error('session_limit',Math.ceil((quota.start+3600000-Date.now())/1000));quota.count++;write('usage-'+root,quota);
       let r,j;
       try{r=await fetch(url,{credentials:'omit',signal:AbortSignal.timeout(12000)});}
       catch{write('pause-'+scope,Date.now()+300000);throw error('network',300);}
@@ -101,8 +101,13 @@ function bookingIsAd(u){try{return /(^|\.)afl\.rakuten\.co\.jp$/.test(new URL(u)
 function bookingRel(u){return bookingIsAd(u)?'noopener sponsored':'noopener'}
 function bookingAdLabel(u){return bookingIsAd(u)?'【広告】':''}
 function bookingHotelLinks(h){const hu=bookingHotelURL(h);return `<div class="booking-actions"><a class="btn small" href="${esc(hu)}" target="_blank" rel="${bookingRel(hu)}">${bookingAdLabel(hu)}${h?.rkPlanURL||h?.rkURL||h?.url?'楽天で空室・宿泊プランを確認':'楽天でホテルを探す'}</a><a class="btn small ghost" href="${esc(bookingJalanURL(h))}" target="_blank" rel="noopener">じゃらんで探す</a><button type="button" class="btn small ghost" data-bk-copy="${esc(h?.name||'')}">宿泊条件をコピー</button></div><p class="note">直接開く場合は予約サイトで日程・人数を確認してください。じゃらんは施設を選び直す場合があります。</p>`;}
-function hpSearchURL(q){return 'https://www.hotpepper.jp/CSP/psh010/doBasic?keyword='+enc(q||cityLabel()||S.pref);}
-function hpURL(f){const u=bookingSafeURL(f?.hpURL);try{if(u&&['www.hotpepper.jp','hotpepper.jp','hpr.jp'].includes(new URL(u).hostname))return u;}catch{}return hpSearchURL([f?.name,cityLabel()||S.pref].filter(Boolean).join(' '));}
+// ホットペッパーの検索ページ。都道府県（SA）の指定がないとエラー画面になるため必ず付ける。キーワードが空のときは都道府県のページを開く。
+const HP_SA={"東京都":"SA11","神奈川県":"SA12","埼玉県":"SA13","千葉県":"SA14","茨城県":"SA15","栃木県":"SA16","群馬県":"SA17","滋賀県":"SA21","京都府":"SA22","大阪府":"SA23","兵庫県":"SA24","奈良県":"SA25","和歌山県":"SA26","岐阜県":"SA31","静岡県":"SA32","愛知県":"SA33","三重県":"SA34","北海道":"SA41","青森県":"SA51","岩手県":"SA52","宮城県":"SA53","秋田県":"SA54","山形県":"SA55","福島県":"SA56","新潟県":"SA61","富山県":"SA62","石川県":"SA63","福井県":"SA64","山梨県":"SA65","長野県":"SA66","鳥取県":"SA71","島根県":"SA72","岡山県":"SA73","広島県":"SA74","山口県":"SA75","徳島県":"SA81","香川県":"SA82","愛媛県":"SA83","高知県":"SA84","福岡県":"SA91","佐賀県":"SA92","長崎県":"SA93","熊本県":"SA94","大分県":"SA95","宮崎県":"SA96","鹿児島県":"SA97","沖縄県":"SA98"};
+function hpSearchURL(q,pref,genre){const sa=HP_SA[pref||S.pref],kw=String(q||'').normalize('NFKC').replace(/\s+/g,' ').trim().slice(0,60),g=/^G0\d\d$/.test(genre||'')?genre:'';
+ if(!sa)return 'https://www.hotpepper.jp/';
+ if(!kw)return `https://www.hotpepper.jp/${sa}/${g?g+'/':''}`;
+ return `https://www.hotpepper.jp/CSP/psh010/doBasic?SA=${sa}${g?'&GR='+g:''}&FWT=${encodeURIComponent(kw)}`;}
+function hpURL(f){const u=bookingSafeURL(f?.hpURL);try{if(u&&['www.hotpepper.jp','hotpepper.jp','hpr.jp'].includes(new URL(u).hostname))return u;}catch{}return hpSearchURL(f?.name||'',f?.pref||S.pref);}
 function bookingPhoto(o,size){
   const id=bookingID(o),custom=bookingMedia(o),hotel=id.startsWith('rakuten:')||o.hotel;
   const valid=Number(o.apiExpiresAt)>Date.now();
@@ -216,7 +221,7 @@ function foodSection(){
   const slot=S.foodTab||'昼',source=S.foodS?.q?S.foodS:null;
   const live=source?source.slot===slot&&source.key===foodKey()&&source.expiresAt>Date.now():S.food?.key===foodKey()&&S.food.expiresAt>Date.now();
   const list=(live?(source?source.items:S.food?.[slot])||[]:[]).filter(f=>f.apiExpiresAt>Date.now());
-  return `<div class="booking-panel"><h2 class="sub">ホットペッパーでお店を探す</h2><div class="chips">${MEALS.map(m=>`<button type="button" class="chip" data-foodtab="${m}" aria-pressed="${slot===m}">${MEALNAME[m]}</button>`).join('')}</div><form id="bookingFoodSearch" class="booking-search"><label for="foodQ">店名・料理名</label><div class="row"><input id="foodQ" name="query" maxlength="80" value="${esc(S.foodS?.q||'')}" placeholder="例：海鮮、ラーメン、店名"><button type="submit" class="btn primary" ${busy.foodS?'disabled':''}>検索</button></div></form><div class="booking-actions"><button type="button" class="btn" data-bk-food-near ${busy.food?'disabled':''}>${busy.food?'周辺のお店を検索中…':'周辺のお店を探す'}</button>${source?'<button type="button" class="btn ghost" data-act="foodClear">検索を解除</button>':''}<a class="btn ghost" href="${esc(hpSearchURL((cityLabel()||S.pref)+' '+(source?.q||'ランチ')))}" target="_blank" rel="noopener">ホットペッパーで探す</a></div>
+  return `<div class="booking-panel"><h2 class="sub">ホットペッパーでお店を探す</h2><div class="chips">${MEALS.map(m=>`<button type="button" class="chip" data-foodtab="${m}" aria-pressed="${slot===m}">${MEALNAME[m]}</button>`).join('')}</div><form id="bookingFoodSearch" class="booking-search"><label for="foodQ">店名・料理名</label><div class="row"><input id="foodQ" name="query" maxlength="80" value="${esc(S.foodS?.q||'')}" placeholder="例：海鮮、ラーメン、店名"><button type="submit" class="btn primary" ${busy.foodS?'disabled':''}>検索</button></div></form><div class="booking-actions"><button type="button" class="btn" data-bk-food-near ${busy.food?'disabled':''}>${busy.food?'周辺のお店を検索中…':'周辺のお店を探す'}</button>${source?'<button type="button" class="btn ghost" data-act="foodClear">検索を解除</button>':''}<a class="btn ghost" href="${esc(hpSearchURL(source?.q||'',S.pref))}" target="_blank" rel="noopener">ホットペッパーで探す</a></div>
     <p class="booking-notice" role="status">${esc((source?msg.foodS:msg.food)||'写真は掲載店舗のものです。店舗トップ写真には料理以外の写真も含まれます。')}</p><p class="note">口コミ点数は公開APIで提供されていないため、店舗ページで確認できます。営業時間や定休日も来店前にご確認ください。</p>
     ${busy.foodS?'<p role="status">お店を検索中…</p>':''}<div class="booking-results">${list.map((f,i)=>foodItem(f,slot,i+1,source?'s':slot)).join('')}</div>
     ${!list.length&&!busy.food&&!busy.foodS?'<p class="empty">表示できる店舗情報がありません。検索するか、ホットペッパーのサイトをご利用ください。</p>':''}<div class="booking-credit">${BOOKING_CREDIT_HP}</div></div>`;

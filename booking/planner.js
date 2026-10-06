@@ -220,10 +220,10 @@ function plannerTravelMeal(list,meal,di){
   let a,b,place,how,pref=0;
   if(it.type==='trip'&&it.seg?.flight){a=it.t;b=it.t+(it.seg.chk||(typeof FLY_CHK!=='undefined'?FLY_CHK:60));place=String(it.seg.from||'空港');how='空港で（搭乗前に）';pref=30;}
   else if(it.type==='xfer'&&it.min>=25){a=it.t;b=it.t+it.min;place=it.place||'乗り換え駅';how='乗り換えの合間に';pref=10;}
-  else if(it.type==='trip'&&it.seg&&!it.seg.flight&&it.seg.min>=60&&!/car|drive/.test(it.seg.kind||'')){a=it.t;b=it.t+it.seg.min;place=it.seg.line||'車内';how='車内で（駅弁など）';}
+  else if(it.type==='trip'&&it.seg&&!it.seg.flight&&it.seg.min>=60&&!/car|drive/.test(it.seg.kind||'')){a=it.t;b=it.t+it.seg.min;place=it.seg.line||'車内';how='車内で（駅弁など）';pref=-1;}
   else return;
   const s0=Math.max(a,w0),ov=Math.min(b,w1)-s0;if(ov<20)return;
-  const score=ov+pref;if(!best||score>best.score)best={score,i,t:s0,dur:Math.min(dur,Math.max(20,ov)),place,how};
+  const score=ov+Math.max(0,pref);if(!best||score>best.score)best={score,i:pref<0?i+1:i,t:s0,dur:Math.min(dur,Math.max(20,ov)),place,how};  // 車内で食べるときは、乗ったあとに並べる
  });
  if(!best)return false;
  list.splice(best.i,0,{type:'tripmeal',t:best.t,meal,dur:best.dur,place:best.place,how:best.how,di});return true;

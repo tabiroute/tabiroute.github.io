@@ -39,7 +39,9 @@ function rideOdptChips(dir){
  const s=odptStatus();
  if(!s)return '<p class="note" role="status">便を読み込んでいます…</p>';
  if(s.flights===false)return '';
- const from=dir==='out'?odptPortCode('dep'):odptPortCode('arr'),to=dir==='out'?odptPortCode('arr'):odptPortCode('dep');
+ // 行程で使う空港（複数の県をめぐるときは、帰りは最後の県の近くの空港になる）
+ const m=rideMain(dir),code=n=>TN[n]?.[2]||'';
+ const from=m&&m.air&&code(m.sg.from)||(dir==='out'?odptPortCode('dep'):odptPortCode('arr')),to=m&&m.air&&code(m.sg.to)||(dir==='out'?odptPortCode('arr'):odptPortCode('dep'));
  if(!from||!to)return '<p class="note">空港を選ぶと、便が出ます。</p>';
  const date=isoOf(dayDate(dir==='out'?0:rideLast())),st=odptLoadFlights(from,to,date),f=(S.flight||{})[dir];
  if(st.busy)return '<p class="note" role="status">便を探しています…</p>';
@@ -49,7 +51,7 @@ function rideOdptChips(dir){
  const sel=x=>f&&(x.nos.some(n=>flNo(n)===flNo(f.no))||(f.dep===x.dep&&f.arr===x.arr));
  let h='';
  if(f?.src==='odpt'&&!st.items.some(sel))h+='<p class="note warnline">選んだ便はこの日に飛びません。選び直してください。</p>';
- return h+`<p class="ride-sub">JAL・ANA（タップで決まります）</p><div class="odpt-flights" role="list">${st.items.map((x,i)=>`<button type="button" class="odpt-fl" role="listitem" data-odpt-fl="${dir}|${i}" aria-pressed="${!!sel(x)}"><b>${esc(x.dep)}→${esc(x.arr)}${x.arrDay?'<small>+1日</small>':''}</b><small>${esc(x.nos.slice(0,2).join(' / '))}${x.via?.length?' 経由':''}</small></button>`).join('')}</div>`;
+ return h+`<p class="ride-sub">JAL・ANA（タップで決まります）</p><div class="odpt-flights" role="list">${st.items.map((x,i)=>`<button type="button" class="odpt-fl" role="listitem" data-odpt-fl="${dir}|${i}|${from}|${to}" aria-pressed="${!!sel(x)}"><b>${esc(x.dep)}→${esc(x.arr)}${x.arrDay?'<small>+1日</small>':''}</b><small>${esc(x.nos.slice(0,2).join(' / '))}${x.via?.length?' 経由':''}</small></button>`).join('')}</div>`;
 }
 // 登録した便・列車のうち、いまの乗り物（飛行機／列車）に合うものだけを使う（rideKind は index.html）
 function rideFor(dir,air){const f=(S.flight||{})[dir];if(!f)return null;const k=rideKind(f);return !k||k===(air?'air':'rail')?f:null;}

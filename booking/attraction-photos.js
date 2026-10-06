@@ -8,8 +8,22 @@ let photoWorkerBrokenUntil=0,photoWorkerUnsupported=false,photoWorkerPause=0,pho
 function imgKey(o){try{return PHOTO_CORE.key(PHOTO_CORE.place(o));}catch{return norm(o?.name)+'@'+(o?.lat??'')+','+(o?.lng??'');}}
 function photoBase(){try{const u=new URL(window.TABIROUTE_BOOKING?.apiBase||'');return ['https:','http:'].includes(u.protocol)&&!u.username&&!u.password?u.href.replace(/\/$/,''):'';}catch{return '';}}
 function photoInput(o){return {...o,pref:o.pref||S?.pref||''};}
+// 登録済みの観光地（各都道府県のおすすめ）は、確認済みの写真を先に用意している（booking/photo-spots.json）。問い合わせなしですぐ出せる。
+let SPOT_PHOTOS=null;
+function spotPhotos(){if(!SPOT_PHOTOS)SPOT_PHOTOS=fetch('booking/photo-spots.json?v=1',{credentials:'omit'}).then(r=>r.ok?r.json():{}).then(j=>{const o={};for(const [k,v] of Object.entries(j&&j.s||{}))o[k.normalize('NFKC')]=v;return o;}).catch(()=>({}));return SPOT_PHOTOS;}
+const CAT_BAD=new Set();   // 読めなかった一覧の写真（次からはふつうの検索で探す）
+const SPOT_LIC={'L:':'https://creativecommons.org/licenses/','P:':'https://creativecommons.org/publicdomain/','F:':'https://commons.wikimedia.org/wiki/File:'};
+async function catalogPhoto(p){
+ const cat=await spotPhotos(),nm=String(p.name||'').normalize('NFKC'),x=cat[String(p.pref||'').normalize('NFKC')+'|'+nm]||Object.entries(cat).find(([k])=>k.endsWith('|'+nm))?.[1];
+ if(!x||PHOTO_CORE.distance(p,{lat:x[0],lng:x[1]})>2)return null;
+ const [,,file,path,artist,license,lic,contain]=x,src=PHOTO_CORE.imageURL('https://thumb.wikimedia.org/wikipedia/commons/thumb/'+path);
+ if(!src||!PHOTO_CORE.fileName(file)||!artist||!license||CAT_BAD.has(file))return null;
+ const page='https://commons.wikimedia.org/wiki/File:'+encodeURIComponent(file),licenseURL=SPOT_LIC[String(lic).slice(0,2)]?SPOT_LIC[lic.slice(0,2)]+lic.slice(2):page;
+ return {status:'ready',photos:[{file,src,remote:src,catalog:true,proxy:photoBase()?photoBase()+'/photo-image?file='+encodeURIComponent(file):'',page,artist,license,licenseURL,contain:!!contain,policy:10}],version:PHOTO_VERSION,fetchedAt:Date.now(),expiresAt:Date.now()+PHOTO_CORE.DAY,catalog:true};
+}
 async function photoResolve(o,force=false){
  const p=PHOTO_CORE.place(photoInput(o)),base=photoBase(),k='worker:'+base+':'+PHOTO_CORE.key(p),old=await photoStore.get(k);
+ if(!force){const c=await catalogPhoto(p).catch(()=>null);if(c)return c;}
  if(base&&!photoWorkerUnsupported&&photoWorkerBrokenUntil<Date.now()){
   if(!force&&old?.until>Date.now())return {...old.data,cached:true};
   try{
@@ -23,7 +37,10 @@ async function photoResolve(o,force=false){
     if(j.version!==PHOTO_VERSION||!['ready','missing','unverified'].includes(j.status))throw PHOTO_CORE.fail('provider_bad_response');
     const data={...j,photos:(j.photos||[]).filter(x=>PHOTO_CORE.fileName(x.file)&&x.artist&&x.license&&x.src===base+'/photo-image?file='+encodeURIComponent(x.file)&&PHOTO_CORE.imageURL(x.remote))};
     if(data.status==='ready'&&!data.photos.length)throw PHOTO_CORE.fail('provider_bad_response');
-    await photoStore.set(k,{data,until:Number(j.expiresAt)||Date.now()+300000,staleUntil:(Number(data.fetchedAt)||Date.now())+(data.status==='ready'?7*PHOTO_CORE.DAY:300000)});return data;
+    await photoStore.set(k,{data,until:Number(j.expiresAt)||Date.now()+300000,staleUntil:(Number(data.fetchedAt)||Date.now())+(data.status==='ready'?7*PHOTO_CORE.DAY:300000)});
+    // Worker が古い照合方法で「場所を特定できない」と答えたときは、このブラウザの新しい照合方法でもう一度だけ探す
+    if(data.status==='unverified'){try{const d=await directResolver.resolve(p,{force});if(d.status==='ready')return d;}catch{}}
+    return data;
    }
   }catch(e){
    if(old?.data?.status==='ready'&&old.staleUntil>Date.now())return {...old.data,stale:true,retryAfter:e.retryAfter||60};
@@ -37,7 +54,10 @@ async function photoResolve(o,force=false){
 }
 async function trimPhotoBytes(cache){try{const keys=await cache.keys();let total=0;const keep=[];for(const k of keys){const r=await cache.match(k),size=Number(r?.headers.get('X-Photo-Bytes')||0);keep.push({k,size});total+=size;}while(keep.length>60||total>24*1024*1024){const x=keep.shift();await cache.delete(x.k);total-=x.size;}}catch{}}
 async function photoBytes(photo){
- try{return await photoBytesFrom(photo,photo.src)}catch(e){const remote=PHOTO_CORE.imageURL(photo.remote||'');if(remote&&remote!==photo.src&&!/limited/.test(e.code||''))return await photoBytesFrom(photo,remote);throw e}
+ try{return await photoBytesFrom(photo,photo.src)}catch(e){if(/limited/.test(e.code||''))throw e;const remote=PHOTO_CORE.imageURL(photo.remote||'');if(remote&&remote!==photo.src){try{return await photoBytesFrom(photo,remote)}catch(e2){e=e2}}
+  // 一覧の写真をウィキメディアから直接読めない環境（学校・会社のフィルターなど）では、Worker 経由で読み直す
+  if(photo.proxy&&photo.proxy!==photo.src&&!/limited|missing/.test(e.code||'')){try{return await photoBytesFrom(photo,photo.proxy)}catch(e3){e=e3}}
+  if(photo.catalog&&!/limited/.test(e.code||''))CAT_BAD.add(photo.file);throw e}
 }
 async function photoBytesFrom(photo,url){
  const cacheKey=new URL('./_photo-cache/'+PHOTO_VERSION+'?file='+encodeURIComponent(photo.file),document.baseURI).href;let cache,hit;
@@ -79,7 +99,7 @@ function sizedUrl(u){return u;} // Keep the URL issued by the provider; never sy
 function paintKey(k){if(typeof HOVER!=='undefined'&&HOVER?.k===k)HOVER.paint();document.querySelectorAll(`.ph[data-imgkey="${CSS.escape(k)}"]`).forEach(el=>{el.classList.remove('loading');el.innerHTML=phInner(k,el.dataset.size);});ensureCredit(k);}
 function photoScheduleRetry(){clearTimeout(photoRetryTimer);const waits=Object.keys(IMG).filter(k=>IMG[k]?.status==='error'&&(IMG[k].attempts||0)<3&&document.querySelector(`.ph[data-imgkey="${CSS.escape(k)}"]`)).map(k=>IMG[k].retryAt-Date.now());if(waits.length)photoRetryTimer=setTimeout(hydrateImages,Math.max(250,Math.min(...waits)));}
 function imgRequest(k,force=false){if(imgWait[k]||!IMGREG[k]||(!force&&IMG[k]?.retryAt>Date.now()))return;imgWait[k]=true;photoJobs.push({k,force});pumpImg();}
-function pumpImg(){while(photoActive<2&&photoJobs.length){const {k,force}=photoJobs.shift();photoActive++;const previous=IMG[k];paintKey(k);
+function pumpImg(){while(photoActive<4&&photoJobs.length){const {k,force}=photoJobs.shift();photoActive++;const previous=IMG[k];paintKey(k);
  const job=findImage(IMGREG[k],{force});
  job.then(r=>{IMG[k]=r;}).catch(e=>{const attempts=(previous?.attempts||0)+1;IMG[k]={none:true,status:'error',err:true,code:e.code||'image_network',t:Date.now(),attempts,retryAt:Date.now()+Math.max(e.retryAfter||60,Math.min(300,30*2**attempts))*1000};}).finally(()=>{delete imgWait[k];photoActive--;paintKey(k);photoScheduleRetry();pumpImg();});
 }}

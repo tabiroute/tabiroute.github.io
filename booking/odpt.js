@@ -49,11 +49,11 @@ document.addEventListener('change',e=>{
 });
 document.addEventListener('click',e=>{
  const b=e.target.closest('[data-odpt-fl]');if(!b)return;
- const [dir,i]=b.dataset.odptFl.split('|'),from=dir==='out'?odptPortCode('dep'):odptPortCode('arr'),to=dir==='out'?odptPortCode('arr'):odptPortCode('dep');
+ const [dir,i,f0,t0]=b.dataset.odptFl.split('|'),from=f0||(dir==='out'?odptPortCode('dep'):odptPortCode('arr')),to=t0||(dir==='out'?odptPortCode('arr'):odptPortCode('dep'));
  const date=isoOf(dayDate(dir==='out'?0:Math.max(0,(S.days||1)-1))),st=ODPT.flights.get(from+'|'+to+'|'+date),x=st?.items?.[+i];if(!x)return;
  S.flight={...(S.flight||{})};const cur=S.flight[dir];
  if(cur&&cur.src==='odpt'&&cur.dep===x.dep&&flNo(cur.no)===flNo(x.no)){delete S.flight[dir];msg.flp='';}
- else{S.flight[dir]={no:x.no,dep:x.dep,arr:x.arr,kind:'air',src:'odpt',at:st.at};rideRemember(S.flight[dir]);const m=iata();if(!airPick('dep'))setAir('dep',m[dir==='out'?from:to]);if(!airPick('arr'))setAir('arr',m[dir==='out'?to:from]);msg.flp='';}
+ else{S.flight[dir]={no:x.no,dep:x.dep,arr:x.arr,kind:'air',src:'odpt',at:st.at};rideRemember(S.flight[dir]);const m=iata();if(!airPick('dep'))setAir('dep',m[dir==='out'?from:to]);if(!airPick('arr')&&(dir==='out'||!multiPref()))setAir('arr',m[dir==='out'?to:from]);msg.flp='';}
  save();render();
 });
 
