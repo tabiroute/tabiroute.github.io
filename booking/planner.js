@@ -31,7 +31,7 @@ schedule=function(H,seq,hasLunchRest,from,t0,to,di=0){
  // 昼食・夕食は、その時間帯に観光しているときだけ入れる（到着が夕方なら昼食は行きの移動中に回す）。
  const active=meals.filter(m=>m.meal==='朝'?start<10*60:m.meal==='昼'?(start<=13*60+30&&end>=12*60+30):m.meal==='休憩'?(start<=15*60+30&&end>=16*60):(start<=20*60&&(di<nNights()||end>=19*60)));
  globalThis.ODPT_DAYKEY=bookingISO(dayDate(di)); // その日の時刻表の結果だけを使う（booking/odpt.js）
- const r=TravelPlanner.calculate({seq,rules:S.stopRules,date:bookingISO(dayDate(di)),start,end,from:a,to:z,pace:paceK(),buffer:paceBuf(),route:(a,b)=>hav(a,b)<0.01?{min:0,km:0,mode:'walk'}:leg(a,b),checkout,checkin,luggage,endAtLast:di===S.days-1&&!to?.tripHub,eveningAfterEnd:di<nNights()&&!to?.tripHub,meals:dt.off?[]:active});
+ const r=TravelPlanner.calculate({seq,rules:S.stopRules,date:bookingISO(dayDate(di)),start,end,from:a,to:z,pace:paceK(),buffer:paceBuf(),route:(a,b)=>{if(hav(a,b)<0.01)return {min:0,km:0,mode:'walk'};const l=leg(a,b),u=typeof legUserTime==='function'?legUserTime(di,a,b):null;return u&&l.mode==='transit'?{...l,odpt:null,user:u}:l;},checkout,checkin,luggage,endAtLast:di===S.days-1&&!to?.tripHub,eveningAfterEnd:di<nNights()&&!to?.tripHub,meals:dt.off?[]:active});
  globalThis.ODPT_DAYKEY=null;
  // 観光の時間に入らなかった昼食・夕食は、行き・帰りの移動中（空港・乗り換え・長い乗車）に置けるか、あとで確かめる
  r.travelMeals=dt.off?[]:meals.filter(m=>!active.includes(m)&&(m.meal==='昼'||m.meal==='夜')).map(m=>m.meal);

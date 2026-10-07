@@ -19,7 +19,14 @@ function calculate(o){
  const rules=o.rules||{},duration=s=>Math.max(5,Number(rules[s.id]?.duration)||Math.round((s.stay||60)*(s.meal?1:o.pace)/5)*5);
  const issue=(s,code,message,short=0)=>issues.push({id:s?.id,code,message,short:Math.ceil(short)});
  const wait=(until,label)=>{if(until>t){items.push({type:'wait',t,dur:until-t,label});t=until;}};
- const travel=to=>{if(!to)return;const l=o.route(prev,to);if(l.min||l.km){items.push({type:'leg',...l,buf:o.buffer,from:prev,to,t});t+=l.min+o.buffer;km+=l.km;}prev=to;};
+ const travel=to=>{if(!to)return;const l=o.route(prev,to);
+  // 利用者が入れた電車・バスの時刻（発・着）があるときは、その発車時刻まで待って、その着時刻に着く
+  if(l.user&&Number.isFinite(l.user.dep)&&Number.isFinite(l.user.arr)&&l.user.arr>=l.user.dep){
+   const ride=l.user.arr-l.user.dep;
+   if(t>l.user.dep){issue(to,'ride-late',(to.name||'')+'：入れた発車時刻（'+String(Math.floor(l.user.dep/60))+':'+String(l.user.dep%60).padStart(2,'0')+'）に'+Math.ceil(t-l.user.dep)+'分間に合いません',t-l.user.dep);items.push({type:'leg',...l,min:ride,buf:0,from:prev,to,t,userLate:Math.ceil(t-l.user.dep)});t+=ride;}
+   else{wait(l.user.dep,'電車・バスの発車まで');items.push({type:'leg',...l,min:ride,buf:0,from:prev,to,t});t=l.user.arr;}
+   km+=l.km||0;prev=to;return;}
+  if(l.min||l.km){items.push({type:'leg',...l,buf:o.buffer,from:prev,to,t});t+=l.min+o.buffer;km+=l.km;}prev=to;};
  const service=(label,dur,node)=>{items.push({type:'service',label,dur,t,node});t+=dur;};
  items.push({type:'start',t,label:prev.name,node:prev});
  const fixed=o.seq.filter(s=>rules[s.id]?.fixed&&minutes(rules[s.id].time)!==null).sort((a,b)=>minutes(rules[a.id].time)-minutes(rules[b.id].time));
@@ -61,6 +68,9 @@ function calculate(o){
   }
   if(a.s.missing){
    const nextFixed=anchors.find(x=>x.fixed&&x.target>=a.target);
+   // 次の観光地まで長い移動（45分以上）があり、食事の時刻まで待つことになるときは、先に移動して着いた先で食べる（出発地で待たない）
+   if(flexible.length&&!nextFixed&&a.s.meal==='昼'){const s=flexible[0],l=o.route(prev,s),arr=t+l.min+o.buffer;
+    if(l.min>=45&&a.target-t>=20&&arr<=a.target+(SLACK[a.s.meal]??0)&&availability(rules[s.id]||{},o.date,Math.max(arr,a.target)+a.s.stay,duration(s)).ok)travel(s);}
    let dur=a.s.stay;
    if(nextFixed&&Math.max(t,a.target)+dur+o.route(prev,nextFixed.s).min+o.buffer>nextFixed.target){items.push({type:'missingMeal',t,meal:a.s.meal,dur:0,unallocated:true});issue(null,'meal-time',a.s.meal+'食の時間を確保できていません');}
    else{wait(Math.max(t,a.target),'食事の時間まで');items.push({type:'missingMeal',t,meal:a.s.meal,dur});if(a.s.meal==='昼')lunchT=t;t+=dur;}

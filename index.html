@@ -24,6 +24,7 @@
 <meta name="apple-mobile-web-app-title" content="たびルート">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="booking/spot-stats.js?v=1"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;800;900&family=Plus+Jakarta+Sans:wght@600;700;800&family=Klee+One:wght@400;600&family=Caveat:wght@500;600&display=swap">
@@ -282,6 +283,9 @@ textarea{font:inherit;color:inherit;width:100%;border:1px solid var(--line);back
 .prefseq-b{border:0;background:transparent;width:32px;height:32px;min-height:0;border-radius:50%;cursor:pointer;color:var(--muted);font-size:15px;line-height:1;padding:0;box-shadow:none}
 .prefseq-b:hover,.prefseq-b:focus-visible{background:var(--line);color:var(--ink)}
 .prefseq-ar{color:var(--muted)}
+.prefroute{display:flex;flex-wrap:wrap;gap:6px 14px;margin:8px 0 4px;font-size:14px}
+.prefroute span{display:inline-flex;gap:6px;align-items:center;padding:3px 10px;border-radius:999px;background:var(--accent-soft);color:var(--ink)}
+.prefroute b{color:var(--accent);font-size:12.5px}
 .meetpin{background:var(--hot)!important}
 .authbtn{width:100%;justify-content:center;margin-top:6px}
 .btn.line{background:#06C755;border-color:#06C755;color:#fff}
@@ -982,7 +986,17 @@ article.day{content-visibility:auto;contain-intrinsic-size:auto 900px}
 .mvb{width:28px;height:24px;border:1px solid #D6DFEE;background:#fff;border-radius:7px;color:#2356F6;font-size:11px;line-height:1;cursor:pointer;padding:0}
 .mvb:disabled{opacity:.3;cursor:default}
 .mvb:not(:disabled):active{background:#EEF3FF}
-.ordbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:6px 0 8px}
+.ordbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:8px 0 10px;padding:10px 12px;border-radius:12px;background:var(--accent-soft);border:1px solid var(--line)}
+.ordbar-t{flex:1 1 220px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.ordbar-t b{font-size:14.5px;color:var(--accent)}
+.ordbar-t span{font-size:12.5px;color:var(--muted)}
+.mvb.mvgo{width:44px;height:26px;font-size:11px;font-weight:700}
+.legtime-b{margin-left:6px}
+.legtime-note{font-size:12px;color:var(--muted);margin-left:6px}
+.legtime-row{display:flex;align-items:flex-end;gap:10px}
+.legtime-row label{flex:1 1 0;min-width:0}
+.legtime-row input{width:100%;min-width:0;box-sizing:border-box}
+.legtime-row>span{padding-bottom:12px;color:var(--muted)}
 .ordedit{max-height:54vh;overflow:auto;border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--surface)}
 .ordday{display:flex;align-items:baseline;gap:8px;margin:12px 0 4px;padding-top:10px;border-top:1px dashed var(--line)}
 .ordday:first-child{border-top:0;padding-top:0;margin-top:0}
@@ -1204,7 +1218,7 @@ article.day{content-visibility:auto;contain-intrinsic-size:auto 900px}
 svg.transport-icon{min-width:22px;min-height:22px}.sgi svg.transport-icon,.tl .tripseg .sgi svg.transport-icon{width:25px;height:25px}.chip svg.transport-icon,.btn svg.transport-icon{width:22px;height:22px}.tl svg.transport-icon{margin-right:5px}button[aria-pressed=true] svg.transport-icon{filter:drop-shadow(0 0 1px white)}
 </style>
 
-<link rel="stylesheet" href="booking/style.css?v=11">
+<link rel="stylesheet" href="booking/style.css?v=12">
 </head>
 <body>
 <div class="wrap" id="wrap">
@@ -1238,7 +1252,7 @@ svg.transport-icon{min-width:22px;min-height:22px}.sgi svg.transport-icon,.tl .t
   <p>たびルートで提案している各地の定番スポットです。予定表をつくるときに、そのまま行き先に追加できます。</p>
   <h3>北海道・東北</h3><dl class="prefs"><div><dt>北海道</dt><dd>小樽運河・函館山展望台・白金青い池・旭山動物園・ファーム富田</dd></div><div><dt>青森県</dt><dd>弘前公園・奥入瀬渓流・十和田湖・ねぶたの家 ワ・ラッセ・八甲田ロープウェー</dd></div><div><dt>岩手県</dt><dd>中尊寺・浄土ヶ浜・毛越寺・小岩井農場・盛岡城跡公園</dd></div><div><dt>宮城県</dt><dd>松島 瑞巌寺・仙台城跡・秋保大滝・蔵王 御釜・定義如来 西方寺</dd></div><div><dt>秋田県</dt><dd>角館武家屋敷通り・乳頭温泉郷 鶴の湯・田沢湖・男鹿真山伝承館・千秋公園</dd></div><div><dt>山形県</dt><dd>銀山温泉・山寺（立石寺）・蔵王温泉・羽黒山五重塔・上杉神社</dd></div><div><dt>福島県</dt><dd>大内宿・鶴ヶ城・五色沼・花見山公園・塔のへつり</dd></div></dl><h3>関東</h3><dl class="prefs"><div><dt>茨城県</dt><dd>国営ひたち海浜公園・大洗磯前神社（神磯の鳥居）・偕楽園・袋田の滝・筑波山</dd></div><div><dt>栃木県</dt><dd>日光東照宮・華厳の滝・中禅寺湖・大谷資料館・那須どうぶつ王国</dd></div><div><dt>群馬県</dt><dd>草津温泉 湯畑・伊香保温泉 石段街・富岡製糸場・谷川岳ロープウェイ・高崎白衣大観音</dd></div><div><dt>埼玉県</dt><dd>小江戸川越 蔵造りの町並み・川越氷川神社・長瀞ライン下り・秩父神社・鉄道博物館</dd></div><div><dt>千葉県</dt><dd>東京ディズニーリゾート・鋸山・成田山新勝寺・濃溝の滝・佐原の町並み</dd></div><div><dt>東京都</dt><dd>浅草寺・渋谷スクランブル交差点・東京スカイツリー・東京タワー・明治神宮</dd></div><div><dt>神奈川県</dt><dd>江の島・鎌倉大仏（高徳院）・横浜中華街・鶴岡八幡宮・横浜赤レンガ倉庫</dd></div></dl><h3>中部</h3><dl class="prefs"><div><dt>新潟県</dt><dd>清津峡渓谷トンネル・彌彦神社・佐渡金山・萬代橋・GALA湯沢</dd></div><div><dt>富山県</dt><dd>立山黒部アルペンルート 室堂・富岩運河環水公園・五箇山 相倉合掌造り集落・雨晴海岸・高岡大仏</dd></div><div><dt>石川県</dt><dd>兼六園・ひがし茶屋街・金沢21世紀美術館・近江町市場・白米千枚田</dd></div><div><dt>福井県</dt><dd>東尋坊・福井県立恐竜博物館・永平寺・一乗谷朝倉氏遺跡・丸岡城</dd></div><div><dt>山梨県</dt><dd>新倉山浅間公園（忠霊塔）・河口湖 大石公園・忍野八海・昇仙峡・富士急ハイランド</dd></div><div><dt>長野県</dt><dd>上高地 河童橋・松本城・善光寺・地獄谷野猿公苑・旧軽井沢銀座</dd></div><div><dt>岐阜県</dt><dd>白川郷 荻町合掌造り集落・飛騨高山 古い町並・モネの池・下呂温泉・新穂高ロープウェイ</dd></div><div><dt>静岡県</dt><dd>三保松原・城ヶ崎海岸 門脇つり橋・白糸の滝・日本平夢テラス・来宮神社</dd></div><div><dt>愛知県</dt><dd>名古屋城・熱田神宮・大須商店街・犬山城・博物館明治村</dd></div></dl><h3>近畿</h3><dl class="prefs"><div><dt>三重県</dt><dd>伊勢神宮 内宮・おかげ横丁・夫婦岩（二見興玉神社）・なばなの里・鳥羽水族館</dd></div><div><dt>滋賀県</dt><dd>白鬚神社・メタセコイア並木・彦根城・びわ湖テラス・ラ コリーナ近江八幡</dd></div><div><dt>京都府</dt><dd>伏見稲荷大社・清水寺・嵐山 竹林の小径・金閣寺・八坂神社・祇園</dd></div><div><dt>大阪府</dt><dd>道頓堀・ユニバーサル・スタジオ・ジャパン・大阪城・通天閣・新世界・海遊館</dd></div><div><dt>兵庫県</dt><dd>姫路城・北野異人館街・メリケンパーク・城崎温泉・竹田城跡</dd></div><div><dt>奈良県</dt><dd>奈良公園・東大寺・春日大社・興福寺・ならまち</dd></div><div><dt>和歌山県</dt><dd>那智の滝・高野山 奥之院・アドベンチャーワールド・円月島・金剛峯寺</dd></div></dl><h3>中国</h3><dl class="prefs"><div><dt>鳥取県</dt><dd>鳥取砂丘・水木しげるロード・白壁土蔵群・三徳山三佛寺 投入堂・大山</dd></div><div><dt>島根県</dt><dd>出雲大社・稲佐の浜・松江城・足立美術館・石見銀山</dd></div><div><dt>岡山県</dt><dd>倉敷美観地区・岡山後楽園・岡山城・備中松山城・吉備津神社</dd></div><div><dt>広島県</dt><dd>厳島神社・原爆ドーム・平和記念公園・尾道 千光寺・大久野島・弥山</dd></div><div><dt>山口県</dt><dd>角島大橋・元乃隅神社・錦帯橋・秋芳洞・萩城下町</dd></div></dl><h3>四国</h3><dl class="prefs"><div><dt>徳島県</dt><dd>大塚国際美術館・鳴門の渦潮（渦の道）・祖谷のかずら橋・大歩危峡・眉山</dd></div><div><dt>香川県</dt><dd>父母ヶ浜・金刀比羅宮・栗林公園・地中美術館・高屋神社（天空の鳥居）</dd></div><div><dt>愛媛県</dt><dd>道後温泉本館・松山城・下灘駅・来島海峡展望館・内子の町並み</dd></div><div><dt>高知県</dt><dd>桂浜・ひろめ市場・高知城・仁淀川 にこ淵・四万十川 佐田沈下橋</dd></div></dl><h3>九州・沖縄</h3><dl class="prefs"><div><dt>福岡県</dt><dd>太宰府天満宮・中洲屋台・糸島 桜井二見ヶ浦・門司港レトロ・宮地嶽神社</dd></div><div><dt>佐賀県</dt><dd>御船山楽園・武雄市図書館・祐徳稲荷神社・大魚神社の海中鳥居・唐津城</dd></div><div><dt>長崎県</dt><dd>ハウステンボス・グラバー園・稲佐山展望台・軍艦島・大浦天主堂</dd></div><div><dt>熊本県</dt><dd>熊本城・黒川温泉・阿蘇 草千里ヶ浜・大観峰・鍋ヶ滝</dd></div><div><dt>大分県</dt><dd>別府地獄めぐり・由布院 金鱗湖・湯の坪街道・九重“夢”大吊橋・宇佐神宮</dd></div><div><dt>宮崎県</dt><dd>高千穂峡・青島神社・鵜戸神宮・天岩戸神社・サンメッセ日南</dd></div><div><dt>鹿児島県</dt><dd>桜島・仙巌園・霧島神宮・天文館・指宿 砂むし温泉</dd></div><div><dt>沖縄県</dt><dd>沖縄美ら海水族館・古宇利大橋・国際通り・首里城公園・万座毛</dd></div></dl>
 </section>
-  <p class="foot" id="foot">人気順は、SNSでよく投稿・検索される定番スポットをもとにした参考順位です（Instagramのリアルタイムの投稿数ではありません）。車の移動時間は道路の経路から計算し、電車・バスの移動時間は距離からの目安です。実際の所要時間は各区間のリンク（電車・バスは「乗換案内」、車は「経路」）で確認してください。</p>
+  <p class="foot" id="foot">人気順は、SNSでよく投稿・検索される定番スポットをもとにした参考順位です（Instagramのリアルタイムの投稿数ではありません）。観光地の「注目度」は、ウィキペディアの閲覧数と定番の順位から出した目安です（口コミ点数ではありません）。車の移動時間は道路の経路から計算し、電車・バスの移動時間は距離からの目安です。実際の所要時間は各区間のリンク（電車・バスは「乗換案内」、車は「経路」）で確認してください。</p>
   <p class="foot">地図：<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">国土地理院</a>／場所・住所・ホテル情報：© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>（Nominatim・Overpass API）、国土地理院 地名検索／車の経路：<a href="https://project-osrm.org/" target="_blank" rel="noopener">OSRM</a>／宿泊・グルメ情報：楽天トラベル／ホットペッパー グルメ（取得できた場合）。観光地の写真：<a href="https://commons.wikimedia.org/" target="_blank" rel="noopener">Wikimedia Commons</a>（撮影者とライセンスは写真の上にマウスを置くか「詳細を見る」で表示）</p>
   <footer class="sitefoot"><a href="privacy.html">プライバシーポリシー</a><span>地図：国土地理院／地図データ：© OpenStreetMap contributors／写真：Wikimedia Commons／時刻：<a href="privacy.html#odpt">公共交通オープンデータセンター</a></span><span class="bver">v12 · 写真 photo-v10</span></footer>
 </div>
@@ -1612,7 +1626,7 @@ function setPrefs(a){
     const names=new Set(allSpotsTrip().map(x=>x.name)); S.picks=(S.picks||[]).filter(n=>names.has(n));
     // 2県以上で泊まりがあるときは、泊まる場所を夜ごとに分ける
     if(a.length>1&&before<2&&nNights()>0) S.hotelSplit=true;
-    S.hotelCands=[]; S.hotelPick=-1; S.nights=[]; S.example=false; if(typeof bookingRouteMemo!=="undefined") bookingRouteMemo=null;
+    S.hotelCands=[]; S.hotelPick=-1; S.nights=[]; S.stayArea={}; S.example=false; if(typeof bookingRouteMemo!=="undefined") bookingRouteMemo=null;
   }
   save(); render();
 }
@@ -2303,6 +2317,15 @@ function splitDaysW(H,stops,n,caps){
   groups.push(cur); while(groups.length<n) groups.push([]);
   return groups;
 }
+// 県をまたぐ夜に泊まる県：次の県が近ければ（直線60km以内）次の県へ移って泊まり、遠ければその日の県に泊まって翌朝移動する
+function nightPref(last,next){ if(!next) return last?prefAt(last):tripPrefs()[0]; if(!last) return prefAt(next); return hav(last,next)>60? prefAt(last) : prefAt(next); }
+// 複数の県：1日の中の順番。めぐる順の県ごとに分けて、県の中だけ回りやすい順に並べる
+function orderPathPref(A,B,arr){
+  const ps=tripPrefs(), by=new Map(); arr.forEach(x=>{ const i=Math.max(0,ps.indexOf(prefAt(x))); if(!by.has(i)) by.set(i,[]); by.get(i).push(x); });
+  const keys=[...by.keys()].sort((a,b)=>a-b); const out=[]; let prev=A;
+  keys.forEach((k,j)=>{ const nx=j<keys.length-1? centroid(by.get(keys[j+1])) : B; const seg=orderPath(prev,nx||B,by.get(k)); seg.forEach(x=>out.push(x)); if(seg.length) prev=seg[seg.length-1]; });
+  return out;
+}
 // 複数の県：めぐる順に県ごとの場所を並べ、その順番のまま日数で区切る（1日に2県になることもある）
 function splitDaysPref(H,stops,n,trip){
   const ps=tripPrefs(); const by=ps.map(p=>stops.filter(s=>prefAt(s)===p));
@@ -2406,7 +2429,7 @@ function buildPlan(){
     for(let ni=0;ni<nNights();ni++){
       let g=[...(groups[ni]||[]),...(groups[ni+1]||[])].filter(Boolean);
       // 県をまたぐ夜は、次の日に回る県に泊まる（途中のどちらでもない場所にしない）
-      if(multiPref()&&g.length){ const nx=(groups[ni+1]&&groups[ni+1][0])||g[g.length-1]; const np=prefAt(nx); const gg=g.filter(x=>prefAt(x)===np); if(gg.length) g=gg; }
+      if(multiPref()&&g.length){ const ls=(groups[ni]||[]).slice(-1)[0], nx=(groups[ni+1]&&groups[ni+1][0])||g[g.length-1]; const np=nightPref(ls,nx); const gg=g.filter(x=>prefAt(x)===np); if(gg.length) g=gg; }
       NIGHTAREA[ni]= g.length? bestArea(g) : (sights.length?bestArea(sights):null);
     }
     if(!multiPref()){
@@ -2443,7 +2466,7 @@ function buildPlan(){
     const from = di===0 ? (trip? trip.hub : meetStartNode()) : (S.hotelSplit&&nNights()>0? Hs : null);
     const to = di===last && trip ? (trip.backHub||trip.hub) : (S.hotelSplit&&nNights()>0&&di<last? He : null);
     const A=B||from||He, Z=D||to||He;
-    const ord=orderPath(A,Z,g.filter(x=>x!==B&&x!==Lm&&x!==D));
+    const ord=(multiPref()?orderPathPref:orderPath)(A,Z,g.filter(x=>x!==B&&x!==Lm&&x!==D));   // 複数の県：1日の中も、めぐる順の県から回る
     const ks = Lm ? [...Array(ord.length+1).keys()] : [null];
     const MO=(S.manualOrd&&S.manualOrd[di])||null;   // 自分で並べ替えた順番
     const planFor=mode=>{
@@ -2480,6 +2503,16 @@ function buildPlan(){
   return {H,days,stops,trip,split:!!(S.hotelSplit&&nNights()>0),nightHotels:Array.from({length:nNights()},(_,ni)=>hotelPoint(stops,ni))};
 }
 
+// 複数の県：日ごとに回る県を1行で見せる。行く場所がない県は、その県の定番を1つ足せるようにする。
+function prefRouteHTML(plan){
+  if(!multiPref()) return "";
+  const ps=tripPrefs(), sh=p=>p==="北海道"?p:p.replace(/[都府県]$/,"");
+  const dp=plan.days.map(d=>[...new Set(d.ord.filter(x=>!x.meal).map(x=>prefAt(x)))]);
+  const miss=ps.filter(p=>!dp.flat().includes(p));
+  let h=`<div class="prefroute" aria-label="回る県の順番">${plan.days.map((d,i)=>`<span><b>${i+1}日目</b>${dp[i].length?dp[i].map(p=>esc(sh(p))).join(" → "):"—"}</span>`).join("")}</div>`;
+  if(miss.length) h+=`<div class="banner warn"><span>${miss.map(p=>{ const top=allSpots(p).find(x=>x.src==="base"&&!S.picks.includes(x.name)); return `<b>${esc(sh(p))}</b>に行く場所がありません。${top?`<button type="button" class="btn small" data-pick="${esc(top.name)}">＋ ${esc(top.name)}</button>`:""}`; }).join("　")}　<button type="button" class="linkbtn" data-go="4">ほかを選ぶ</button></span></div>`;
+  return h;
+}
 /* ============ STEP7 結果 ============ */
 let viewDay = 0; let VB=null; let hlStop=null;
 function stepResult(){
@@ -2491,7 +2524,7 @@ function stepResult(){
   const tr= ms.length<=1 ? (MODEJ[ms[0]||"transit"]+(S.transport==="auto"?"（おまかせ）":"")) : plan.days.filter(d=>d.ord.length).map(d=>`${d.di+1}日目 ${MODEJ[d.mode]}`).join("／");
   const unresolved=S.wishes.filter(w=>w.status!=="ok"&&!w.anchor);
   let h=`<div class="eyebrow">STEP 8 / 8　予定表</div><h1 class="q">${esc(tripTitle())}　${stayLabel(S.days)}の旅</h1>
-  <div class="sum"><span>出発 <b>${fmtDate(S.date,0)}</b></span><span>移動 <b>${tr}</b></span><span>スポット <b>${plan.stops.length}か所</b></span><span>宿泊 <b>${esc(planStayText(plan))}</b></span></div>`;
+  <div class="sum"><span>出発 <b>${fmtDate(S.date,0)}</b></span><span>移動 <b>${tr}</b></span><span>スポット <b>${plan.stops.length}か所</b></span><span>宿泊 <b>${esc(planStayText(plan))}</b></span></div>${prefRouteHTML(plan)}`;
   let nb="";  // 補足（ページ下部に表示）
   if(plan.trip) nb+=`<div class="banner"><span>${ICON.home} あなたの出発地（${esc(plan.trip.label)}）から出発して、${esc(plan.trip.label)}に帰るまでの予定です。一緒に行く人の画面には、その人の出発地からの予定が表示されます。</span></div>`;
   if(plan.H.area && S.hotelMode==="decided") nb+=`<div class="banner warn"><span>ホテルの位置を確認できなかったため、回りやすい場所を仮の出発地にしています。<button type="button" class="linkbtn" data-go="6">ホテルの位置を指定する</button></span></div>`;
@@ -2534,7 +2567,7 @@ function dayHTML(d,H){
   if(!d.ord.length&&!d.items.length){h+=`<p class="note">${dayTime(d.di).off?"この日は観光しない日に設定しています。":"この日はフリータイムです。スポットを増やすとこの日にも割り振られます。"}</p>${window.__plan&&window.__plan.trip&&(d.tripOut||d.tripBack)?`<ol class="tl">${(d.tripOut||[]).concat(d.tripBack||[]).map(it=>tripItemHTML(it,window.__plan.trip,d.di)).join("")}</ol>`:""}</article>`;return h}
   if(d.di===0&&trip) h+=crewHTML(crewTrips());
   const nStops=d.items.filter(x=>x.type==="stop").length; let stopIdx=0;
-  h+=`<div class="ordbar"><span class="note">${ICON.spark}回る順番は選択した条件をもとに提案します。予約時刻と営業時間を優先します。▲▼で入れ替えるか、「順番・日を変える」でまとめて編集できます。</span><button type="button" class="btn small" data-act="ordEdit">${ICON.spark}順番・日を変える</button>${(d.hand||(S.dayOf&&Object.keys(S.dayOf).length))?`<button type="button" class="btn small ghost" data-ordreset="${d.di}">この日を自動に戻す</button>`:""}</div>`;
+  h+=`<div class="ordbar"><div class="ordbar-t"><b>⇅ 回る順番</b><span>${d.hand?"自分で決めた順番":"自動で決めた順番"}・場所の右の「動かす」でも変えられます</span></div><button type="button" class="btn small primary" data-act="ordEdit">順番・日を変える</button>${(d.hand||(S.dayOf&&Object.keys(S.dayOf).length))?`<button type="button" class="btn small ghost" data-ordreset="${d.di}">この日を自動に戻す</button>`:""}</div>`;
   h+=`<ol class="tl">`;
   if(d.tripOut&&trip) h+=d.tripOut.map(it=>tripItemHTML(it,trip,d.di)).join("");
   d.items.forEach(it=>{
@@ -2547,7 +2580,7 @@ function dayHTML(d,H){
     else if(it.type==="end") h+=`<li><div class="t">${m2t(it.t)}</div><div class="stop" style="--c:var(--ink)"><div class="nm">${ICON.bed.replace("<svg",'<svg width="18" height="18"')} ${esc(it.label)} に到着${d.di<nNights()?` <button class="btn small" type="button" data-route-open-stay="${d.di}">${it.node?.area?"宿泊先を決める":"宿泊を確認・変更"}</button>`:""}</div></div></li>`;
     else if(it.type==="leg"){const ic=it.mode==="walk"?ICON.walk:it.mode==="car"?ICON.car:ICON.train;const lb=it.mode==="walk"?"徒歩":it.mode==="car"?"車":"電車・バス";
       const gm = it.mode==="walk"?"walking":mm;
-      h+=`<li><div></div><div class="leg" style="border-left-color:${c}">${ic}${lb} <b class="lt">${m2t(it.t)}${it.mode==="transit"&&!it.odpt?"発":"出発"}→${m2t(it.t+it.min)}${it.mode==="transit"&&!it.odpt?"着":"到着"}</b> ${it.real?"":"約"}${it.min}分${it.odpt?"":`（${it.km.toFixed(1)}km）`}${it.odpt?confPill("odpt"):it.mode==="transit"?confPill("est"):it.real?'<span class="pill ok">道路経路</span>':""}${it.buf?`<span class="pill">＋余裕${it.buf}分</span>`:""}${it.mode==="transit"
+      h+=`<li><div></div><div class="leg" style="border-left-color:${c}">${ic}${lb} <b class="lt">${m2t(it.t)}${it.mode==="transit"&&!it.odpt?"発":"出発"}→${m2t(it.t+it.min)}${it.mode==="transit"&&!it.odpt?"着":"到着"}</b> ${it.real||it.user?"":"約"}${it.min}分${it.odpt?"":`（${it.km.toFixed(1)}km）`}${it.user?'<span class="pill ok">入力した時刻</span>'+(it.userLate?`<span class="over">　${it.userLate}分間に合いません</span>`:""):it.odpt?confPill("odpt"):it.mode==="transit"?confPill("est"):it.real?'<span class="pill ok">道路経路</span>':""}${it.mode==="transit"&&(!it.odpt||it.user)&&typeof legTimeBtn==="function"?legTimeBtn(d.di,it):""}${it.buf?`<span class="pill">＋余裕${it.buf}分</span>`:""}${it.mode==="transit"
         ?`${it.odpt?`<span class="odpt-leg"><b style="color:${/^#[0-9A-Fa-f]{6}$/.test(it.odpt.color||"")?it.odpt.color:"inherit"}">${esc(it.odpt.line)}</b> ${esc(it.odpt.from.name)} ${esc(it.odpt.dep)}発 → ${esc(it.odpt.to.name)} ${esc(it.odpt.arr)}着${it.odpt.trainType?`・${esc(it.odpt.trainType)}`:""}${it.odpt.dest?`・${esc(it.odpt.dest)}行き`:""}${it.odpt.from.walk||it.odpt.to.walk?`（駅まで徒歩${it.odpt.from.walk}分・降りて${it.odpt.to.walk}分）`:""} ${odptCreditText(it.odpt)}</span>`:""}<a href="${wayURL(placeWay(it.from),placeWay(it.to),d.di,it.t)}" target="_blank" rel="noopener">${it.odpt?"乗換案内":"時刻を調べる"}</a><a href="${gdir(it.from,it.to,null,"transit")}" target="_blank" rel="noopener">地図</a>`
         :`<a href="${gdir(it.from,it.to,null,gm)}" target="_blank" rel="noopener">経路</a>`}</div></li>`;}
     else if(it.type==="free") h+=`<li class="lunch"><div class="t">${m2t(it.t)}</div><div class="stop"><div class="nm">自由時間</div><div class="sm">${fmtMin(it.dur)}・観光は${esc(it.until)}から（ホテルに荷物を預ける、駅の周辺を歩くなど）</div></div></li>`;
@@ -2555,7 +2588,7 @@ function dayHTML(d,H){
     else if(it.type==="lunch") h+=`<li class="lunch"><div class="t">${m2t(it.t)}</div><div class="stop"><div class="nm">昼食</div><div class="sm">${it.near?esc(it.near)+"の周辺で・":""}60分</div></div></li>`;
     else if(it.type==="stop"){ const si=stopIdx++, lastI=nStops-1;
       h+=`<li data-stop="${esc(it.s.id)}" class="${hlStop===it.s.id?"hl":""}"><div class="t">${m2t(it.t)}</div><div class="stop hasimg">${imgSlot(it.s,"sm")}<div><div class="nm"><span class="num">${it.n}</span>${esc(it.s.name)}${it.fixed?`<span class="pill warn">予約 ${m2t(it.t)} 固定</span>${it.arrival>it.t?`<span class="over">到着見込み ${m2t(it.arrival)}</span>`:""}`:""}${it.meal?`<span class="pill meal">${MEALNAME[it.meal]}</span>`:it.s.kind==="wish"?'<span class="pill hot">行きたい場所</span>':""}${it.s.conflict?`<span class="pill warn">同じ日の${it.s.conflict}が重なるため通常の立ち寄り</span>`:""}${it.s.approx?'<span class="pill warn">位置は推定</span>':""}</div><div class="sm">${m2t(it.t)}〜${m2t(it.t+it.dur)}（${it.dur}分）${it.meal?` <button class="linkbtn" data-route-open-food="${d.di}|${it.meal}">${MEALNAME[it.meal]}を変更</button>`:""}・<button type="button" class="linkbtn" style="padding:0;font-size:12.5px" data-detail="${esc(it.s.name)}">詳細を見る</button></div></div>
-      <div class="mv"><button type="button" class="mvb" data-move="${d.di}|${si}|-1" ${si===0?"disabled":""} aria-label="ひとつ前にする">▲</button><button type="button" class="mvb" data-move="${d.di}|${si}|1" ${si===lastI?"disabled":""} aria-label="ひとつ後にする">▼</button></div></div></li>`; }
+      <div class="mv"><button type="button" class="mvb" data-move="${d.di}|${si}|-1" ${si===0?"disabled":""} aria-label="ひとつ前にする">▲</button><button type="button" class="mvb mvgo" data-movefor="${esc(it.s.id)}" aria-label="${esc(it.s.name)}を別の順番・別の日へ動かす">動かす</button><button type="button" class="mvb" data-move="${d.di}|${si}|1" ${si===lastI?"disabled":""} aria-label="ひとつ後にする">▼</button></div></div></li>`; }
   });
   if(d.tripBack&&trip) h+=d.tripBack.map(it=>tripItemHTML(it,trip,d.di)).join("");
   h+=`</ol><div class="dayacts"><a class="btn small" href="${gdir(d.from||H,d.to||H,d.ord,d.mode==="car"?"driving":null)}" target="_blank" rel="noopener">${ICON.map}この日のルートをGoogleマップで開く</a></div></article>`;
@@ -3565,8 +3598,27 @@ function setKey(k,v){ try{ v?localStorage.setItem("tabiroute."+k,v):localStorage
 function stars(v){ const n=Math.max(0,Math.min(5,+v||0)); const full=Math.round(n*2)/2;
   let o=""; for(let i=1;i<=5;i++) o += full>=i?"★":(full>=i-.5?"⯨":"☆"); return o; }
 /* ---- APIキーなしの「注目度」：無料で取れる事実だけを合計した、たびルート独自の目安 ---- */
+// 観光地の注目度：ウィキペディアの閲覧数（1日あたり）と、その県の定番スポットの順位から計算（5点満点）
+function spotViews(o){
+  const V=window.TABIROUTE_SPOT_VIEWS||{}; const k=(o.pref||S.pref||"")+"|"+o.name;
+  if(V[k]!=null) return V[k];
+  if(o.src==="wiki"&&+o.pv>0) return +o.pv/30;   // 県のウィキペディア記事から読んだ場所（直近30日の合計）
+  return null;
+}
+function spotPop(o){
+  const v=spotViews(o), base=o.src==="base"&&o.rank;
+  if(v==null&&!base) return null;
+  const a=v!=null? 3.4+0.55*Math.log10(Math.max(v,3)/3) : null;           // 閲覧数：1日3回→3.4、70回→4.2、700回→4.7
+  const b=base? Math.max(3.7,4.6-0.07*(o.rank-1)) : null;                    // 県の定番の順位：1位→4.6
+  let x=a!=null&&b!=null? (a+b)/2 : a!=null? Math.min(4.4,a) : Math.min(4.2,b);
+  x=Math.max(3.0,Math.min(4.9,x));
+  const why=[]; if(v!=null) why.push("ウィキペディアの閲覧 1日約"+(v>=10?Math.round(v):Math.round(v*10)/10)+"回"); if(base) why.push(PREFJ(o)+"の定番スポット");
+  return {v:Math.round(x*10)/10, why};
+}
+function PREFJ(o){ return (o.pref||S.pref||"").replace(/[都府県]$/,""); }
 function popScore(o,kind){
   if(!o) return null;
+  if(kind==="spot"){ const sp=spotPop(o); if(sp) return sp; }
   const e=o.extra||{}; let p=0; const why=[];
   if(e.wikidata||e.wiki||o.famous){ p+=2.0; why.push("ウィキペディアに載っている"); }
   if(e.commons||e.image){ p+=0.5; why.push("写真が登録されている"); }
@@ -3593,7 +3645,7 @@ function popScore(o,kind){
 }
 function popBadge(o,kind){
   const p=popScore(o,kind); if(!p) return "";
-  return `<span class="rate pop" title="${esc("たびルートの注目度："+(p.why.join("・")||"公開情報が多い")+"（口コミ点数ではありません）")}"><b>${p.v.toFixed(1)}</b><i>${stars(p.v)}</i><em>注目度</em></span>`;
+  return `<span class="rate pop" title="${esc("たびルートの注目度："+(p.why.join("・")||"公開情報が多い")+"（口コミ点数ではありません）")}"><b>${p.v.toFixed(1)}</b><i>${stars(p.v)}</i><em>注目度</em></span>`;   // 観光地は閲覧数と定番の順位、お店・宿は公開情報の多さから
 }
 function rateBadge(r,c,src){ if(r==null) return "";
   return `<span class="rate" title="${esc(src||"")}の評価"><b>${(+r).toFixed(2)}</b><i>${stars(r)}</i>${+c>0?`<small>${Math.round(+c)}件</small>`:""}${src?`<em>${esc(src)}</em>`:""}</span>`; }
@@ -6424,13 +6476,16 @@ window.addEventListener('scroll',queueJournalViewport,{passive:true});window.add
 <script src="booking/photo-core.js?v=13"></script>
 <script src="booking/attraction-photos.js?v=12"></script>
 <script src="booking/client.js?v=9"></script>
-<script src="booking/itinerary.js?v=10"></script>
-<script src="booking/planner-core.js?v=9"></script>
+<script src="booking/itinerary.js?v=11"></script>
+<script src="booking/planner-core.js?v=10"></script>
 <script src="shiori/assets/mobile-save.js?v=7"></script>
-<script src="booking/planner.js?v=11"></script>
+<script src="booking/planner.js?v=12"></script>
 <script src="booking/enhancements.js?v=10"></script>
-<script src="booking/odpt.js?v=3"></script>
+<script src="booking/food2.js?v=1"></script>
+<script src="booking/odpt.js?v=4"></script>
 <script src="booking/ride.js?v=2"></script>
+<script src="booking/daytools.js?v=1"></script>
+<script src="booking/stay2.js?v=1"></script>
 <script src="shiori/assets/journal-host.js?v=20261005-sync1"></script>
 <script>
 boot();

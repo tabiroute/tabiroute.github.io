@@ -67,7 +67,7 @@ function odptLegKey(a,b,date){return [a.lat,a.lng,b.lat,b.lng,date].join('|');}
 function odptLegJobs(plan){
  const jobs=[];
  for(const d of plan?.days||[])for(const it of d.items||[]){
-  if(it.type!=='leg'||it.mode!=='transit'||!(it.t>=0&&it.t<1440)||!odptArea(it.from)||!odptArea(it.to))continue;const a=odptPt(it.from),b=odptPt(it.to);if(!a||!b)continue;
+  if(it.type!=='leg'||it.mode!=='transit'||it.user||!(it.t>=0&&it.t<1440)||!odptArea(it.from)||!odptArea(it.to))continue;const a=odptPt(it.from),b=odptPt(it.to);if(!a||!b)continue;
   const date=odptDay(d.di),nk=odptLegKey(a,b,date);if(ODPT.noDirect.has(nk))continue;
   const c=legCache[legKey(it.from,it.to,'transit')+'@'+date];
   if(c?.odpt&&it.t<=c.odpt.reqT&&c.odpt.reqT-it.t<=10)continue; // 出発がほぼ同じ（遅くならない）なら取り直さない

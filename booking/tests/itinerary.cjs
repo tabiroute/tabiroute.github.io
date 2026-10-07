@@ -53,16 +53,16 @@ const server=http.createServer((req,res)=>{const url=new URL(req.url,'http://loc
   await page.click('[data-route-stay="undecided"]');await page.waitForFunction(()=>!ROUTE_UI.hotelBusy);
   assert.equal(await page.evaluate(()=>canNext()),true);
   assert.equal(await page.locator('.booking-card h3').textContent(),hotel.name);
-  assert(await page.locator('.booking-conditions').isVisible());assert.equal(await page.locator('.booking-conditions').getAttribute('open'),null);
+  assert(await page.locator('.stay2-more').isVisible());assert.equal(await page.locator('.stay2-more').getAttribute('open'),null);
   await page.evaluate(()=>window.scrollTo(0,0));await page.screenshot({path:path.join(root,'booking/docs/route-hotel-mobile.png'),fullPage:true});
-  await page.locator('.booking-conditions summary').click();await page.selectOption('[data-bk-field="adults"]','3');
+  await page.locator('.stay2-more>summary').click();await page.locator('.stay2-more .stay2-dates>summary').click();await page.selectOption('[data-bk-field="adults"]','3');
   // Keep the condition editor open across field edits.
-  assert.notEqual(await page.locator('.booking-conditions').getAttribute('open'),null);await page.selectOption('[data-bk-field="rooms"]','2');
+  assert.notEqual(await page.locator('.stay2-more').getAttribute('open'),null);assert.notEqual(await page.locator('.stay2-more .stay2-dates').getAttribute('open'),null);await page.selectOption('[data-bk-field="rooms"]','2');
   await page.click('[data-bk-availability]');await page.locator('.booking-plan').waitFor();
   assert.equal(calls.at(-1).searchParams.get('adults'),'3');assert.equal(calls.at(-1).searchParams.get('rooms'),'2');
   await page.click('[data-bk-pick]');assert.equal(await page.evaluate(()=>hotelPoint(stopsAll()).name),hotel.name);
   await page.click('[data-route-split="1"]');await page.waitForFunction(()=>!ROUTE_UI.hotelBusy);
-  await page.selectOption('[data-route-night]','1');await page.waitForFunction(()=>!ROUTE_UI.hotelBusy);
+  await page.click('[data-route-select-night="1"]');await page.waitForFunction(()=>!ROUTE_UI.hotelBusy);
   assert.equal(await page.evaluate(()=>bookingConditions().checkin),await page.evaluate(()=>bookingISO(dayDate(1))));
   await page.click('[data-bk-pick]');assert.equal(await page.evaluate(()=>hotelPoint(stopsAll(),1).name),hotel.name);
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'mobile hotel overflow');
@@ -78,7 +78,7 @@ const server=http.createServer((req,res)=>{const url=new URL(req.url,'http://loc
   assert(await page.locator('.pref-chips').isVisible());assert(await page.locator('a[href*="hotpepper.jp/CSP"]').count());
   await page.evaluate(()=>{BOOKING_CFG.apiBase='';S.step=6;S.hotelSplit=false;render();});await page.click('[data-route-refresh-stay]');await page.waitForFunction(()=>!ROUTE_UI.hotelBusy);
   assert((await page.locator('.booking-notice').innerText()).includes('予約サイト'));
-  assert(await page.locator('.booking-route').isVisible());
+  assert(await page.locator('.stay2-where').isVisible());
   await page.evaluate(()=>{S.days=1;S.hotelMode='';S.stayDecision='';render();});assert.equal(await page.evaluate(()=>canNext()),true);
   assert((await page.locator('#main').innerText()).includes('日帰り'));
   assert.deepEqual(errors,[]);
@@ -109,7 +109,7 @@ const server=http.createServer((req,res)=>{const url=new URL(req.url,'http://loc
   await page.click('[data-route-split="1"]');
   assert.equal(await page.locator('[data-bk-field="checkout"]').inputValue(),'2027-01-01');
   await page.locator('.booking-manual summary').click();await page.fill('#routeHotelName','京都の宿A');await page.fill('#routeHotelCoords','35.01, 135.77');await page.click('[data-route-manual-stay]');
-  await page.selectOption('[data-route-night]','1');
+  await page.click('[data-route-select-night="1"]');
   assert.equal(await page.locator('[data-bk-field="checkin"]').inputValue(),'2027-01-01');
   assert.equal(await page.locator('[data-bk-field="checkout"]').inputValue(),'2027-01-02');
   assert.equal(await page.locator('[data-bk-field="checkout"]').getAttribute('readonly'),'');
