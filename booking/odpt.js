@@ -54,6 +54,7 @@ document.addEventListener('click',e=>{
  S.flight={...(S.flight||{})};const cur=S.flight[dir];
  if(cur&&cur.src==='odpt'&&cur.dep===x.dep&&flNo(cur.no)===flNo(x.no)){delete S.flight[dir];msg.flp='';}
  else{S.flight[dir]={no:x.no,dep:x.dep,arr:x.arr,kind:'air',src:'odpt',at:st.at};rideRemember(S.flight[dir]);const m=iata();if(!airPick('dep'))setAir('dep',m[dir==='out'?from:to]);if(!airPick('arr')&&(dir==='out'||!multiPref()))setAir('arr',m[dir==='out'?to:from]);msg.flp='';}
+ if(typeof RIDE_MORE!=='undefined')RIDE_MORE[dir]=false;   // 選んだら一覧を閉じる
  save();render();
 });
 

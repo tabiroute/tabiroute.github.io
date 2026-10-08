@@ -91,7 +91,17 @@ h2.sub small{font-weight:400;color:var(--muted)}
 .banner .linkbtn{color:var(--accent);padding:0}
 
 /* chips */
-.region{margin-bottom:12px}
+.region{margin-bottom:8px}
+.regions{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.region-h{width:100%;display:flex;align-items:center;gap:10px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);font:inherit;cursor:pointer;text-align:left}
+.region-h b{font-size:15px;flex:1}
+.region-h i{font-style:normal;color:var(--muted);font-size:12px}
+.region-n{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:var(--accent);color:var(--accent-ink);font-size:12px;font-weight:700}
+.region.open .region-h{border-color:var(--accent);background:var(--accent-soft)}
+.region .pgridx{margin-top:10px}
+.citypref{margin:10px 0 4px;font-size:13px;font-weight:700;color:var(--muted)}
+.cityadd{margin-top:8px;gap:8px}
+.cityadd input{flex:1 1 180px;min-width:0}
 .region h3{font-size:12px;color:var(--muted);margin:0 0 6px;font-weight:500;letter-spacing:.06em}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 13px;cursor:pointer;font-size:14px;line-height:1.5}
@@ -1218,7 +1228,7 @@ article.day{content-visibility:auto;contain-intrinsic-size:auto 900px}
 svg.transport-icon{min-width:22px;min-height:22px}.sgi svg.transport-icon,.tl .tripseg .sgi svg.transport-icon{width:25px;height:25px}.chip svg.transport-icon,.btn svg.transport-icon{width:22px;height:22px}.tl svg.transport-icon{margin-right:5px}button[aria-pressed=true] svg.transport-icon{filter:drop-shadow(0 0 1px white)}
 </style>
 
-<link rel="stylesheet" href="booking/style.css?v=12">
+<link rel="stylesheet" href="booking/style.css?v=13">
 </head>
 <body>
 <div class="wrap" id="wrap">
@@ -1418,7 +1428,7 @@ function allSpots(pref){ const p=PREF[pref]; if(!p) return []; const ai=(S&&S.ai
    S.prefs＝めぐる順の都道府県（1つ目に着いて、最後の県から帰る）。1つだけのときは今までどおり S.pref だけ。 */
 function tripPrefs(){ const a=Array.isArray(S&&S.prefs)?S.prefs.filter(p=>PREF[p]):[]; return a.length>1? a : (S&&S.pref?[S.pref]:[]); }
 function multiPref(){ return tripPrefs().length>1; }
-function tripTitle(sep){ return multiPref()? prefLabel() : (S.pref||"")+(cityLabel()?(sep||"・")+cityLabel():""); }
+function tripTitle(sep){ return multiPref()? prefLabel() : (S.pref||"")+(cityLabels()?(sep||"・")+cityLabels():""); }
 function prefLabel(){ return tripPrefs().join("・"); }
 function allSpotsTrip(){ return tripPrefs().flatMap(p=>allSpots(p)); }
 // その場所がどの県か（めぐる県の中で、いちばん近い登録スポットの県）
@@ -1442,7 +1452,11 @@ function parseLatLng(raw){
   if(a<20||a>46||b<122||b>154) return {err:"日本国内の座標ではないようです。緯度・経度の順になっているか確認してください。"};
   return {lat:+a.toFixed(6),lng:+b.toFixed(6)};
 }
-const cityLabel = ()=> (Array.isArray(S.prefs)&&S.prefs.length>1)? "" : S.city==="__other"? (S.cityOther||"") : S.city;
+// 選んだ市区町村（複数可）。古い保存（S.city ひとつ／"__other"）も読む
+function tripCities(){ if(!S) return []; if(Array.isArray(S.cities)) return S.cities.filter(Boolean); return S.city==="__other"? (S.cityOther?[S.cityOther]:[]) : (S.city?[S.city]:[]); }
+const cityLabel = ()=> (Array.isArray(S.prefs)&&S.prefs.length>1)? "" : (tripCities()[0]||"");
+function cityLabels(){ return multiPref()? "" : tripCities().join("・"); }
+function setCities(a){ S.cities=[...new Set(a.filter(Boolean))]; S.city=S.cities[0]||""; S.cityOther=""; }
 const placeQ = name => name+" "+S.pref;
 const links = s => ({
   ig:"https://www.instagram.com/explore/tags/"+enc(tagOf(s.name).slice(1))+"/",
@@ -1567,12 +1581,13 @@ function destCandsHTML(){
   return `<div class="cands" style="margin-bottom:14px">${APP_DEST.list.map((x,i)=>`<button type="button" class="cand" data-destpick="${i}"><div><b>${esc(x.label)}</b><span>${KJ[x.kind]}${x.kind==="spot"?"：行き先にして、行きたい場所にも追加します":""}</span></div></button>`).join("")}</div>`;
 }
 function destPick(i){
+  try{ const x0=APP_DEST.list&&APP_DEST.list[i]; if(x0&&PREF[x0.pref]) (APP_DEST.regions||(APP_DEST.regions=new Set())).add(PREF[x0.pref].region); }catch(e){}
   const x=APP_DEST.list[i]; if(!x) return;
   if(S.multi&&S.pref){ if(!tripPrefs().includes(x.pref)) setPrefs([...tripPrefs(),x.pref]); }
-  else if(S.pref!==x.pref){ S.pref=x.pref; S.city=""; S.cityOther=""; S.wishes=[]; S.picks=[]; S.hotelCands=[]; S.hotelPick=-1; S.hotelLoc=null; S.hotelAnchor=""; }
+  else if(S.pref!==x.pref){ S.pref=x.pref; S.city=""; S.cityOther=""; S.cities=[]; S.wishes=[]; S.picks=[]; S.hotelCands=[]; S.hotelPick=-1; S.hotelLoc=null; S.hotelAnchor=""; }
   if(S.step===0) scrollToCity();
   S.example=false;
-  if(x.city&&!multiPref()){ const cities=[...new Set(PREF[x.pref].spots.map(s=>s.city))]; if(cities.includes(x.city)) S.city=x.city; else { S.city="__other"; S.cityOther=x.city; } }
+  if(x.city&&!multiPref()){ setCities([...tripCities(),x.city]); }
   if(x.kind==="spot"&&x.spot&&!S.wishes.some(w=>norm(w.name)===norm(x.spot.name))){
     const base=allSpots(x.pref).find(s=>norm(s.name)===norm(x.spot.name));
     S.wishes.push({id:newId(),q:x.spot.name,name:x.spot.name,lat:+(+x.spot.lat).toFixed(6),lng:+(+x.spot.lng).toFixed(6),stay:(base&&base.stay)||60,status:"ok",src:base?"base":"web",anchor:"",addr:"",day:0,pref:x.pref});
@@ -1611,13 +1626,17 @@ function multiPrefHTML(){
   if(!S.multi) return h;
   if(!ps.length) return h+`<p class="note">めぐる順に、下から都道府県を選んでください。</p>`;
   h+=`<div class="prefseq" aria-label="めぐる順">${ps.map((p,i)=>`${i?'<span class="prefseq-ar" aria-hidden="true">→</span>':""}<span class="prefseq-i"><b>${i+1}</b>${esc(p)}${i?`<button type="button" class="prefseq-b" data-prefup="${esc(p)}" aria-label="${esc(p)}を前にする">↑</button>`:""}${ps.length>1?`<button type="button" class="prefseq-b" data-prefdel="${esc(p)}" aria-label="${esc(p)}を外す">×</button>`:""}</span>`).join("")}</div>`;
-  h+=`<p class="note">${ps.length<2?"次にめぐる県を選んでください。":`${esc(ps[0])}に着いて、${esc(ps[ps.length-1])}から帰ります。`}${ps.length>S.days?`<b class="warnt">　県の数が日数より多いため、1日に2県以上まわります。</b>`:""}</p>`;
+  h+=`<p class="note">${ps.length<2?"次にめぐる県を選んでください。":`${esc(ps[0])}に着いて、${esc(ps[ps.length-1])}から帰ります。${ps.length>2?(S.prefAuto===true?"回りやすい順に並べています（↑で入れかえ）。":`<button type="button" class="linkbtn" data-prefauto="1">回りやすい順にする</button>`):""}`}${ps.length>S.days?`<b class="warnt">　県の数が日数より多いため、1日に2県以上まわります。</b>`:""}</p>`;
   return h;
 }
 function setPrefs(a){
   a=[...new Set(a.filter(p=>PREF[p]))]; if(!a.length) return;
   const old=tripPrefs(), before=old.length;
-  S.prefs=a.length>1?a:null; S.pref=a[0]; if(a.length>1){ S.city=""; S.cityOther=""; }
+  // 回りやすい順：3県目を足したときから自動（自分で↑を押すまで）。前の版で保存した3県以上のプランは、並べた順のまま
+  if(a.length>2&&S.prefAuto==null&&before<3) S.prefAuto=true;
+  if(a.length>2&&S.prefAuto===true) a=prefBestOrder(a);
+  S.prefs=a.length>1?a:null; S.pref=a[0];
+  { const known=new Set(P.flatMap(x=>PREF[x[0]].spots.map(s=>s.city))), mine=new Set(a.flatMap(p=>PREF[p].spots.map(s=>s.city))); setCities(tripCities().filter(c=>mine.has(c)||!known.has(c))); }
   if(old.join("|")!==a.join("|")){
     // 外した県の場所は予定から外す（県を変えたときと同じ）
     const gone=old.filter(p=>!a.includes(p));
@@ -1630,6 +1649,16 @@ function setPrefs(a){
   }
   save(); render();
 }
+// めぐる順を「回りやすい順」にする：出発地 → 各県 → 出発地 の道のり（直線）が短い順。8県までは全部の順番を比べる
+function prefBestOrder(list){
+  const a=[...new Set(list)].filter(p=>PREF[p]); if(a.length<3) return a;
+  const home=myStartPt(), pt=p=>{ const s=PREF[p].spots; return s.length?centroid(s):PREF[p]; }, pts=a.map(pt);
+  const cost=ord=>{ let d=0,prev=home; ord.forEach(i=>{ if(prev) d+=hav(prev,pts[i]); prev=pts[i]; }); if(home) d+=hav(prev,home); return d; };
+  let best=null;
+  if(a.length<=8){ const idx=a.map((_,i)=>i); const perm=(arr,k)=>{ if(k===arr.length){ const c=cost(arr); if(!best||c<best.c-1e-6) best={c,o:arr.slice()}; return; } for(let i=k;i<arr.length;i++){ [arr[k],arr[i]]=[arr[i],arr[k]]; perm(arr,k+1); [arr[k],arr[i]]=[arr[i],arr[k]]; } }; perm(idx,0); }
+  else { let o=a.map((_,i)=>i), imp=true; while(imp){ imp=false; for(let i=0;i<o.length-1;i++) for(let j=i+1;j<o.length;j++){ const n=o.slice(0,i).concat(o.slice(i,j+1).reverse(),o.slice(j+1)); if(cost(n)+1e-6<cost(o)){ o=n; imp=true; } } } best={o}; }
+  return best.o.map(i=>a[i]);
+}
 function togglePref(p){ const a=tripPrefs().slice(); const i=a.indexOf(p); if(i>=0){ if(a.length>1) a.splice(i,1); } else a.push(p); setPrefs(a); }
 function stepPref(){
   let h = `<section class="panel">${exampleBanner()}${head(0,"どこへ旅行に行きますか？","都道府県・市区町村・観光地の名前で検索するか、下から都道府県を選んでください。")}
@@ -1637,16 +1666,19 @@ function stepPref(){
   ${destCandsHTML()}`;
   h+=multiPrefHTML();
   const sel=tripPrefs();
-  REGIONS.forEach(r=>{
-    h+=`<div class="region"><h3>${r}</h3><div class="pgridx">`+P.filter(p=>p[1]===r).map(p=>prefTile(p[0],sel.includes(p[0]))).join("")+`</div></div>`;
-  });
-  if(S.pref&&!multiPref()){
-    const cities=[...new Set(PREF[S.pref].spots.map(s=>s.city))];
-    h+=`<h2 class="sub" id="cityPick">${esc(S.pref)}のどのあたり？ <small>（任意）</small></h2><div class="chips">
-      <button type="button" class="chip" data-city="" aria-pressed="${!S.city}">県全体（指定しない）</button>`+
-      cities.map(c=>`<button type="button" class="chip" data-city="${esc(c)}" aria-pressed="${S.city===c}">${esc(c)}</button>`).join("")+
-      `<button type="button" class="chip" data-city="__other" aria-pressed="${S.city==="__other"}">ほかの市区町村…</button></div>`;
-    if(S.city==="__other") h+=`<div class="row" style="margin-top:10px"><input type="text" id="cityOther" placeholder="例：${esc(cities[cities.length-1]||"")}" value="${esc(S.cityOther)}" aria-label="市区町村名"></div>`;
+  // 地域を押すと、その地域の都道府県が開く（選んだ県のある地域は最初から開く）
+  const open=APP_DEST.regions||(APP_DEST.regions=new Set(sel.map(p=>PREF[p].region)));
+  h+=`<div class="regions">`;
+  REGIONS.forEach(r=>{ const n=P.filter(p=>p[1]===r&&sel.includes(p[0])).length, on=open.has(r);
+    h+=`<div class="region${on?" open":""}"><button type="button" class="region-h" data-region="${r}" aria-expanded="${on}"><b>${r}</b>${n?`<span class="region-n">${n}</span>`:""}<i aria-hidden="true">${on?"▲":"▼"}</i></button>${on?`<div class="pgridx">`+P.filter(p=>p[1]===r).map(p=>prefTile(p[0],sel.includes(p[0]))).join("")+`</div>`:""}</div>`; });
+  h+=`</div>`;
+  // どのあたり？：市区町村はいくつでも選べる（複数の県のときは県ごと）
+  if(S.pref){ const cs=tripCities(), known=new Set(sel.flatMap(p=>PREF[p].spots.map(s=>s.city)));
+    h+=`<h2 class="sub" id="cityPick">どのあたり？ <small>（任意・いくつでも）</small></h2>`;
+    sel.forEach(p=>{ const cities=[...new Set(PREF[p].spots.map(s=>s.city))];
+      h+=`${sel.length>1?`<p class="citypref">${esc(p)}</p>`:""}<div class="chips">${sel.length>1?"":`<button type="button" class="chip" data-city="" aria-pressed="${!cs.length}">県全体</button>`}`+cities.map(c=>`<button type="button" class="chip" data-city="${esc(c)}" aria-pressed="${cs.includes(c)}">${cs.includes(c)?"✓ ":""}${esc(c)}</button>`).join("")+`</div>`; });
+    const other=cs.filter(c=>!known.has(c));
+    h+=`<div class="chips" style="margin-top:8px">${other.map(c=>`<button type="button" class="chip" data-city="${esc(c)}" aria-pressed="true">✓ ${esc(c)} ×</button>`).join("")}</div><div class="row cityadd"><input type="text" id="cityOther" placeholder="ほかの市区町村（例：${esc(PREF[sel[sel.length-1]].spots.slice(-1)[0]?.city||"")}）" aria-label="ほかの市区町村"><button type="button" class="btn small" data-cityadd="1">追加</button></div>`;
   }
   return h+`</section>`;
 }
@@ -1732,12 +1764,12 @@ function stepWish(){
 function recList(){
   const wishNames=new Set(S.wishes.map(w=>norm(w.name)));
   const list=allSpotsTrip().filter(s=>!wishNames.has(norm(s.name)));
-  if(multiPref()) return {inCity:list,other:[],c:""};
-  const c=cityLabel();
-  const cs=c? PREF[S.pref].spots.filter(s=>s.city===c) : []; const cc=cs.length?centroid(cs):null;
-  const isIn=s=>s.city===c || (s.src==="wiki"&&cc&&hav(cc,s)<10);
-  const inCity = c? list.filter(isIn) : list;
-  const other = c? list.filter(s=>!isIn(s)) : [];
+  if(multiPref()){ const set=new Set(tripCities()); return {inCity:set.size?list.slice().sort((a,b)=>(set.has(b.city)?1:0)-(set.has(a.city)?1:0)):list,other:[],c:""}; }
+  const set=new Set(tripCities()), c=cityLabels();
+  const ccs=[...set].map(n=>PREF[S.pref].spots.filter(s=>s.city===n)).filter(a=>a.length).map(a=>centroid(a));
+  const isIn=s=>set.has(s.city) || (s.src==="wiki"&&ccs.some(cc=>hav(cc,s)<10));
+  const inCity = set.size? list.filter(isIn) : list;
+  const other = set.size? list.filter(s=>!isIn(s)) : [];
   return {inCity,other,c};
 }
 function spotCard(s,i){
@@ -2690,7 +2722,7 @@ function openDetail(name){
 }
 function closeModal(){ $("#modal").hidden=true; }
 $("#modal").addEventListener("click",e=>{ if(e.target.id==="modal") closeModal(); });
-document.addEventListener("keydown",e=>{ if(e.key==="Escape" && !$("#modal").hidden) closeModal(); if(e.key==="Enter" && e.target && e.target.id==="askStQ" && !e.isComposing){ e.preventDefault(); document.querySelector('[data-app="askSt"]')?.click(); }
+document.addEventListener("keydown",e=>{ if(e.key==="Escape" && !$("#modal").hidden) closeModal(); if(e.key==="Enter"&&e.target&&e.target.id==="cityOther"&&!e.isComposing&&e.keyCode!==229){ e.preventDefault(); document.querySelector("[data-cityadd]")?.click(); } if(e.key==="Enter" && e.target && e.target.id==="askStQ" && !e.isComposing){ e.preventDefault(); document.querySelector('[data-app="askSt"]')?.click(); }
   if(e.key==="Enter" && e.target && e.target.id==="foodQ" && !e.isComposing){ e.preventDefault(); foodSearch(e.target.value); } });
 
 /* ============ インターネットから場所情報を取得（APIキー不要） ============ */
@@ -3500,7 +3532,7 @@ function mergeCands(a,b){ const seen=new Set(); return [...a,...b].filter(c=>{ c
 function foodCenters(){
   const stops=stopsAll().filter(x=>!x.meal); const H=hotelPoint(stopsAll());
   let L=stops.length? bestArea(stops) : null;
-  if(!L){ const c=cityLabel(); const cs=c?allSpotsTrip().filter(x=>x.city===c):[]; const p=cs.length?cs:[PREF[S.pref]]; L={lat:p.reduce((a,x)=>a+x.lat,0)/p.length,lng:p.reduce((a,x)=>a+x.lng,0)/p.length}; }
+  if(!L){ const set=new Set(tripCities()); const cs=set.size?allSpotsTrip().filter(x=>set.has(x.city)):[]; const p=cs.length?cs:[PREF[S.pref]]; L={lat:p.reduce((a,x)=>a+x.lat,0)/p.length,lng:p.reduce((a,x)=>a+x.lng,0)/p.length}; }
   const Hc = H.area&&!stops.length? L : H;
   return {朝:Hc,昼:L,夜:Hc,H:Hc,L};
 }
@@ -3939,10 +3971,13 @@ document.addEventListener("click",async e=>{
   const d=t.dataset;
   if(d.close){ closeModal(); }
   if(d.go!==undefined){ closeModal(); go(+d.go); return; }
-  if(d.pref){ if(S.multi&&S.pref){ togglePref(d.pref); return; } if(S.pref!==d.pref){S.pref=d.pref;S.prefs=null;S.city="";S.cityOther="";S.wishes=[];S.picks=[];S.hotelCands=[];S.hotelPick=-1;S.hotelLoc=null;S.hotelAnchor="";} S.example=false; save(); render(); scrollToCity(); return; }
+  if(d.pref){ (APP_DEST.regions||(APP_DEST.regions=new Set())).add(PREF[d.pref]?.region); if(S.multi&&S.pref){ togglePref(d.pref); return; } if(S.pref!==d.pref){S.pref=d.pref;S.prefs=null;S.city="";S.cityOther="";S.cities=[];S.wishes=[];S.picks=[];S.hotelCands=[];S.hotelPick=-1;S.hotelLoc=null;S.hotelAnchor="";} S.example=false; save(); render(); scrollToCity(); return; }
   if(d.prefdel){ togglePref(d.prefdel); return; }
-  if(d.prefup){ const a=tripPrefs().slice(), i=a.indexOf(d.prefup); if(i>0){ [a[i-1],a[i]]=[a[i],a[i-1]]; setPrefs(a); } return; }
-  if(d.city!==undefined){ S.city=d.city; save(); render(); if(d.city==="__other") $("#cityOther")?.focus(); return; }
+  if(d.prefup){ const a=tripPrefs().slice(), i=a.indexOf(d.prefup); if(i>0){ [a[i-1],a[i]]=[a[i],a[i-1]]; S.prefAuto=false; setPrefs(a); } return; }
+  if(d.city!==undefined){ if(d.city==="") setCities([]); else { const a=tripCities(); setCities(a.includes(d.city)?a.filter(x=>x!==d.city):[...a,d.city]); } save(); render(); return; }
+  if(d.cityadd!==undefined){ const v=($("#cityOther")?.value||"").trim(); if(v){ setCities([...tripCities(),v]); save(); render(); } return; }
+  if(d.region){ const o=APP_DEST.regions||(APP_DEST.regions=new Set()); o.has(d.region)?o.delete(d.region):o.add(d.region); render(); return; }
+  if(d.prefauto){ S.prefAuto=true; setPrefs(prefBestOrder(tripPrefs())); return; }
   if(d.rental!==undefined){ S.rental=d.rental==="1"; save(); render(); if(S.rental&&!(S.rentCands&&S.rentCands.length)) setTimeout(()=>loadRentals(false),0); return; }
   if(d.rentmode){ S.rentMode=d.rentmode; S.rental=(d.rentmode!=="own"); save(); render(); if(d.rentmode!=="own") setTimeout(()=>loadRentals(false),0); return; }
   if(d.rentat){ S.rentAt=d.rentat; save(); render(); setTimeout(()=>loadRentals(true),0); return; }
@@ -4083,7 +4118,7 @@ document.addEventListener("change",e=>{
     save(); render(); return;
   }
   if(t.id==="multiPrefT"){ S.multi=t.checked; if(S.pref) setPrefs(S.multi?tripPrefs():[S.pref]); else { save(); render(); } return; }
-  if(t.id==="cityOther"){ S.cityOther=t.value.trim(); save(); }
+  if(t.id==="cityOther"){ /* 「追加」で入れる */ }
   if(t.id==="date"){ S.date=t.value; save(); }
   if(t.id==="tStart"){ S.start=t.value||"09:00"; save(); if(S.perDay) render(); }
   if(t.id==="tEnd"){ S.end=t.value||"18:00"; save(); if(S.perDay) render(); }
@@ -4276,6 +4311,10 @@ function tGraph(){
   const adj={}; Object.keys(TN).forEach(k=>adj[k]=[]);
   TLINES.forEach(([ln,st])=>{ for(let i=0;i<st.length-1;i++){ for(let j=i+1;j<st.length;j++){ const [a,ta]=st[i],[b,tb]=st[j]; adj[a].push({to:b,min:tb-ta,line:ln}); adj[b].push({to:a,min:tb-ta,line:ln}); } } });
   const aps=Object.keys(TN).filter(k=>TN[k][2]);
+  // 路線の登録がない空港は、近くの主な駅（45km以内・2つまで）と空港バス・電車でつなぐ（例：函館空港〜函館。別の空港を選んでも経路が出るように）
+  aps.forEach(a=>{ if(TLINES.some(([,st])=>st.some(x=>x[0]===a))) return; const A=tnPt(a);
+    Object.keys(TN).filter(k=>!TN[k][2]).map(k=>({k,d:hav(A,tnPt(k))})).filter(x=>x.d<=45).sort((x,y)=>x.d-y.d).slice(0,2)
+      .forEach(({k,d})=>{ const min=accessMin(d,"transit"), ln="空港バス・電車（"+a+"〜"+k+"）"; adj[a].push({to:k,min,line:ln}); adj[k].push({to:a,min,line:ln}); }); });
   aps.forEach(a=>aps.forEach(b=>{ if(a===b) return; const A=tnPt(a),B=tnPt(b); const d=hav(A,B);
     if(d<300) return; if(!AIRHUB.has(A.air)&&!AIRHUB.has(B.air)) return;
     if((A.air==="HND"&&B.air==="NRT")||(A.air==="NRT"&&B.air==="HND")||(A.air==="ITM"&&B.air==="KIX")||(A.air==="KIX"&&B.air==="ITM")) return;
@@ -4536,7 +4575,7 @@ const FIREBASE_CONFIG = {
 };
 const FBV = "10.12.2";
 const CLIENT_ID = Math.random().toString(36).slice(2);
-const PLAN_KEYS = ["prefs","multi","dayMode","honten","dayTimes","perDay","rental","people","rooms","pref","city","cityOther","days","date","start","end","wishes","picks","ai","hotelMode","hotelName","hotelLoc","hotelAnchor","hotelInfo","hotelDecCands","cond","hotelCands","hotelPick","transport","pace","example","flight","air","rideT","myMeal","longMode","rentMode","rentAt","rentBook","hotelSplit","nights","manualOrd","dayOf"];
+const PLAN_KEYS = ["prefs","multi","cities","prefAuto","dayMode","honten","dayTimes","perDay","rental","people","rooms","pref","city","cityOther","days","date","start","end","wishes","picks","ai","hotelMode","hotelName","hotelLoc","hotelAnchor","hotelInfo","hotelDecCands","cond","hotelCands","hotelPick","transport","pace","example","flight","air","rideT","myMeal","longMode","rentMode","rentAt","rentBook","hotelSplit","nights","manualOrd","dayOf"];
 const UI_KEYS = ["step","visited","foodTab","food","foodS","foodSort","rentCands","rentKey","moreSpots","moreNear","moreFood"];
 const STATUS = ["計画中","予約済み","旅行中","完了"];
 const MEMBER_C = ["#2356F6","#FF5A5F","#0E9F6E","#7A5AF8","#F08C00","#0891B2","#DB2777","#65A30D"];
@@ -5408,7 +5447,7 @@ function destPoint(){
   const st=stopsAll(); const sights=st.filter(x=>!x.meal);
   const nm=cityLabel()||S.pref;
   if(sights.length||st.length){ const a=bestArea(sights.length?sights:st); return {name:nm,lat:a.lat,lng:a.lng}; }
-  const c=cityLabel(); const cs=c?allSpots(S.pref).filter(x=>x.city===c):[]; const p=cs.length?centroid(cs):PREF[S.pref]; return {name:nm,lat:p.lat,lng:p.lng};
+  const set=new Set(tripCities()); const cs=set.size?allSpots(S.pref).filter(x=>set.has(x.city)):[]; const p=cs.length?centroid(cs):PREF[S.pref]; return {name:nm,lat:p.lat,lng:p.lng};
 }
 let MEETCACHE={k:null,v:null};
 var MEET_FREE_ARR=false, MEETCACHE2={k:null,v:null};
@@ -6236,7 +6275,7 @@ function overviewHTML(){
   const people=allPeople(p);
   let h=`<div class="ovgrid"><div class="ovcol">`;
   h+=`<section class="panel ov"><div class="row" style="gap:8px"><input type="text" id="pTitle" class="titleedit" value="${esc(p.title||"")}" aria-label="旅行の名前" maxlength="40"><select id="pStatus" aria-label="状態">${STATUS.map(x=>`<option ${p.status===x?"selected":""}>${x}</option>`).join("")}</select>${cd?`<span class="pill ${cd.c==="hot"?"hot":"ok"}">${cd.t}</span>`:""}</div>
-    <div class="facts"><div><span>行き先</span><b>${esc([pl.pref,cityLabel()].filter(Boolean).join("・")||"未定")}</b></div><div><span>日程</span><b>${esc(projDates(p)||"未定")}${pl.days?`（${stayLabel(pl.days)}）`:""}</b></div><div><span>宿泊</span><b>${esc(pl.hotelMode==="decided"?(pl.hotelName||"未定"):pl.hotelPick>=0&&pl.hotelCands&&pl.hotelCands[pl.hotelPick]?pl.hotelCands[pl.hotelPick].name:"未定")}</b></div><div><span>行く場所</span><b>${S?stopsAll().length:0}か所</b></div></div>
+    <div class="facts"><div><span>行き先</span><b>${esc([pl.pref,cityLabels()].filter(Boolean).join("・")||"未定")}</b></div><div><span>日程</span><b>${esc(projDates(p)||"未定")}${pl.days?`（${stayLabel(pl.days)}）`:""}</b></div><div><span>宿泊</span><b>${esc(pl.hotelMode==="decided"?(pl.hotelName||"未定"):pl.hotelPick>=0&&pl.hotelCands&&pl.hotelCands[pl.hotelPick]?pl.hotelCands[pl.hotelPick].name:"未定")}</b></div><div><span>行く場所</span><b>${S?stopsAll().length:0}か所</b></div></div>
     <div class="row" style="margin-top:12px"><button type="button" class="btn primary" data-app="ptab" data-v="plan">${pl.pref?"旅行プランを編集":"旅行プランをつくる"}</button>${pl.pref&&S&&stopsAll().length?`<button type="button" class="btn" data-app="ptab" data-v="result">予定表を見る</button>`:""}</div></section>`;
   // メンバー
   h+=`<section class="panel ov"><h2 class="ovh">${ICON.users}メンバーと出発地<small>${people.length}人</small></h2><div class="list">`+people.map(x=>{
@@ -6475,17 +6514,18 @@ window.addEventListener('scroll',queueJournalViewport,{passive:true});window.add
 <script src="booking/config.js?v=8"></script>
 <script src="booking/photo-core.js?v=13"></script>
 <script src="booking/attraction-photos.js?v=12"></script>
-<script src="booking/client.js?v=9"></script>
-<script src="booking/itinerary.js?v=11"></script>
+<script src="booking/client.js?v=10"></script>
+<script src="booking/itinerary.js?v=12"></script>
 <script src="booking/planner-core.js?v=10"></script>
 <script src="shiori/assets/mobile-save.js?v=7"></script>
-<script src="booking/planner.js?v=12"></script>
-<script src="booking/enhancements.js?v=10"></script>
-<script src="booking/food2.js?v=1"></script>
-<script src="booking/odpt.js?v=4"></script>
-<script src="booking/ride.js?v=2"></script>
+<script src="booking/planner.js?v=13"></script>
+<script src="booking/enhancements.js?v=11"></script>
+<script src="booking/food2.js?v=2"></script>
+<script src="booking/odpt.js?v=5"></script>
+<script src="booking/ride.js?v=3"></script>
 <script src="booking/daytools.js?v=1"></script>
-<script src="booking/stay2.js?v=1"></script>
+<script src="booking/stations.js?v=1"></script>
+<script src="booking/stay2.js?v=2"></script>
 <script src="shiori/assets/journal-host.js?v=20261005-sync1"></script>
 <script>
 boot();

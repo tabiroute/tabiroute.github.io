@@ -4,7 +4,7 @@ PLAN_KEYS.push('mealDecisions','bookingFoodDay','bookingFoodSlot','stayDecision'
 const ROUTE_UI={food:null,hotel:null,foodSeq:0,hotelSeq:0,foodBusy:false,hotelBusy:false};
 let bookingRouteMemo=null;
 function bookingRouteSignature(){
-  return JSON.stringify([S.prefs,S.legTimes,S.stayArea,S.stayCond,S.pref,S.city,S.cityOther,S.days,S.date,S.start,S.end,S.pace,S.transport,S.dayMode,S.cafeDays,S.foodPreferences,S.hotelBudget,S.dayTimes,S.dayOf,S.manualOrd,S.stopRules,S.stayRules,S.visitOrder,S.wishes,S.picks,S.hotelMode,S.hotelName,S.hotelLoc,S.hotelAnchor,S.hotelPick,S.hotelCands,S.hotelSplit,S.nights,APP.pid,APP.project?.starts,APP.project?.meet,S.flight,S.air]);
+  return JSON.stringify([S.prefs,S.cities,S.legTimes,S.stayArea,S.stayCond,S.pref,S.city,S.cityOther,S.days,S.date,S.start,S.end,S.pace,S.transport,S.dayMode,S.cafeDays,S.foodPreferences,S.hotelBudget,S.dayTimes,S.dayOf,S.manualOrd,S.stopRules,S.stayRules,S.visitOrder,S.wishes,S.picks,S.hotelMode,S.hotelName,S.hotelLoc,S.hotelAnchor,S.hotelPick,S.hotelCands,S.hotelSplit,S.nights,APP.pid,APP.project?.starts,APP.project?.meet,S.flight,S.air]);
 }
 function bookingRoutePlan(){
   const key=bookingRouteSignature();
@@ -64,7 +64,7 @@ function bookingStayContext(plan=bookingRoutePlan()){
   const center=points.length?points.slice().sort((a,b)=>points.reduce((s,p)=>s+hav(a,p)-hav(b,p),0))[0]:bookingFallbackPoint();
   return {ni,pairs,center,hasSights:points.length>0};
 }
-function bookingStayKey(c=bookingStayContext()){return JSON.stringify([APP.pid,S.pref,S.date,S.days,S.transport,S.dayMode,S.cafeDays,S.foodPreferences,S.hotelBudget,S.stayRules,!!S.hotelSplit,c.ni,c.pairs,c.center]);}
+function bookingStayKey(c=bookingStayContext()){return JSON.stringify([(()=>{try{return bookingConditions();}catch(e){return null;}})(),APP.pid,S.pref,S.date,S.days,S.transport,S.dayMode,S.cafeDays,S.foodPreferences,S.hotelBudget,S.stayRules,!!S.hotelSplit,c.ni,c.pairs,c.center]);}
 function bookingRankHotels(items,c){return items.map(h=>({...h,routeDistance:c.pairs.reduce((v,p)=>v+(p.before?hav(p.before,h):0)+(p.after?hav(h,p.after):0),0)/Math.max(1,c.pairs.length)})).sort((a,b)=>a.routeDistance-b.routeDistance);}
 function bookingRouteHTML(c,hotel=false){
   const pairs=hotel?c.pairs:[c];
@@ -163,10 +163,17 @@ async function bookingRouteHotelSearch(query=''){
   try{
     const j=await BookingAPI.get('/hotels',query?{q:query}:{lat:c.center.lat.toFixed(5),lng:c.center.lng.toFixed(5),...(typeof stay2Api==='function'?stay2Api(c):{})});   // 泊まる場所の種類（駅の近くなど）と詳細な条件（booking/stay2.js）
     if(S!==state||APP.pid!==pid||seq!==ROUTE_UI.hotelSeq||bookingStayKey()!==key)return;
-    const items=bookingRankHotels(j.items.map(h=>({name:h.name,lat:h.lat,lng:h.lng,addr:h.address,kind:'ホテル',type:'hotel',hotel:true,hotelNo:h.id,providerId:'rakuten:'+h.id,osm:'rakuten:'+h.id,rkURL:h.url,rkPlanURL:h.planUrl,apiPhoto:h.photo,apiExpiresAt:j.expiresAt,rate:h.rating,cnt:h.reviewCount,access:h.access,parking:h.parking,park:!!h.parking&&!/^(なし|無し|不可)|駐車場(は)?(なし|無し)/.test(String(h.parking).normalize('NFKC')),facilities:Array.isArray(h.facilities)?h.facilities:null,minCharge:h.minCharge,src:'rakuten'})),c);
+    const items=bookingRankHotels(j.items.map(h=>({name:h.name,lat:h.lat,lng:h.lng,addr:h.address,kind:'ホテル',type:'hotel',hotel:true,hotelNo:h.id,providerId:'rakuten:'+h.id,osm:'rakuten:'+h.id,rkURL:h.url,rkPlanURL:h.planUrl,apiPhoto:h.photo,apiExpiresAt:j.expiresAt,rate:h.rating,cnt:h.reviewCount,access:h.access,parking:h.parking,park:!!h.parking&&!/^(なし|無し|不可)|駐車場(は)?(なし|無し)/.test(String(h.parking).normalize('NFKC')),facilities:Array.isArray(h.facilities)?h.facilities:null,minCharge:h.minCharge,datePrice:j.vacant&&h.price>0?h.price:null,dateStay:j.vacant?j.stay:null,plans:j.vacant&&Array.isArray(h.plans)?h.plans:null,src:'rakuten'})),c);
     // Candidate refresh never changes a previously selected stay.
-    const fit=typeof stay2Apply==='function'&&!query?stay2Apply(items,j,c):{items,message:''};
-    S.hotelCands=fit.items.map(({facilities,condOk,condUnk,condNo,...h})=>h);S.hotelPick=-1;   // 保存するデータは軽くする（設備の一覧は画面の表示だけに使う）
+    let fit=typeof stay2Apply==='function'&&!query?stay2Apply(items,j,c):{items,message:''};
+    // その日に空室がある宿が見つからないときは、日付なしで探し直して「空室は未確認」として出す
+    if(j.vacant&&!fit.items.length&&!query){
+      const p2={lat:c.center.lat.toFixed(5),lng:c.center.lng.toFixed(5),...stay2Api(c)};delete p2.checkin;delete p2.checkout;delete p2.adults;delete p2.rooms;
+      try{const j2=await BookingAPI.get('/hotels',p2);if(S!==state||seq!==ROUTE_UI.hotelSeq)return;
+        const it2=bookingRankHotels(j2.items.map(h=>({name:h.name,lat:h.lat,lng:h.lng,addr:h.address,kind:'ホテル',type:'hotel',hotel:true,hotelNo:h.id,providerId:'rakuten:'+h.id,osm:'rakuten:'+h.id,rkURL:h.url,rkPlanURL:h.planUrl,apiPhoto:h.photo,apiExpiresAt:j2.expiresAt,rate:h.rating,cnt:h.reviewCount,access:h.access,parking:h.parking,facilities:Array.isArray(h.facilities)?h.facilities:null,minCharge:h.minCharge,src:'rakuten'})),c);
+        const f2=stay2Apply(it2,j2,c);fit={items:f2.items,message:`${fmtDay(new Date(j.stay.checkin+'T12:00:00'))}に空室がある宿は見つかりませんでした。下は空室を確かめていない宿です。`};}catch(e){fit={items:[],message:`${fmtDay(new Date(j.stay.checkin+'T12:00:00'))}に空室がある宿は見つかりませんでした。日程・人数（詳細な条件）を確かめてください。`};}
+    }
+    S.hotelCands=fit.items.map(({facilities,condOk,condUnk,condNo,plans,...h})=>h);S.hotelPick=-1;   // 保存するデータは軽くする（設備の一覧は画面の表示だけに使う）
     ROUTE_UI.hotel={key:bookingStayKey(),items:fit.items,expiresAt:j.expiresAt,message:fit.message||(fit.items.length?'観光ルートに合う候補です。宿を選んでから、必要に応じて空室を確認できます。':'このエリアの施設が見つかりませんでした。外部サイトで周辺の宿もご確認ください。')};save();
   }catch(e){if(S===state&&APP.pid===pid&&seq===ROUTE_UI.hotelSeq)ROUTE_UI.hotel={key,items:[],message:bookingMessage(e)};}
   finally{if(seq===ROUTE_UI.hotelSeq){ROUTE_UI.hotelBusy=false;render();}}

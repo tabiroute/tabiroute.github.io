@@ -15,12 +15,14 @@ const stay2BaseContext=bookingStayContext;
 bookingStayContext=function(plan){
   const c=stay2BaseContext(plan),a=stay2Area();
   // 選んだ駅・市町が、いまの観光ルートから遠い（行き先を変えたあとなど）ときは使わない
-  if(a.kind!=='rec'&&a.name&&Number.isFinite(+a.lat)&&Number.isFinite(+a.lng)&&hav(c.center,{lat:+a.lat,lng:+a.lng})<=40)return {...c,rec:c.center,center:{name:a.name,lat:+a.lat,lng:+a.lng},area:a};
+  if(a.kind!=='rec'&&a.name&&Number.isFinite(+a.lat)&&Number.isFinite(+a.lng)&&hav(c.center,{lat:+a.lat,lng:+a.lng})<=60)return {...c,rec:c.center,center:{name:a.name,lat:+a.lat,lng:+a.lng},area:a};
   return {...c,rec:c.center};
 };
 function stay2Api(c){
   const a=stay2Area(),conds=stay2Conds().filter(k=>STAY2_API.has(k));
-  return {r:c.area?.kind==='st'?'1':'3',...(conds.length?{cond:conds.join(',')}:{})};
+  // 日程・人数を付けると、その日に空室がある宿と、その日の料金で探す（Worker booking-v14 以降）
+  const bc=bookingConditions(),dates=bookingValid(bc)&&!bc.children?{checkin:bc.checkin,checkout:bc.checkout,adults:bc.adults,rooms:bc.rooms}:{};
+  return {r:c.area?.kind==='st'?'1':'3',...(conds.length?{cond:conds.join(',')}:{}),...dates};
 }
 function stay2Walk(h){const ms=[...String(h.access||'').normalize('NFKC').matchAll(/徒歩\s*(?:約)?\s*(\d+)\s*分/g)].map(m=>+m[1]);return ms.length?Math.min(...ms):null;}
 function stay2Check(k,h,j){
@@ -43,14 +45,26 @@ function stay2Apply(items,j,c){
 }
 // 駅の候補：主な駅（新幹線・特急の駅）と、地図データの駅（中心から2.5km以内）
 function stay2StKey(p){return p.lat.toFixed(3)+','+p.lng.toFixed(3);}
+// 駅の候補：その県の主な駅（booking/stations.js。観光の中心から近い順）＋ 近くの駅（地図データ、2.5km以内・3つまで）
+function stay2Prefs(c){
+  const ps=new Set();(c?.pairs||[]).forEach(p=>[p.before,p.after].forEach(x=>{if(x&&bookingPoint(x))ps.add(typeof prefAt==='function'?prefAt(x):S.pref);}));
+  if(!ps.size)(typeof tripPrefs==='function'?tripPrefs():[S.pref]).forEach(p=>ps.add(p));
+  return [...ps].filter(Boolean);
+}
+function stay2Stations(c){
+  const rec=c.rec||c.center,M=window.TABIROUTE_MAIN_STATIONS||{};
+  // 遠すぎる駅（60km超）は出さない（選んでも観光ルートから遠いため使わない：bookingStayContext と同じ基準）
+  const main=stay2Prefs(c).flatMap(p=>(M[p]||[]).map(([name,lat,lng])=>({name,lat,lng,d:hav(rec,{lat,lng}),major:true}))).filter(x=>x.d<=60).sort((a,b)=>a.d-b.d);
+  const near=(STAY2.st[stay2StKey(rec)]||[]).filter(x=>!main.some(m=>m.name===x.name)).slice(0,3);
+  return [...main.slice(0,8),...near];
+}
 async function stay2LoadStations(p){
   const k=stay2StKey(p);if(STAY2.st[k]||STAY2.stBusy[k])return;STAY2.stBusy[k]=true;
   const list=[];
-  try{if(typeof TN==='object')Object.entries(TN).forEach(([n,v])=>{if(/空港|港$/.test(n))return;const q={lat:+v[0],lng:+v[1]};if(Number.isFinite(q.lat)&&hav(p,q)<=12)list.push({name:n.replace(/駅$/,'')+'駅',lat:q.lat,lng:q.lng,d:hav(p,q),major:true});});}catch{}
   try{const j=await overpass(`[out:json][timeout:15];node["railway"="station"]["name"](around:2500,${p.lat},${p.lng});out 40;`,9000);
     (j.elements||[]).forEach(e=>{const n=String(e.tags?.['name:ja']||e.tags?.name||'').replace(/駅$/,'');if(!n)return;const q={lat:e.lat,lng:e.lon};if(!list.some(x=>x.name===n+'駅'))list.push({name:n+'駅',lat:q.lat,lng:q.lng,d:hav(p,q)});});}catch{}
-  list.sort((a,b)=>(b.major?1:0)-(a.major?1:0)||a.d-b.d);
-  STAY2.st[k]=list.slice(0,8);STAY2.stBusy[k]=false;
+  list.sort((a,b)=>a.d-b.d);
+  STAY2.st[k]=list.slice(0,6);STAY2.stBusy[k]=false;
   if(S?.step===6)render();
 }
 // 市・町の候補：その泊の前後（連泊なら全日程）の観光地がある市町
@@ -77,10 +91,10 @@ function stay2WhereHTML(c){
   const a=stay2Area(),rec=c.rec||c.center;
   const opt=(k,t,sub)=>`<button type="button" class="stay2-where-o" data-stay-kind="${k}" aria-pressed="${a.kind===k}"><b>${t}</b><span>${esc(sub)}</span></button>`;
   let h=`<div class="stay2-block"><p class="stay2-h">どこに泊まる？</p><div class="stay2-where">${opt('rec','おすすめ',(rec?.name||'観光地')+'周辺')}${opt('st','駅の近く',a.kind==='st'&&a.name?a.name:'駅を選ぶ')}${opt('city','市・町',a.kind==='city'&&a.name?a.name:'市町を選ぶ')}</div>`;
-  if(a.kind==='st'){const k=stay2StKey(rec),list=STAY2.st[k];if(!list)stay2LoadStations(rec);
-    h+=`<div class="chips stay2-chips">${list?list.length?list.map((s,i)=>`<button type="button" class="chip" data-stay-pick="st|${i}" aria-pressed="${a.name===s.name}">${esc(s.name)}</button>`).join(''):'<span class="note">近くの駅が見つかりませんでした。「市・町」から選んでください。</span>':'<span class="note"><span class="spin"></span>近くの駅を探しています…</span>'}</div>`;}
+  if(a.kind==='st'){const k=stay2StKey(rec);if(!STAY2.st[k])stay2LoadStations(rec);const list=stay2Stations(c);
+    h+=`<div class="chips stay2-chips">${list?list.length?list.map((s,i)=>`<button type="button" class="chip" data-stay-pick="st|${esc(s.name)}" aria-pressed="${a.name===s.name}">${esc(s.name)}</button>`).join(''):'<span class="note">近くの駅が見つかりませんでした。「市・町」から選んでください。</span>':'<span class="note"><span class="spin"></span>近くの駅を探しています…</span>'}</div>`;}
   if(a.kind==='city'){const list=stay2Cities(c);
-    h+=`<div class="chips stay2-chips">${list.length?list.map((s,i)=>`<button type="button" class="chip" data-stay-pick="city|${i}" aria-pressed="${a.name===s.name}">${esc(s.name)}</button>`).join(''):'<span class="note">観光地を選ぶと、市・町が出ます。</span>'}</div>`;}
+    h+=`<div class="chips stay2-chips">${list.length?list.map((s,i)=>`<button type="button" class="chip" data-stay-pick="city|${esc(s.name)}" aria-pressed="${a.name===s.name}">${esc(s.name)}</button>`).join(''):'<span class="note">観光地を選ぶと、市・町が出ます。</span>'}</div>`;}
   return h+'</div>';
 }
 function stay2MoreHTML(){
@@ -94,7 +108,12 @@ function stay2MoreHTML(){
 function stay2Card(x,i,mode){
   let h=bookingHotelCard(x,i);
   const tags=[x.walk!=null?`駅から徒歩${x.walk}分`:'',...(x.condOk||[]).map(t=>'✓ '+t)].filter(Boolean);
-  const extra=`${tags.length||x.condUnk?.length?`<p class="stay2-tags">${tags.map(t=>`<span>${esc(t)}</span>`).join('')}${x.condUnk?.length?`<span class="unk">要確認：${esc(x.condUnk.join('・'))}</span>`:''}</p>`:''}${mode==='undecided'&&Number.isFinite(x.routeDistance)?`<p class="note">観光地まで 約${x.routeDistance.toFixed(1)}km／泊（直線）</p>`:''}`;
+  // 検索した日の料金（1室1泊）と、安いプラン（最大3つ）
+  const md=d=>{const t=new Date(String(d||'')+'T12:00:00');return isNaN(t)?'':fmtDay(t);};
+  const price=x.datePrice>0?`<div class="stay2-price"><b>${Number(x.datePrice).toLocaleString()}円〜</b><span>${esc(md(x.dateStay?.checkin))} 1泊・1室（大人${x.dateStay?.adults||1}名）</span></div>`:'';
+  const plans=(x.plans||[]).filter(p=>p.url).slice(0,3);
+  const planHTML=plans.length?`<ul class="stay2-plans">${plans.map(p=>{const u=bookingSafeURL(p.url);return `<li><a href="${esc(u)}" target="_blank" rel="${bookingRel(u)}"><span>${esc(p.name)}${p.breakfast?'<i>朝食</i>':''}${p.dinner?'<i>夕食</i>':''}</span><b>${p.price?.perRoom>0?Number(p.price.perRoom).toLocaleString()+'円':'料金は楽天で'}</b></a></li>`;}).join('')}</ul>`:'';
+  const extra=`${price}${planHTML}${tags.length||x.condUnk?.length?`<p class="stay2-tags">${tags.map(t=>`<span>${esc(t)}</span>`).join('')}${x.condUnk?.length?`<span class="unk">要確認：${esc(x.condUnk.join('・'))}</span>`:''}</p>`:''}${mode==='undecided'&&Number.isFinite(x.routeDistance)?`<p class="note">観光地まで 約${x.routeDistance.toFixed(1)}km／泊（直線）</p>`:''}`;
   return h.replace('<div class="booking-actions">',extra+'<div class="booking-actions">');
 }
 stepHotel=function(){
@@ -121,7 +140,12 @@ document.addEventListener('click',e=>{
   const t=e.target.closest('[data-stay-kind],[data-stay-pick],[data-stay-cond]');if(!t)return;
   const k=stay2Key();
   if(t.dataset.stayKind){const kind=t.dataset.stayKind;stay2Set(all=>{all[k]={kind};});if(kind==='rec'&&bookingStayDecision()==='undecided')bookingRouteHotelSearch();}
-  else if(t.dataset.stayPick){const [kind,i]=t.dataset.stayPick.split('|'),c=bookingStayContext();const rec=c.rec||c.center;const list=kind==='st'?STAY2.st[stay2StKey(rec)]||[]:stay2Cities(c);const p=list[+i];if(!p)return;stay2Set(all=>{all[k]={kind,name:p.name,lat:p.lat,lng:p.lng};});bookingRouteHotelSearch();}
+  else if(t.dataset.stayPick){const [kind,...rest]=t.dataset.stayPick.split('|'),i=rest.join('|'),c=bookingStayContext();const rec=c.rec||c.center;const list=kind==='st'?stay2Stations(c):stay2Cities(c);const p=list.find(x=>x.name===i);if(!p)return;stay2Set(all=>{all[k]={kind,name:p.name,lat:p.lat,lng:p.lng};});bookingRouteHotelSearch();}
   else if(t.dataset.stayCond){const on=new Set(stay2Conds()),v=t.dataset.stayCond;on.has(v)?on.delete(v):on.add(v);S.stayCond={...(S.stayCond||{}),[k]:[...on]};STAY2.moreOpen=true;bookingResetHotelRequest();save();render();}
 });
 document.addEventListener('toggle',e=>{if(!e.target.isConnected)return;if(e.target.matches?.('.stay2-more'))STAY2.moreOpen=e.target.open;if(e.target.matches?.('.stay2-dates'))STAY2.datesOpen=e.target.open;},true);
+// 日程・人数を変えたら、空室と料金が変わるので、少し待って探し直す（何度も変えたときは最後の1回だけ）
+let stay2Redo=0;
+document.addEventListener('change',e=>{if(!e.target.closest?.('[data-bk-field]')||S?.step!==6||bookingStayDecision()!=='undecided')return;clearTimeout(stay2Redo);stay2Redo=setTimeout(()=>{if(S?.step===6&&bookingStayDecision()==='undecided')bookingRouteHotelSearch();},700);});
+// 開いた・閉じたをすぐ覚える（toggle イベントは遅れて届くため、そのあいだに画面を作り直すと閉じてしまう）
+document.addEventListener('click',e=>{const sm=e.target.closest?.('summary');if(!sm)return;const d=sm.parentElement;if(d?.matches('.stay2-more'))STAY2.moreOpen=!d.open;else if(d?.matches('.stay2-dates'))STAY2.datesOpen=!d.open;},true);

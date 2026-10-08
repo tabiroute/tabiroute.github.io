@@ -93,3 +93,44 @@ document.addEventListener('click',async e=>{
     bookingPutFood({name,lat:loc?.lat??null,lng:loc?.lng??null,addr:loc?.addr||raw||'',src:'mine'},c);
   }finally{t.disabled=false;}
 });
+
+/* ---- 食事（STEP6）の画面：日ごと・食事ごとの一覧から選ぶ形にして、文字を減らす ---- */
+const FOOD3_SLOTS=[['朝','朝'],['昼','昼'],['休憩','カフェ'],['夜','夜']];
+function food3Picked(di,slot){return S.wishes.filter(w=>w.food&&w.meal===slot&&bookingFoodDayOf(w)===di);}
+function food3Cell(di,slot,label){
+  const on=bookingFoodDay()===di&&bookingFoodSlot()===slot,pk=food3Picked(di,slot),off=slot==='休憩'?!S.cafeDays?.[di]:!!S.mealOmissions?.[di+'|'+slot];
+  return `<button type="button" class="food3-cell${pk.length?' done':''}${off?' off':''}" data-food3-cell="${di}|${slot}" aria-pressed="${on}"><b>${label}</b><span>${pk.length?esc(pk[0].name):off?(slot==='休憩'?'なし':'不要'):'未定'}</span></button>`;
+}
+function food3Grid(){
+  return `<div class="food3-grid">${Array.from({length:S.days||1},(_,di)=>`<div class="food3-day"><p>${di+1}日目 <small>${esc(fmtDay(dayDate(di)))}</small></p><div class="food3-cells">${FOOD3_SLOTS.map(([s,l])=>food3Cell(di,s,l)).join('')}</div></div>`).join('')}</div>`;
+}
+stepFood=function(){
+  const c=bookingMealContext(),mode=bookingMealDecision(),p=foodPreference(),picked=bookingMealPicked(c),cafe=c.slot==='休憩',name=`${c.di+1}日目の${cafe?'カフェ':MEALNAME[c.slot]}`;
+  let h=`<section class="panel booking-panel food3">${head(5,'食事','決めたい食事を押してください。未定のままでもOKです。')}${food3Grid()}<div class="food3-box"><h3 class="food3-h">${esc(name)}</h3>`;
+  if(c.before||c.after)h+=`<p class="food3-near">${esc(c.before?.name||'出発')} → <b>ここ</b> → ${esc(c.after?.name||'宿')}</p>`;
+  if(cafe)h+=`<label class="budget-check"><input type="checkbox" data-cafe-enable ${S.cafeDays?.[c.di]?'checked':''}>カフェ休憩を入れる（15時ごろ・45分）</label>`;
+  if(picked.length)h+=`<div class="food3-picked">${picked.map(w=>`<p><b>✓ ${esc(w.name)}</b>${w.status!=='ok'?'<small>（場所は未確認）</small>':''}<button class="linkbtn" type="button" data-delwish="${esc(w.id)}">外す</button></p>`).join('')}</div>`;
+  if(cafe&&!S.cafeDays?.[c.di])return h+'</div></section>';
+  h+=`<div class="food3-seg" role="group"><button type="button" data-route-food="decided" aria-pressed="${mode==='decided'}">決まっている</button><button type="button" data-route-food="undecided" aria-pressed="${mode==='undecided'}">おすすめから選ぶ</button></div>`;
+  if(mode==='decided'){
+    h+=`<form id="routeFoodSearch" class="food3-form"><input id="routeFoodQuery" name="query" maxlength="80" value="${esc(p.query)}" placeholder="お店の名前" aria-label="お店の名前"><button class="btn primary" ${ROUTE_UI.foodBusy?'disabled':''}>探す</button></form>`;
+    h+=bookingFoodResults(c);
+    h+=`<details class="booking-manual food3-manual" ${ROUTE_UI.food?.query&&!ROUTE_UI.food?.items?.length&&!ROUTE_UI.foodBusy?'open':''}><summary>見つからないとき：住所・駅名で登録</summary><label>店名<input id="routeFoodName" maxlength="80" value="${esc(p.query)}" placeholder="お店の名前"></label><label>住所・駅名<input id="routeFoodPlace" maxlength="120" placeholder="例：東京都葛飾区東新小岩1-4-17"></label><button class="btn" type="button" data-food2-manual>登録</button><span class="status" id="food2Status"></span></details>`;
+    h+=food2Links(p.query||'',c,true);
+  }else if(mode==='undecided'){
+    const dishes=cafe?['カフェ','パフェ','ケーキ','抹茶','コーヒー']:c.foods;
+    h+=`<form id="foodPreferenceSearch" class="food3-form"><input name="query" data-food-query maxlength="80" value="${esc(p.query)}" placeholder="${cafe?'例：パフェ':'食べたいもの（例：寿司）'}" aria-label="食べたいもの">${budgetSelect('food',c.slot)}<button class="btn primary" ${ROUTE_UI.foodBusy?'disabled':''}>${ROUTE_UI.foodBusy?'探しています…':'探す'}</button></form>`;
+    h+=`<div class="food3-unknown">${budgetUnknownCheck('food')}</div>`;
+    if(dishes.length)h+=`<div class="chips food3-dishes">${dishes.slice(0,8).map(x=>`<button type="button" class="chip" data-route-dish="${esc(x)}">${esc(x)}</button>`).join('')}</div>`;
+    h+=bookingFoodResults(c)+(typeof plannerCompareHTML==='function'?plannerCompareHTML('food'):'');
+    h+=food2Links(p.query||'',c,false)+`<p class="note"><a href="${esc(hpSearchURL([c.city,p.query||(cafe?'カフェ':'')].filter(Boolean).join(' '),c.pref,cafe?'G014':''))}" target="_blank" rel="noopener">ホットペッパーで探す</a></p>`;
+  }
+  if(!cafe&&!picked.length)h+=`<p class="food3-skip"><button type="button" class="linkbtn" data-food3-skip="${c.di}|${c.slot}">${S.mealOmissions?.[c.di+'|'+c.slot]?'この食事を予定に入れる':'この食事はいらない'}</button></p>`;
+  return h+'</div></section>';
+};
+document.addEventListener('click',e=>{
+  const t=e.target.closest('[data-food3-cell],[data-food3-skip]');if(!t)return;
+  if(t.dataset.food3Cell){const [di,slot]=t.dataset.food3Cell.split('|');if(bookingFoodDay()===+di&&bookingFoodSlot()===slot)return;S.bookingFoodDay=+di;S.bookingFoodSlot=slot;bookingResetFoodRequest();save();render();if(bookingMealDecision()==='undecided'&&(slot!=='休憩'||S.cafeDays?.[+di]))bookingRouteFoodSearch();
+    setTimeout(()=>document.querySelector('.food3-box')?.scrollIntoView({block:'nearest',behavior:'smooth'}),30);}
+  else{const k=t.dataset.food3Skip;S.mealOmissions={...(S.mealOmissions||{}),[k]:!S.mealOmissions?.[k]};if(typeof bookingRouteMemo!=='undefined')bookingRouteMemo=null;save();render();}
+});

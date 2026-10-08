@@ -26,23 +26,23 @@ const server=http.createServer((req,res)=>{const url=new URL(req.url,'http://loc
   assert.equal(calls.length,0,'initial question does not request APIs');
   assert.equal(await page.locator('#routeFoodSearch').count(),0);
   await page.click('[data-route-food="undecided"]');await page.waitForFunction(()=>!ROUTE_UI.foodBusy);
-  assert.equal(calls.length,1);assert(await page.locator('.pref-chips').isVisible());
-  assert(/清水寺|八坂神社/.test(await page.locator('.booking-route').innerText()));
+  assert.equal(calls.length,1);assert(await page.locator('.food3-dishes').isVisible());
+  assert(/清水寺|八坂神社/.test(await page.locator('.food3-near').innerText()));
   assert.equal(await page.locator('.booking-card h3').textContent(),shop.name);
   await page.evaluate(()=>window.scrollTo(0,0));await page.screenshot({path:path.join(root,'booking/docs/route-food-mobile.png'),fullPage:true});
   const firstCenter=calls.at(-1).searchParams.get('lat');
   const before=calls.length;await page.evaluate(()=>{render();render();});assert.equal(calls.length,before);
-  await page.selectOption('[data-route-day]','1');
+  await page.click('[data-food3-cell="1|昼"]');await page.waitForFunction(()=>!ROUTE_UI.foodBusy);
   await page.click('[data-route-food="undecided"]');await page.waitForFunction(()=>!ROUTE_UI.foodBusy);
   assert.notEqual(calls.at(-1).searchParams.get('lat'),firstCenter,'day selection changes location');
   await page.click('[data-route-addfood="0"]');
   assert.equal(await page.evaluate(()=>S.wishes.find(w=>w.hpId)?.day),2,'restaurant pinned to chosen day');
   assert.equal(await page.evaluate(()=>buildPlan().days[1].ord.some(w=>w.meal==='昼')),true);
   // Same restaurant can be used on a different day; another choice replaces only its slot.
-  await page.selectOption('[data-route-day]','0');await page.waitForFunction(()=>!ROUTE_UI.foodBusy);
+  await page.click('[data-food3-cell="0|昼"]');await page.waitForFunction(()=>!ROUTE_UI.foodBusy);
   await page.click('[data-route-addfood="0"]');
   assert.equal(await page.evaluate(()=>S.wishes.filter(w=>w.hpId).length),2);
-  await page.click('[data-route-slot="夜"]');assert.equal(await page.locator('#routeFoodSearch').count(),0);
+  await page.click('[data-food3-cell="0|夜"]');assert.equal(await page.locator('#routeFoodSearch').count(),0);
   await page.click('[data-route-food="decided"]');await page.fill('#routeFoodQuery','京都ごはん');await page.locator('#routeFoodSearch button').click();await page.waitForFunction(()=>!ROUTE_UI.foodBusy);
   assert.equal(calls.at(-1).searchParams.get('q'),'京都ごはん');
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'mobile food overflow');
@@ -75,7 +75,7 @@ const server=http.createServer((req,res)=>{const url=new URL(req.url,'http://loc
   await page.evaluate(()=>bookingRouteFoodSearch('限度テスト'));await page.waitForFunction(()=>!ROUTE_UI.foodBusy);
   assert(/混み合っています|一時休止/.test(await page.locator('.booking-notice').innerText()));
   const limited=calls.length;await page.evaluate(()=>bookingRouteFoodSearch('二度目'));await page.waitForFunction(()=>!ROUTE_UI.foodBusy);assert.equal(calls.length,limited);
-  assert(await page.locator('.pref-chips').isVisible());assert(await page.locator('a[href*="hotpepper.jp/CSP"]').count());
+  assert(await page.locator('.food3-dishes').isVisible());assert(await page.locator('a[href*="hotpepper.jp/CSP"]').count());
   await page.evaluate(()=>{BOOKING_CFG.apiBase='';S.step=6;S.hotelSplit=false;render();});await page.click('[data-route-refresh-stay]');await page.waitForFunction(()=>!ROUTE_UI.hotelBusy);
   assert((await page.locator('.booking-notice').innerText()).includes('予約サイト'));
   assert(await page.locator('.stay2-where').isVisible());
@@ -131,8 +131,7 @@ const server=http.createServer((req,res)=>{const url=new URL(req.url,'http://loc
   for(const [selector,pathPart] of [['[data-route-stay="decided"] img','ic-hotel.png'],['[data-route-stay="undecided"] img','ic-hotel-undecided.png']]){assert((await page.locator(selector).getAttribute('src')).endsWith(pathPart));assert(await page.locator(selector).evaluate(img=>img.complete&&img.naturalWidth>0));}
   await page.evaluate(()=>window.scrollTo(0,0));await page.addStyleTag({content:'.toast{visibility:hidden!important}'});await page.screenshot({path:path.join(root,'booking/docs/stay-v5-links-mobile.png'),fullPage:true});
   await page.evaluate(()=>{S.step=5;render();window.scrollTo(0,0);});
-  await page.locator('[data-route-food="decided"] img').waitFor();
-  await page.waitForFunction(()=>[...document.querySelectorAll('.booking-choice-icon img')].every(img=>img.complete&&img.naturalWidth>0));
+  await page.locator('.food3-seg').waitFor();
   await page.addStyleTag({content:'.toast{visibility:hidden!important}'});await page.screenshot({path:path.join(root,'booking/docs/stay-v5-food-mobile.png'),fullPage:true});
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
   assert.deepEqual(errors,[]);

@@ -35,6 +35,8 @@ const rideLinksHTML=ls=>`<div class="ride-links"><span>調べる</span>${ls.map(
 
 /* ---------- STEP3：遠くへの移動 ---------- */
 const RIDE_ERR={odpt_not_configured:'便の一覧は準備中です。',unsupported:'便の一覧は準備中です。',odpt_token_invalid:'便の一覧を読み込めません（管理者の設定が必要です）。',odpt_limited:'混み合っています。少し待ってください。',client_limited:'混み合っています。少し待ってください。'};
+const RIDE_MORE={};   // 便の一覧を全部見せているか（行き・帰り）
+document.addEventListener('click',e=>{const b=e.target.closest('[data-odpt-more]');if(!b)return;const d=b.dataset.odptMore;RIDE_MORE[d]=!RIDE_MORE[d];render();});
 function rideOdptChips(dir){
  const s=odptStatus();
  if(!s)return '<p class="note" role="status">便を読み込んでいます…</p>';
@@ -51,7 +53,14 @@ function rideOdptChips(dir){
  const sel=x=>f&&(x.nos.some(n=>flNo(n)===flNo(f.no))||(f.dep===x.dep&&f.arr===x.arr));
  let h='';
  if(f?.src==='odpt'&&!st.items.some(sel))h+='<p class="note warnline">選んだ便はこの日に飛びません。選び直してください。</p>';
- return h+`<p class="ride-sub">JAL・ANA（タップで決まります）</p><div class="odpt-flights" role="list">${st.items.map((x,i)=>`<button type="button" class="odpt-fl" role="listitem" data-odpt-fl="${dir}|${i}|${from}|${to}" aria-pressed="${!!sel(x)}"><b>${esc(x.dep)}→${esc(x.arr)}${x.arrDay?'<small>+1日</small>':''}</b><small>${esc(x.nos.slice(0,2).join(' / '))}${x.via?.length?' 経由':''}</small></button>`).join('')}</div>`;
+ // 便が多いときは、目安の時刻に近い6便だけ出して「もっと見る」。選んだあとは、選んだ便だけにする
+ const chip=(x,i)=>`<button type="button" class="odpt-fl" role="listitem" data-odpt-fl="${dir}|${i}|${from}|${to}" aria-pressed="${!!sel(x)}"><b>${esc(x.dep)}→${esc(x.arr)}${x.arrDay?'<small>+1日</small>':''}</b><small>${esc(x.nos.slice(0,2).join(' / '))}${x.via?.length?' 経由':''}</small></button>`;
+ const all=st.items.map((x,i)=>({x,i})),pick=all.find(o=>sel(o.x)),open=!!RIDE_MORE[dir];
+ if(pick&&!open)return h+`<div class="odpt-flights odpt-one" role="list">${chip(pick.x,pick.i)}</div><button type="button" class="linkbtn odpt-more" data-odpt-more="${dir}">ほかの便を見る（${all.length}便）</button>`;
+ let show=all;
+ if(!open&&all.length>6){const m=rideMain(dir),want=m?(dir==='out'?m.dep:m.dep):null,mm=v=>{const [a,b]=String(v).split(':').map(Number);return a*60+b;};
+  const c=want==null?0:all.reduce((b,o,k)=>Math.abs(mm(o.x.dep)-want)<Math.abs(mm(all[b].x.dep)-want)?k:b,0),st0=Math.max(0,Math.min(all.length-6,c-2));show=all.slice(st0,st0+6);}
+ return h+`<p class="ride-sub">JAL・ANA（タップで決まります）</p><div class="odpt-flights" role="list">${show.map(o=>chip(o.x,o.i)).join('')}</div>${all.length>6?`<button type="button" class="linkbtn odpt-more" data-odpt-more="${dir}">${open?'少なくする':`もっと見る（全${all.length}便）`}</button>`:''}`;
 }
 // 登録した便・列車のうち、いまの乗り物（飛行機／列車）に合うものだけを使う（rideKind は index.html）
 function rideFor(dir,air){const f=(S.flight||{})[dir];if(!f)return null;const k=rideKind(f);return !k||k===(air?'air':'rail')?f:null;}
@@ -63,7 +72,7 @@ function rideCardHTML(dir,lm){
   ?`${confPill(f.src==='odpt'?'odpt':'user')}<b>${esc((air?flNo(f.no):f.no)||'')} ${esc(f.dep)}→${esc(f.arr||'？')}</b>`
   :`${confPill('est')}${m?`<span class="ride-est">目安 ${rideClock(m.dep)}→${rideClock(m.arr)}</span>`:''}`;
  let h=`<div class="ride-card" data-dir="${dir}"><div class="ride-hd"><b>${dir==='out'?'行き':'帰り'}</b><span>${esc(fmtDay(date))}</span>${route}</div>`;
- if(noRoute&&!has)return h+`<p class="note">この経路には${air?'飛行機':'新幹線・特急'}がありません。</p></div>`;
+ if(noRoute&&!has)return h+`<p class="note">${air&&(S.air?.dep||S.air?.arr)?'この空港では行程をつくれません。出発地や行き先に近い空港を選んでください。':`この経路には${air?'飛行機':'新幹線・特急'}がありません。`}</p>${air&&lm==='air'?rideOdptChips(dir):''}</div>`;
  h+=`<div class="ride-state">${state}</div>`;
  if(has&&!f.dep)h+='<p class="note warnline">出発の時刻が入っていません。</p>';
  if(dir==='out'&&has){let w='';try{w=tripMemo()?.flWarn||'';}catch(e){}if(w)h+=`<p class="note warnline">${esc(w)}</p>`;}
