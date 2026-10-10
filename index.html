@@ -1228,7 +1228,7 @@ article.day{content-visibility:auto;contain-intrinsic-size:auto 900px}
 svg.transport-icon{min-width:22px;min-height:22px}.sgi svg.transport-icon,.tl .tripseg .sgi svg.transport-icon{width:25px;height:25px}.chip svg.transport-icon,.btn svg.transport-icon{width:22px;height:22px}.tl svg.transport-icon{margin-right:5px}button[aria-pressed=true] svg.transport-icon{filter:drop-shadow(0 0 1px white)}
 </style>
 
-<link rel="stylesheet" href="booking/style.css?v=13">
+<link rel="stylesheet" href="booking/style.css?v=14">
 </head>
 <body>
 <div class="wrap" id="wrap">
@@ -2479,7 +2479,9 @@ function buildPlan(){
   }
   const slots=groups.map(()=>({})); const conflicts=[];
   const mfix=x=>(DAYOF[x.id]!=null||x.mday)?1:0;
-  meals.slice().sort((a,b)=>mfix(b)-mfix(a)).forEach(m=>{
+  // STEP6で選んだお店（日と時間はおまかせ）は、ほかの食事を入れたあと、あいている枠に自動で入れる（booking/food4.js）
+  const autoMeals=typeof mealAutoAssign==="function"?meals.filter(m=>m.mealAuto&&!(typeof plannerRule==="function"&&plannerRule(m.id).fixed)):[];   // 「動かす」で日を決めたお店は、その日の中で枠を決める
+  meals.filter(m=>!autoMeals.includes(m)).sort((a,b)=>mfix(b)-mfix(a)).forEach(m=>{
     let di=-1;
     if(DAYOF[m.id]!=null) di=Math.max(0,Math.min(S.days-1,+DAYOF[m.id]||0));
     else if(m.mday && m.mday<=S.days) di=m.mday-1;
@@ -2488,6 +2490,7 @@ function buildPlan(){
     if(slots[di][m.meal]){ conflicts.push({...m,meal:"",conflict:MEALNAME[m.meal]}); groups[di].push(conflicts[conflicts.length-1]); return; }
     slots[di][m.meal]=m;
   });
+  if(autoMeals.length) mealAutoAssign(autoMeals,groups,slots,conflicts,H,stops);
   const trip=multiPref()?trip0:myTrip();
   const last=groups.length-1;
   const days=groups.map((g,di)=>{
@@ -2507,7 +2510,7 @@ function buildPlan(){
         const pool=[...(B?[B]:[]),...ord,...(Lm?[Lm]:[]),...(D?[D]:[])];
         const byId=new Map(); pool.forEach(x=>{ if(!byId.has(x.id)) byId.set(x.id,x); });
         const seq=[]; MO.forEach(id=>{ const x=byId.get(id); if(x&&!seq.includes(x)) seq.push(x); });
-        pool.forEach(x=>{ if(!seq.includes(x)) seq.push(x); });   // あとから増えた場所は最後に
+        pool.forEach(x=>{ if(seq.includes(x)) return; if(x===B) seq.unshift(x); else if(x===Lm||x===slots[di]["休憩"]){ const at=Math.min(seq.length,Math.ceil(seq.length*(x===Lm?0.5:0.7))); seq.splice(at,0,x); } else seq.push(x); });   // あとから増えた場所は最後に（食事は時間帯に合う位置へ）
         const r=schedule(He,seq,!!Lm,from,(from&&from.time)?from.time:null,to,di);
         best={score:0,seq,r}; CURMODE=null; best.cost=dayCost(best.r,mode,di,trip); return best;
       }
@@ -2619,7 +2622,7 @@ function dayHTML(d,H){
     else if(it.type==="wait") h+=`<li class="lunch"><div class="t">${m2t(it.t)}</div><div class="stop"><div class="nm">自由時間</div><div class="sm">${it.dur}分・${it.meal==="夜"?"ホテルで休憩、買い物や散策など":"周辺の散策など"}（${esc(it.label||((MEALNAME[it.meal]||"食事")+"のお店の時間まで"))}）</div></div></li>`;
     else if(it.type==="lunch") h+=`<li class="lunch"><div class="t">${m2t(it.t)}</div><div class="stop"><div class="nm">昼食</div><div class="sm">${it.near?esc(it.near)+"の周辺で・":""}60分</div></div></li>`;
     else if(it.type==="stop"){ const si=stopIdx++, lastI=nStops-1;
-      h+=`<li data-stop="${esc(it.s.id)}" class="${hlStop===it.s.id?"hl":""}"><div class="t">${m2t(it.t)}</div><div class="stop hasimg">${imgSlot(it.s,"sm")}<div><div class="nm"><span class="num">${it.n}</span>${esc(it.s.name)}${it.fixed?`<span class="pill warn">予約 ${m2t(it.t)} 固定</span>${it.arrival>it.t?`<span class="over">到着見込み ${m2t(it.arrival)}</span>`:""}`:""}${it.meal?`<span class="pill meal">${MEALNAME[it.meal]}</span>`:it.s.kind==="wish"?'<span class="pill hot">行きたい場所</span>':""}${it.s.conflict?`<span class="pill warn">同じ日の${it.s.conflict}が重なるため通常の立ち寄り</span>`:""}${it.s.approx?'<span class="pill warn">位置は推定</span>':""}</div><div class="sm">${m2t(it.t)}〜${m2t(it.t+it.dur)}（${it.dur}分）${it.meal?` <button class="linkbtn" data-route-open-food="${d.di}|${it.meal}">${MEALNAME[it.meal]}を変更</button>`:""}・<button type="button" class="linkbtn" style="padding:0;font-size:12.5px" data-detail="${esc(it.s.name)}">詳細を見る</button></div></div>
+      h+=`<li data-stop="${esc(it.s.id)}" class="${hlStop===it.s.id?"hl":""}"><div class="t">${m2t(it.t)}</div><div class="stop hasimg">${imgSlot(it.s,"sm")}<div><div class="nm"><span class="num">${it.n}</span>${esc(it.s.name)}${it.fixed?`<span class="pill warn">予約 ${m2t(it.t)} 固定</span>${it.arrival>it.t?`<span class="over">到着見込み ${m2t(it.arrival)}</span>`:""}`:""}${it.meal?`<span class="pill meal">${MEALNAME[it.meal]}</span>`:it.s.kind==="wish"?'<span class="pill hot">行きたい場所</span>':""}${it.s.conflict?`<span class="pill warn">${esc(it.s.conflictNote||`同じ日の${it.s.conflict}が重なるため通常の立ち寄り`)}</span>`:""}${it.s.approx?'<span class="pill warn">位置は推定</span>':""}</div><div class="sm">${m2t(it.t)}〜${m2t(it.t+it.dur)}（${it.dur}分）${it.meal||(it.s.food&&it.s.conflict)?` <button type="button" class="linkbtn f4-swapbtn" data-f4-swap="${esc(it.s.id)}">⇄ 食事の入れかえ</button>`:""}${it.meal?`・<button type="button" class="linkbtn" data-route-open-food="${d.di}|${it.meal}">お店を変える</button>`:""}・<button type="button" class="linkbtn" style="padding:0;font-size:12.5px" data-detail="${esc(it.s.name)}">詳細を見る</button></div></div>
       <div class="mv"><button type="button" class="mvb" data-move="${d.di}|${si}|-1" ${si===0?"disabled":""} aria-label="ひとつ前にする">▲</button><button type="button" class="mvb mvgo" data-movefor="${esc(it.s.id)}" aria-label="${esc(it.s.name)}を別の順番・別の日へ動かす">動かす</button><button type="button" class="mvb" data-move="${d.di}|${si}|1" ${si===lastI?"disabled":""} aria-label="ひとつ後にする">▼</button></div></div></li>`; }
   });
   if(d.tripBack&&trip) h+=d.tripBack.map(it=>tripItemHTML(it,trip,d.di)).join("");
@@ -3422,7 +3425,7 @@ const LOCAL={
 "甲府市":["ほうとう","鳥もつ煮","馬刺し"],"富士吉田市":["吉田のうどん","ほうとう"],"長野市":["信州そば","おやき","味噌"],"松本市":["山賊焼き","信州そば","そばがき"],"軽井沢町":["フレンチ","そば","ベーカリー"],
 "岐阜市":["鶏ちゃん","モーニング","鮎"],"高山市":["飛騨牛","高山ラーメン","朴葉味噌","みたらし団子"],"静岡市":["おでん","桜えび","マグロ"],"浜松市":["うなぎ","浜松餃子"],"熱海市":["海鮮丼","干物"],
 "名古屋市":["ひつまぶし","味噌カツ","手羽先","あんかけスパ","モーニング"],"津市":["うなぎ","天むす"],"伊勢市":["伊勢うどん","てこね寿司","赤福"],"松阪市":["松阪牛"],
-"大津市":["近江牛","鮒寿司","near比叡そば"],"彦根市":["近江牛","ちゃんぽん"],
+"大津市":["近江牛","鮒寿司","比叡そば"],"彦根市":["近江牛","ちゃんぽん"],
 "京都市":["湯豆腐","おばんざい","抹茶スイーツ","京ラーメン","にしんそば"],"宇治市":["抹茶スイーツ","茶そば"],
 "大阪市":["たこ焼き","お好み焼き","串カツ","うどん","キタの居酒屋"],"堺市":["穴子","和菓子"],
 "神戸市":["神戸牛","洋食","スイーツ","そばめし"],"姫路市":["姫路おでん","穴子めし"],"明石市":["明石焼き","鯛めし"],
@@ -6526,6 +6529,7 @@ window.addEventListener('scroll',queueJournalViewport,{passive:true});window.add
 <script src="booking/daytools.js?v=1"></script>
 <script src="booking/stations.js?v=1"></script>
 <script src="booking/stay2.js?v=2"></script>
+<script src="booking/food4.js?v=1"></script>
 <script src="shiori/assets/journal-host.js?v=20261005-sync1"></script>
 <script>
 boot();
