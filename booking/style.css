@@ -178,3 +178,89 @@
 .food3-form input{height:44px;padding:0 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);font:inherit;font-size:16px}
 .food3-form select{height:44px;border-radius:10px}
 .food3-unknown{margin:-2px 0 8px;font-size:13px}
+/* 食事（STEP6）v4：booking/food4.js */
+.f4-q{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:18px 0 8px;font-size:16px;font-weight:800;color:var(--ink)}
+.f4-q small{font-size:12.5px;font-weight:600;color:var(--muted)}
+.f4-n{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font-size:13px;font-weight:800;flex:none}
+.f4-seg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 6px}
+.f4-seg button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-width:0;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--ink);font:inherit;text-align:left;cursor:pointer;transition:border-color .15s,background .15s}
+.f4-seg button b{font-size:15.5px}
+.f4-seg button span{font-size:12.5px;color:var(--muted)}
+.f4-seg button:hover{border-color:var(--accent)}
+.f4-seg button[aria-pressed=true]{border:2px solid var(--accent);background:var(--accent-soft);padding:11px 13px}
+.f4-seg button[aria-pressed=true] b::before{content:"✓ ";color:var(--accent)}
+.f4-note{margin:8px 0 0;font-size:13px;color:var(--muted)}
+.f4-form{display:flex;gap:8px;align-items:center;margin:10px 0 4px}
+.f4-form input{flex:1 1 auto;min-width:0;height:46px;padding:0 12px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);font:inherit;font-size:16px}
+.f4-form .btn{flex:none;height:46px}
+.f4-own{margin-top:10px}
+.f4-chips{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0}
+.f4-res{margin-top:10px}
+.f4-h{display:flex;align-items:center;gap:8px;margin:16px 0 8px;font-size:15px}
+.f4-h small{font-size:12px;font-weight:600;color:var(--muted)}
+.f4-h .spin{margin:0}
+.f4-sub{margin:8px 0 6px;font-size:12.5px;font-weight:700;color:var(--muted)}
+.f4-dish{padding:12px 14px 6px;margin:12px 0;border:1px solid var(--line);border-radius:16px;background:var(--surface)}
+.f4-dish>.f4-h{margin-top:2px;font-size:16.5px}
+.f4-list{display:flex;flex-direction:column;gap:8px}
+.f4-card{display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px;border:1px solid var(--line);border-radius:14px;background:var(--surface)}
+.f4-card.sel{border:2px solid var(--ok);background:var(--ok-soft);padding:9px}
+.f4-ph{position:relative;width:56px;height:56px;border-radius:12px;overflow:hidden;background:var(--accent-soft);display:grid;place-items:center;font-weight:800;font-size:20px;color:var(--accent)}
+.f4-ph img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.f4-main{display:flex;flex-direction:column;gap:2px;min-width:0}
+.f4-main b{font-size:14.5px;line-height:1.35;overflow-wrap:anywhere}
+.f4-main small{font-size:12px;color:var(--muted);line-height:1.4;overflow-wrap:anywhere}
+.f4-addr{display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+.f4-src{align-self:flex-start;font-size:10.5px;font-weight:800;padding:1px 7px;border-radius:999px;background:var(--line);color:var(--ink)}
+.f4-src-famous{background:var(--hot-soft);color:var(--hot)}
+.f4-src-hotpepper{background:#fde7ea;color:#c8102e}
+.f4-src-osm{background:var(--accent-soft);color:var(--accent)}
+.f4-act{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.f4-act .btn{min-width:84px;white-space:nowrap}
+.f4-act a{font-size:12px}
+.f4-card.sel .f4-act .btn{background:var(--ok);border-color:var(--ok);color:#fff}
+.f4-more{margin:6px 0 2px}
+.f4-links{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin:10px 0 6px;font-size:12.5px}
+.f4-links span{color:var(--muted);font-weight:700}
+.f4-empty{margin:6px 0;padding:10px 12px;border-radius:12px;background:var(--warn-soft);font-size:13px}
+.f4-manual{margin:12px 0 0;padding:10px 12px;border:1px dashed var(--line);border-radius:12px}
+.f4-manual summary{cursor:pointer;font-size:13.5px;font-weight:700}
+.f4-manual label{display:flex;flex-direction:column;gap:4px;margin:8px 0;font-size:12.5px;font-weight:700;color:var(--muted)}
+.f4-manual input{height:44px;padding:0 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);font:inherit;font-size:16px}
+.f4-picked{margin:10px 0 4px;padding:12px 14px;border-radius:16px;background:var(--ok-soft);border:1px solid color-mix(in srgb,var(--ok) 35%,transparent)}
+.f4-picked-h{display:flex;align-items:center;gap:8px;margin:0 0 6px}
+.f4-picked-h span{font-size:12px;font-weight:700;padding:1px 8px;border-radius:999px;background:var(--ok);color:#fff}
+.f4-picked ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+.f4-picked li{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:14px}
+.f4-picked li small{color:var(--muted);font-size:12px}
+.f4-picked .f4-note{margin-top:6px}
+.f4-target{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:8px 0;padding:10px 12px;border-radius:12px;background:var(--accent-soft);font-size:13.5px}
+.f4-mealbar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:10px 0;padding:10px 14px;border-radius:14px;background:var(--hot-soft)}
+.f4-mealbar div{display:flex;flex-direction:column;gap:1px;min-width:0}
+.f4-mealbar span{font-size:12.5px;color:var(--muted)}
+/* 食事の順番を変える（予定表） */
+.f4sw-help{margin:4px 0 10px;font-size:13.5px}
+.f4sw-grid{display:flex;flex-direction:column;gap:10px}
+.f4sw-day>p{margin:0 0 6px;font-weight:800;font-size:14px}
+.f4sw-day small{font-weight:500;color:var(--muted);margin-left:4px}
+.f4sw-cells{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.f4sw-cell{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-width:0;min-height:58px;padding:8px 9px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);font:inherit;text-align:left;cursor:pointer}
+.f4sw-cell b{font-size:12.5px;color:var(--muted)}
+.f4sw-cell span{font-size:12.5px;font-weight:700;line-height:1.35;max-width:100%;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow-wrap:anywhere}
+.f4sw-cell:not(.has) span{font-weight:500;color:var(--muted)}
+.f4sw-cell.has{border-color:color-mix(in srgb,var(--hot) 45%,var(--line));background:var(--hot-soft)}
+.f4sw-cell.sel{border:2px solid var(--accent);background:var(--accent-soft);padding:7px 8px}
+.f4sw-cell.off{opacity:.45;cursor:not-allowed}
+.f4sw-cell.lock{cursor:not-allowed}
+.f4sw-cell small{font-size:10.5px;color:var(--muted)}
+.f4sw-extra-h{margin:14px 0 6px;font-size:13px;font-weight:700}
+.f4sw-foot{justify-content:space-between;align-items:center;margin-top:14px}
+@media(max-width:420px){.f4-card{grid-template-columns:48px minmax(0,1fr);}.f4-ph{width:48px;height:48px}.f4-act{grid-column:1/-1;flex-direction:row;align-items:center;justify-content:flex-end;gap:12px}.f4sw-cell{padding:7px 6px}.f4sw-cell.sel{padding:6px 5px}.f4-seg button{padding:10px 11px}.f4-seg button[aria-pressed=true]{padding:9px 10px}}
+/* 予定表：長いラベル（カフェ・スイーツなど）で右の「動かす」がはみ出さないように */
+.tl .stop.hasimg>div:not(.mv){min-width:0}
+.tl .stop .nm .pill{white-space:normal;max-width:100%;border-radius:10px}
+@media(max-width:480px){.tl .planner-photo-block{width:78px}.tl .planner-photo-block .booking-photo-sm{width:78px}.tl .planner-photo-block .booking-photo-sm>img{height:78px}.tl .planner-photo-block .booking-no-photo{min-height:78px;font-size:9.5px;padding:6px}.tl .planner-photo-tools .linkbtn{font-size:10.5px}}
+.tl .f4-swapbtn{color:var(--accent);font-weight:700;text-decoration:none;white-space:nowrap}
+.f4-act a{display:inline-flex;align-items:center;min-height:36px;padding:0 4px}
+.f4-picked .linkbtn{min-height:36px;padding:0 8px}
+.f4-links a{display:inline-flex;align-items:center;min-height:34px}
