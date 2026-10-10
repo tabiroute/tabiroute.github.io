@@ -1,6 +1,6 @@
 /* 公開してよい設定だけを書きます。APIキーは絶対に書かないでください。 */
 window.TABIROUTE_BOOKING = {
-  apiBase: "https://tabiroute-booking.narunaru12931.workers.dev", // 例: https://tabiroute-booking.YOUR-SUBDOMAIN.workers.dev
+  apiBase: "https://tabiroute-booking.tabirouteapp.workers.dev", // 例: https://tabiroute-booking.YOUR-SUBDOMAIN.workers.dev
   enabled: true
 };
 /* 掲載許可のある写真を、施設ID・店舗IDに結び付けて登録できます。
