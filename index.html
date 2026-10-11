@@ -232,6 +232,10 @@ h3.sub3 small{font-weight:400;color:var(--muted)}
 .pbar-t{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .pbar-t h2{font-family:var(--f-disp);font-size:20px;margin:0;min-width:0;overflow-wrap:anywhere}
 .pbar-t .spacer{flex:1}
+.adnote{margin:0 0 6px;font-size:11px;line-height:1.6;color:var(--muted)}.adnote b{font-weight:700;margin-right:2px}.adnote a{color:inherit}
+.pbar-t .rename{font-size:12.5px;color:var(--accent);padding:4px 2px;white-space:nowrap}
+.titlefix{border:1px solid var(--warn);background:var(--warn-soft);color:var(--warn);border-radius:999px;font-size:12px;font-weight:700;padding:4px 12px;cursor:pointer;flex-basis:auto}
+@media(max-width:600px){.titlefix{flex-basis:100%;text-align:left}}
 .pbar .back{padding:0;font-size:12.5px;width:100%;text-align:left}
 .ptabs{display:flex;gap:4px;margin-top:10px;overflow-x:auto}
 .ptab{border:0;background:none;padding:8px 12px 10px;cursor:pointer;font-weight:700;color:var(--muted);border-bottom:3px solid transparent;white-space:nowrap;font-size:14px}
@@ -1241,6 +1245,7 @@ svg.transport-icon{min-width:22px;min-height:22px}.sgi svg.transport-icon,.tl .t
     <button class="btn small ghost" id="homeBtn" type="button" data-app="home" hidden>マイ旅行</button>
     <button class="acct" id="acctBtn" type="button" data-app="acct" aria-label="アカウント"></button>
   </header>
+  <p class="adnote"><b>#アフィリエイト広告</b>　ホテル・お店の予約リンクには、楽天トラベル・ホットペッパーグルメのアフィリエイト広告を含みます。<a href="privacy.html#ads">詳しく</a></p>
   <div id="pbar"></div>
   <nav class="stepper" id="stepper" aria-label="ステップ" hidden></nav>
   <main id="main"></main>
@@ -4739,7 +4744,11 @@ function save(){
   if(!APP.pid||!S) return;
   uiSave(APP.pid,S);
   clearTimeout(saveT);
-  saveT=setTimeout(()=>{ if(!APP.pid||!S) return; const plan=planOf(S); if(APP.project) APP.project.plan=plan; Store.update(APP.pid,{plan,updatedBy:CLIENT_ID}).catch(e=>toast(fbErr(e))); },600);
+  saveT=setTimeout(()=>{ if(!APP.pid||!S) return; const plan=planOf(S), extra={};
+    // 行き先を変えたとき、行き先から自動で付いた名前（「沖縄の旅」など）は新しい行き先に合わせる。自分で付けた名前は変えない
+    const pr=APP.project, old=pr&&pr.plan||{};
+    if(pr&&plan.pref&&old.pref&&old.pref!==plan.pref){ const autos=[tripTitleFor(old),...prefShortNames(old.pref).map(x=>x+"の旅")]; if(autos.includes(pr.title)){ extra.title=tripTitleFor({pref:plan.pref}); pr.title=extra.title; if(APP.view==="project"&&APP.project===pr) $("#pbar").innerHTML=pbarHTML(); } }
+    if(APP.project) APP.project.plan=plan; Store.update(APP.pid,{plan,...extra,updatedBy:CLIENT_ID}).catch(e=>toast(fbErr(e))); },600);
 }
 // プロジェクトの項目を更新（画面は先に更新）
 async function pupdate(patch,noRender){
@@ -4762,6 +4771,20 @@ async function quickStart(q){
   } else APP.pendingDest=q;
   APP.pendingStep=step; DRAFT.qsQ="";
   await newProject(title,patch);
+}
+/* ---- 旅行の名前 ---- */
+// 行き先から付ける名前（「栃木の旅」「小樽市の旅」）
+function tripTitleFor(pl){ pl=pl||{}; if(!pl.pref) return ""; const c=pl.city&&pl.city!=="__other"?pl.city:(pl.cityOther||""); return (c||pl.pref.replace(/[府県]$/,""))+"の旅"; }
+function prefShortNames(k){ return [k,k.replace(/[都府県]$/,"")]; }
+// 「沖縄の旅」のように、自動で付いた名前が今の行き先と違うときは、行き先に合う名前を返す（自分で付けた名前はそのまま）
+function staleTitle(title,pl){ pl=pl||{}; const m=String(title||"").match(/^(.+)の旅$/); if(!m||!pl.pref||typeof PREF!=="object") return "";
+  if(prefShortNames(pl.pref).includes(m[1])) return "";
+  const other=Object.keys(PREF).some(k=>k!==pl.pref&&prefShortNames(k).includes(m[1])); return other?tripTitleFor({pref:pl.pref}):""; }
+async function renameProject(id,title){
+  title=String(title||"").replace(/\s+/g," ").trim().slice(0,40); if(!id||!title) return;
+  if(APP.pid===id&&APP.project){ if(title!==APP.project.title) await pupdate({title}); }
+  else { const p=APP.projects.find(x=>x.id===id); if(!p||p.title===title) return; p.title=title; render(); try{ await Store.update(id,{title,updatedBy:CLIENT_ID}); }catch(e){ toast(fbErr(e)); return; } }
+  toast(`名前を「${title}」にしました`);
 }
 async function newProject(title,patch){
   const me=APP.user.uid; const st=startFromProfile();
@@ -4868,7 +4891,7 @@ function pbarHTML(){
   const guests=Object.entries(p.starts||{}).filter(([k])=>!(p.memberInfo||{})[k]);
   const all=[...mem.map(([k,v])=>v.name),...guests.map(([k,v])=>v.name)];
   const tab=(k,l)=>`<button type="button" class="ptab" data-app="ptab" data-v="${k}" aria-pressed="${APP.ptab===k}">${l}</button>`;
-  return `<div class="pbar"><div class="pbar-t"><button type="button" class="linkbtn back" data-app="home">← マイ旅行</button><h2>${esc(p.title||"旅行")}</h2><span class="pill info">${esc(p.status||"計画中")}</span>
+  return `<div class="pbar"><div class="pbar-t"><button type="button" class="linkbtn back" data-app="home">← マイ旅行</button><h2>${esc(p.title||"旅行")}</h2><button type="button" class="linkbtn rename" data-app="rename" data-v="${esc(APP.pid||"")}" aria-label="旅行の名前を変更">✎ 名前を変更</button><span class="pill info">${esc(p.status||"計画中")}</span>${(()=>{const sug=staleTitle(p.title,S||p.plan);return sug?`<button type="button" class="titlefix" data-app="renameTo" data-v="${esc(sug)}">行き先は${esc((S||p.plan).pref)}です。名前を「${esc(sug)}」に変える</button>`:"";})()}
     <span class="avs">${all.slice(0,6).map((n,i)=>avatar(n,i)).join("")}${all.length>6?`<span class="av more">+${all.length-6}</span>`:""}</span>
     <span class="spacer"></span><button type="button" class="btn small" data-app="share">${ICON.share}共有</button></div>
     <div class="ptabs" role="tablist">${tab("plan","旅行プラン")}${tab("result","予定表")}${tab("journal","しおり")}</div></div>`;
@@ -5221,7 +5244,7 @@ function homeHTML(){
   <div class="demohd"><h2>たびルートができること</h2>
     <p class="demolead" id="demoLead">${JOURNEY[0][5]}</p></div>${demoHTML()}
   <ol class="howto3"><li><b>1</b><div><strong>行き先を入れる</strong><span>都道府県・市・観光地の名前でOK</span></div></li><li><b>2</b><div><strong>行きたい場所を選ぶ</strong><span>人気スポット・ごはん・ホテルを提案</span></div></li><li><b>3</b><div><strong>旅行プランが完成</strong><span>地図・乗る電車の時刻・友達との合流まで</span></div></li></ol>
-  <div class="homehd"><h1 class="q" style="margin:0">マイ旅行</h1><span class="spacer"></span>${APP.user?`<button type="button" class="btn small" data-app="newProject">＋ 名前をつけて新しくつくる</button>`:""}</div>`;
+  <div class="homehd"><h1 class="q" style="margin:0">マイ旅行</h1><span class="spacer"></span>${APP.user?`<button type="button" class="btn small" data-app="newProject">＋ 新しい旅行をつくる</button>`:""}</div>`;
   if(APP.cloudErr) h+=`<div class="banner warn"><span>${esc(APP.cloudErr)}</span></div>`;
   if(APP.mode==="local") h+=`<div class="banner"><span>旅行はこの端末のブラウザだけに保存しています。友達との共有・アカウント登録を使うには、サイトを公開する人が共有サーバー（Firebase）を設定します。<button type="button" class="linkbtn" data-app="fbSetup">管理者向けの設定</button></span></div>`;
   if(APP.mode==="cloud" && !APP.user) return h+loginCard()+`</section>`;
@@ -5242,7 +5265,7 @@ function homeHTML(){
       <div class="note">${esc([pl.pref,(pl.city&&pl.city!=="__other")?pl.city:pl.cityOther].filter(Boolean).join("・")||"行き先未定")}${projDates(p)?"　"+esc(projDates(p)):""}</div>
       <div class="avs" style="margin-top:8px">${names.slice(0,6).map((n,i)=>avatar(n,i)).join("")}<span class="note" style="margin-left:6px">${names.length}人</span></div>
       <div class="prog"><span>プラン ${pr.done}/${pr.total}</span><i><b style="width:${pr.done/pr.total*100}%"></b></i>${td.length?`<span>やること ${tdone}/${td.length}</span>`:""}</div></button>
-      <div class="pcard-acts"><button type="button" class="linkbtn" data-app="dup" data-v="${esc(p.id)}">複製</button>${own?`<button type="button" class="linkbtn" data-app="del" data-v="${esc(p.id)}">削除</button>`:`<button type="button" class="linkbtn" data-app="leave" data-v="${esc(p.id)}">退出</button>`}</div></article>`;
+      <div class="pcard-acts"><button type="button" class="linkbtn" data-app="rename" data-v="${esc(p.id)}">名前を変更</button><button type="button" class="linkbtn" data-app="dup" data-v="${esc(p.id)}">複製</button>${own?`<button type="button" class="linkbtn" data-app="del" data-v="${esc(p.id)}">削除</button>`:`<button type="button" class="linkbtn" data-app="leave" data-v="${esc(p.id)}">退出</button>`}</div></article>`;
   }).join("")+`</div></section>`;
   return h;
 }
@@ -6397,6 +6420,12 @@ document.addEventListener("click",async e=>{
     case "newProject":
       $("#sheet").innerHTML=`<div class="eyebrow">新しい旅行</div><h2 id="mTitle">旅行の名前</h2><form id="npForm"><input type="text" id="npTitle" placeholder="例：京都 秋の女子旅" maxlength="40" style="width:100%"><div class="row" style="justify-content:flex-end;margin-top:14px"><button type="button" class="btn" data-close="1">やめる</button><button class="btn primary" type="submit">つくる</button></div></form>`;
       $("#modal").hidden=false; $("#npTitle").focus(); break;
+    case "rename": { const p=APP.projects.find(x=>x.id===v)||(APP.pid===v?APP.project:null); if(!p) break;
+      const sug=[...new Set([tripTitleFor(p.id===APP.pid&&S?S:p.plan),"新しい旅行"].filter(x=>x&&x!==p.title))].slice(0,1);
+      $("#sheet").innerHTML=`<div class="eyebrow">旅行の名前</div><h2 id="mTitle">名前を変更</h2><form id="rnForm" data-v="${esc(v)}"><input type="text" id="rnTitle" value="${esc(p.title||"")}" maxlength="40" style="width:100%" aria-label="旅行の名前" required>${sug.length&&sug[0]!=="新しい旅行"?`<p class="note" style="margin:8px 0 0">候補：${sug.map(x=>`<button type="button" class="chip" data-app="rnPick" data-v="${esc(x)}">${esc(x)}</button>`).join(" ")}</p>`:""}<p class="note" style="margin:8px 0 0">一緒に旅行するメンバーの画面でも名前が変わります。</p><div class="row" style="justify-content:flex-end;margin-top:14px"><button type="button" class="btn" data-close="1">やめる</button><button class="btn primary" type="submit">変更する</button></div></form>`;
+      $("#modal").hidden=false; { const i=$("#rnTitle"); i.focus(); i.select(); } break; }
+    case "rnPick": { const i=$("#rnTitle"); if(i){ i.value=v; i.focus(); } break; }
+    case "renameTo": renameProject(APP.pid,v); break;
     case "open": openProject(v); window.scrollTo(0,0); break;
     case "dup": { const p=APP.projects.find(x=>x.id===v)||P; if(p) duplicateProject(p); break; }
     case "del": { const p=APP.projects.find(x=>x.id===v)||P; confirmBox(`「${p?p.title:"この旅行"}」を削除しますか？メンバー全員の画面からも消えます。`,async()=>{ try{ await Store.remove(v); if(APP.pid===v){ APP.view="home"; APP.pid=null; APP.project=null; S=null; if(unsubProj){unsubProj();unsubProj=null;} } toast("削除しました"); render(); }catch(er){ toast(fbErr(er)); } },"削除する"); break; }
@@ -6460,13 +6489,14 @@ document.addEventListener("change",e=>{
 document.addEventListener("submit",e=>{
   if(e.target.id==="todoForm"){ e.preventDefault(); const v=$("#todoIn").value.trim(); if(v) pupdate({todos:[...(APP.project.todos||[]),{id:newId(),text:v,done:false,by:APP.user.uid}]}); }
   if(e.target.id==="npForm"){ e.preventDefault(); const v=$("#npTitle").value.trim(); closeModal(); newProject(v); }
+  if(e.target.id==="rnForm"){ e.preventDefault(); const v=$("#rnTitle").value.trim(), id=e.target.dataset.v; if(!v){ $("#rnTitle").focus(); return; } closeModal(); renameProject(id,v); }
 },true);
 
 /* 47都道府県版を「しおり」タブ内に直接表示。 */
 function journalHTML(){
   if(!S||!S.pref||!JEN[S.pref]) return `<section class="panel"><h1 class="q">まず行き先を決めてください</h1><button type="button" class="btn primary" data-app="ptab" data-v="plan">旅行プランをつくる</button></section>`;
   const slug=JEN[S.pref].toLowerCase();
-  const src='shiori/templates/'+slug+'.html?v=20261005-sync2&embedded=1&project='+encodeURIComponent(APP.pid||'local');
+  const src='shiori/templates/'+slug+'.html?v=20261011-layout1&embedded=1&project='+encodeURIComponent(APP.pid||'local');
   return `<section id="journalEmbed" data-journal-key="${esc((APP.pid||'local')+'|'+S.pref)}"><p id="journalLoading" class="note" role="status">しおりを準備しています…</p><p id="journalLoadError" class="note" hidden>しおりを読み込めませんでした。ページを再読み込みしてください。設置時は index.html と shiori フォルダを同じ階層に置いてください。</p><iframe id="journalFrame" title="${esc(S.pref)}の旅のしおり" src="${esc(src)}" style="display:block;width:100%;height:960px;border:0;border-radius:12px;background:#ebe7df" allow="web-share"></iframe></section>`;
 }
 let journalLoadTimer=null;
@@ -6519,11 +6549,11 @@ window.addEventListener('message',e=>{const f=document.getElementById('journalFr
 window.addEventListener('scroll',queueJournalViewport,{passive:true});window.addEventListener('resize',queueJournalViewport);window.visualViewport?.addEventListener('resize',queueJournalViewport);window.visualViewport?.addEventListener('scroll',queueJournalViewport);
 
 </script>
-<script src="booking/config.js?v=8"></script>
+<script src="booking/config.js?v=10"></script>
 <script src="booking/photo-core.js?v=14"></script>
 <script src="booking/food-photo-core.js?v=2"></script>
 <script src="booking/attraction-photos.js?v=12"></script>
-<script src="booking/client.js?v=10"></script>
+<script src="booking/client.js?v=12"></script>
 <script src="booking/itinerary.js?v=12"></script>
 <script src="booking/planner-core.js?v=10"></script>
 <script src="shiori/assets/mobile-save.js?v=7"></script>
@@ -6539,7 +6569,7 @@ window.addEventListener('scroll',queueJournalViewport,{passive:true});window.add
 <script src="booking/restaurant-photo-seeds.js?v=1"></script>
 <script src="booking/dish-photos.js?v=1"></script>
 <script src="booking/famous-photos.js?v=1"></script>
-<script src="booking/food-photos.js?v=4"></script>
+<script src="booking/food-photos.js?v=5"></script>
 <script src="shiori/assets/journal-host.js?v=20261005-sync1"></script>
 <script>
 boot();

@@ -22,12 +22,17 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 
 const MEMORY_PROMPTS=[['旅のはじまり','出発するときの気持ちや、楽しみにしていること。'],['ホテルに着いたら','お部屋からの眺め、ほっとしたひとときを。'],['今日いちばんの風景','心に残った景色と、そのときの気持ち。'],['ご当地のおいしい時間','出会った料理や、また食べたい味。'],['寄り道で見つけたもの','道ばたの発見や、思いがけない出会い。'],['旅のおわりに','今回の旅でいちばん覚えておきたいこと。']];
 const TRANSPORTS=['徒歩','電車・バス','電車','新幹線','バス','車','飛行機','船','自転車','食事','宿泊','思い出'];
-function memoryAllowed(pg){return pg.hasOvernight===true?[0,1,2,3,4,5]:[0,2,3,4,5];}
+// 「ホテルに着いたら」（1）は、予定の途中（観光やごはんの合間）に出てしまうので、旅程ページの思い出枠には使わない
+function memoryAllowed(pg){return [0,2,3,4,5];}
 function syncDayMetadata(payload){const maxDay=Math.max(1,...data.schedule.map(p=>+(p.title.match(/(\d+)日目/)||[])[1]||1));data.schedule.forEach(pg=>{const di=Number.isInteger(pg.dayIndex)?pg.dayIndex:Math.max(0,(+(pg.title.match(/(\d+)日目/)||[])[1]||1)-1),d=payload?.days?.[di];pg.dayIndex=di;pg.isLastDay=d?di===payload.days.length-1:(pg.isLastDay??di===maxDay-1);pg.hasOvernight=d?!!d.hasOvernight:(pg.hasOvernight??!pg.isLastDay);});}
-function fillMemorySlots(){syncDayMetadata();data.schedule.forEach((pg,j)=>pg.stops.forEach((st,i)=>{if(st.memory&&st.memoryIndex===1&&!pg.hasOvernight&&st.place===MEMORY_PROMPTS[1][0]){st.memoryIndex=5;st.place=MEMORY_PROMPTS[5][0];if(st.note===MEMORY_PROMPTS[1][1])st.note=MEMORY_PROMPTS[5][1];}if(st.memory||st.place||st.time||st.note||st.caption||data.photos['s'+j+'-'+i])return;const k=i===0?0:i===3?(pg.hasOvernight?1:5):[2,3,4][(j+i)%3];Object.assign(st,{memory:true,memoryIndex:k,place:MEMORY_PROMPTS[k][0],note:MEMORY_PROMPTS[k][1],transport:'思い出'});}));}
+function memorySlot(pg,j,i){return i===0?0:i===3&&!pg.hasOvernight?5:[2,3,4][(j+i)%3];}
+function fillMemorySlots(){syncDayMetadata();data.schedule.forEach((pg,j)=>pg.stops.forEach((st,i)=>{
+ // 以前の版で自動で入った「ホテルに着いたら」は、ほかの題に置き換える（自分で書き換えた題はそのまま）
+ if(st.memory&&st.memoryIndex===1&&st.place===MEMORY_PROMPTS[1][0]){const k=memorySlot(pg,j,i)||2;st.memoryIndex=k;st.place=MEMORY_PROMPTS[k][0];if(!st.note||st.note===MEMORY_PROMPTS[1][1])st.note=MEMORY_PROMPTS[k][1];}
+ if(st.memory||st.place||st.time||st.note||st.caption||data.photos['s'+j+'-'+i])return;const k=memorySlot(pg,j,i);Object.assign(st,{memory:true,memoryIndex:k,place:MEMORY_PROMPTS[k][0],note:MEMORY_PROMPTS[k][1],transport:'思い出'});}));}
 
 const blankStop=()=>({time:'',place:'',note:'',transport:'徒歩',caption:''});
-function defaults(){return {design:'watercolor',documentId:crypto.randomUUID?crypto.randomUUID():String(Date.now()),title:PREF,subtitle:'歴史と自然、そしておいしいものに出会う旅',date:'',coverCaption:'',message:THEME.label,memoryTitle:'思い出のフォト',memorySubtitle:'この旅で出会った、最高の瞬間たち。',end:'See you on the next trip.',schedule:[{title:PREF.replace(/[都府県]$/,'')+'の旅スケジュール',subtitle:'',stops:Array.from({length:4},blankStop)}],captions:Array(6).fill(''),photos:{}}}
+function defaults(){return {design:'watercolor',showSchedule:true,documentId:crypto.randomUUID?crypto.randomUUID():String(Date.now()),title:PREF,subtitle:'歴史と自然、そしておいしいものに出会う旅',date:'',coverCaption:'',message:THEME.label,memoryTitle:'思い出のフォト',memorySubtitle:'この旅で出会った、最高の瞬間たち。',end:'See you on the next trip.',schedule:[{title:PREF.replace(/[都府県]$/,'')+'の旅スケジュール',subtitle:'',stops:Array.from({length:4},blankStop)}],captions:Array(6).fill(''),photos:{}}}
 
 /* ---------- 写真：ID・検証・保存 ---------- */
 const PHOTO_KEY=/^(cover|m[0-5]|s\d{1,2}-[0-3])$/,REF=/^p[0-9a-z]{10,40}$/;
@@ -50,7 +55,7 @@ function cleanPhoto(v){
 function clean(d){
  const D=defaults();if(!d||typeof d!=='object')return D;
  const str=(v,max)=>typeof v==='string'||typeof v==='number'?String(v).slice(0,max):'';
- const out={design:d.design==='editorial'?'editorial':'watercolor',documentId:str(d.documentId,80)||D.documentId,title:str(d.title,40),subtitle:str(d.subtitle,120),date:str(d.date,60),coverCaption:str(d.coverCaption,60),message:str(d.message,80),memoryTitle:str(d.memoryTitle,48),memorySubtitle:str(d.memorySubtitle,100),end:str(d.end,70)};
+ const out={design:d.design==='editorial'?'editorial':'watercolor',showSchedule:d.showSchedule!==false,documentId:str(d.documentId,80)||D.documentId,title:str(d.title,40),subtitle:str(d.subtitle,120),date:str(d.date,60),coverCaption:str(d.coverCaption,60),message:str(d.message,80),memoryTitle:str(d.memoryTitle,48),memorySubtitle:str(d.memorySubtitle,100),end:str(d.end,70)};
  out.schedule=(Array.isArray(d.schedule)?d.schedule:[]).slice(0,30).filter(pg=>pg&&typeof pg==='object').map(pg=>{
   const stops=(Array.isArray(pg.stops)?pg.stops:[]).slice(0,4).map(st=>{st=st&&typeof st==='object'?st:{};const o={time:str(st.time,12),place:str(st.place,64),note:str(st.note,120),transport:TRANSPORTS.includes(st.transport)?st.transport:'徒歩',caption:str(st.caption,48)};if(st.memory===true){o.memory=true;o.memoryIndex=[0,1,2,3,4,5].includes(st.memoryIndex)?st.memoryIndex:0;}return o});
   while(stops.length<4)stops.push(blankStop());
@@ -76,11 +81,11 @@ function photo(id,captionPath,caption,cover=false){const p=hasKey(data.photos,id
 function controls(index,remove){return `<div class="page-controls"><button data-png="${index}">PNG保存 ↗</button>${remove===undefined?'':`<button data-remove="${remove}">／ ページ削除</button>`}</div>`}
 function render(){
 fillMemorySlots();
-document.body.classList.toggle('classic',data.design!=='editorial');$('designToggle').textContent=data.design==='editorial'?'旅のジャーナルに切替':'ポストカード風に切替';
+document.body.classList.toggle('classic',data.design!=='editorial');document.body.classList.toggle('photos-only',data.showSchedule===false);$('designToggle').textContent=data.design==='editorial'?'旅のジャーナルに切替':'ポストカード風に切替';
 let h=`<section class="page cover">${decoration('bottom','scenery')}<span class="classic-motto">Good Travel<br>Good Days!</span>${decoration('top','classic-mark')}<span class="classic-label">TRAVEL JOURNAL</span><div class="edition"><span>TABIROUTE / TRAVEL JOURNAL</span><span>NO. ${EDITION}</span></div><div class="roman">${data.design==='editorial'?ROMAN.charAt(0)+ROMAN.slice(1).toLowerCase()+'.':ROMAN}</div><div class="cover-photo">${photo('cover','coverCaption',data.coverCaption,true)}</div><span class="vertical">A LITTLE ESCAPE, A LOVELY MEMORY.</span><div class="stamp"><small>JAPAN / ${ROMAN}</small><b>${EDITION}</b><small>TRAVEL NOTES</small></div>${field('title',data.title,'旅のタイトル','cover-title',16,1)}${field('date',data.date,'YYYY.MM.DD — MM.DD','date',30,1)}${field('message',data.message,'心に残したい、旅のひとこと。','cover-message',35,2)}<span class="sign">Bon voyage!</span>${controls(0)}</section>`;
-data.schedule.forEach((pg,j)=>{h+=`<section class="page itinerary">${decoration('bottom','scenery')}<span class="top-label">CHAPTER ${String(j+1).padStart(2,'0')} / ${ROMAN}</span><div class="display-title">The itinerary.</div>${field(`schedule.${j}.title`,pg.title,'旅のスケジュール','page-title',24,1)}${field(`schedule.${j}.subtitle`,pg.subtitle,'日付や旅のテーマを入力','subtitle',50,2)}<div class="route">`;
+if(data.showSchedule!==false)data.schedule.forEach((pg,j)=>{h+=`<section class="page itinerary">${decoration('bottom','scenery')}<span class="top-label">CHAPTER ${String(j+1).padStart(2,'0')} / ${ROMAN}</span><div class="display-title">The itinerary.</div>${field(`schedule.${j}.title`,pg.title,'旅のスケジュール','page-title',24,1)}${field(`schedule.${j}.subtitle`,pg.subtitle,'日付や旅のテーマを入力','subtitle',50,2)}<div class="route">`;
 pg.stops.forEach((st,i)=>{const p=`schedule.${j}.stops.${i}`;h+=`<article class="stop ${st.memory?'memory-row':''}"><span class="num">${String(i+1).padStart(2,'0')}</span>${photo(`s${j}-${i}`,p+'.caption',st.caption)}<div class="stop-copy"><div class="stop-head">${st.memory?`<span class="memory-label">MEMORY</span><button type="button" class="memory-tools" data-memory="${j}|${i}" title="思い出のタイトル候補を変更" aria-label="思い出のタイトル候補を変更">↻</button>`:field(p+'.time',st.time,'時刻','time',8,1)}<select class="transport" data-path="${p}.transport" aria-label="移動手段">${TRANSPORTS.map(x=>`<option${x===st.transport?' selected':''}>${x}</option>`).join('')}</select></div>${field(p+'.place',st.place,'訪れたい場所','place',32,2)}${field(p+'.note',st.note,'楽しみなこと、残したいメモ。','note',60,2)}</div></article>`});h+=`</div><div class="page-bottom"><span>TAKE THE SCENIC ROUTE.</span><span>${EDITION} / ${String(j+2).padStart(2,'0')}</span></div>${controls(j+1,j)}</section>`});
-h+=`<section class="page album">${decoration('bottom','scenery')}<span class="top-label">COLLECT MOMENTS, NOT THINGS.</span><div class="display-title">Little memories.</div>${field('memoryTitle',data.memoryTitle,'思い出のフォト','page-title',24,1)}${field('memorySubtitle',data.memorySubtitle,'この旅で見つけた、小さなしあわせ。','subtitle',50,2)}<div class="memories">${data.captions.map((c,i)=>photo('m'+i,'captions.'+i,c)).join('')}</div>${field('end',data.end,'See you on the next trip.','album-end',35,1)}<span class="star">✳</span>${controls(data.schedule.length+1)}</section>`;$('pages').innerHTML=h;requestAnimationFrame(fitFields);document.fonts.ready.then(fitFields);
+h+=`<section class="page album">${decoration('bottom','scenery')}<span class="top-label">COLLECT MOMENTS, NOT THINGS.</span><div class="display-title">Little memories.</div>${field('memoryTitle',data.memoryTitle,'思い出のフォト','page-title',24,1)}${field('memorySubtitle',data.memorySubtitle,'この旅で見つけた、小さなしあわせ。','subtitle',50,2)}<div class="memories">${data.captions.map((c,i)=>photo('m'+i,'captions.'+i,c)).join('')}</div>${field('end',data.end,'See you on the next trip.','album-end',35,1)}<span class="star">✳</span>${controls(data.showSchedule!==false?data.schedule.length+1:1)}</section>`;$('pages').innerHTML=h;layoutUI();requestAnimationFrame(fitFields);document.fonts.ready.then(fitFields);
 }
 // 他の人の変更を反映するときは、入力中の欄とカーソル位置を保つ
 function renderKeepingFocus(){const a=document.activeElement,path=a?.dataset?.path,s=a?.selectionStart,e=a?.selectionEnd;render();if(path){const el=document.querySelector(`[data-path="${CSS.escape(path)}"]`);if(el){el.focus({preventScroll:true});try{if(s!=null)el.setSelectionRange(s,e)}catch{}}}}
@@ -91,7 +96,7 @@ function status(s){$('status').textContent=s}
 
 /* ---------- 保存先の表示 ---------- */
 (()=>{const st=document.createElement('style');st.textContent='.sync-note{display:block;margin:6px auto 0;max-width:980px;padding:8px 12px;border-radius:10px;font-size:13px;line-height:1.6;background:#fff8e6;border:1px solid #ecd9a6;color:#5b4a1e}.sync-note.cloud{background:#eef6ff;border-color:#bcd3ee;color:#1d3d63}.sync-note.warn{background:#fff1ef;border-color:#efc2bb;color:#7a2a20}@media print{.sync-note{display:none}}body.exporting .sync-note{display:none}';document.head.append(st);
- const help=document.querySelector('.help');if(help)help.textContent='文字はその場で入力、写真枠をタップして差し替え。水彩ジャーナルと縦4:5のポストカード風に切り替えられます。ページ下の「PNG保存」で画像に、「しおりだけPDF保存」でPDFにできます。「編集できるHTMLを保存」で写真・入力内容ごと持ち出せます。';
+ const help=document.querySelector('.help');if(help)help.textContent='文字はその場で入力、写真枠をタップして差し替え。上の「スケジュールあり／表紙と思い出フォトだけ」で、しおりのページを選べます。水彩ジャーナルと縦4:5のポストカード風に切り替えられます。ページ下の「PNG保存」で画像に、「しおりだけPDF保存」でPDFにできます。「編集できるHTMLを保存」で写真・入力内容ごと持ち出せます。';
  const n=document.createElement('p');n.id='syncNote';n.className='sync-note';n.setAttribute('role','note');(help||$('status')).after(n);})();
 let syncMode='local';
 function showSync(mode,detail=''){syncMode=mode;const n=$('syncNote');if(!n)return;
@@ -304,10 +309,22 @@ $('photoDelete').onclick=()=>{data.photos[activePhoto]=null;render();changed('ph
 $('photoDialog').addEventListener('close',()=>{photoEpoch++;pointers.clear();cropImage=null;draftPhoto=null;releaseCanvas($('cropPreview'));if(embedded)parent.postMessage({type:'tabiroute:journal:photo-close'},location.origin)});
 
 /* ---------- ツールバー ---------- */
-$('refreshPlan').hidden=!embedded;$('refreshPlan').onclick=()=>{if(confirm('最新の予定表を反映します。旅程ページの手編集と写真は置き換わります。表紙・思い出ページは残ります。続けますか？'))parent.postMessage({type:'tabiroute:journal:request-plan'},location.origin)};
+// しおりのページ構成：「スケジュールあり」か「表紙と思い出フォトだけ」かを選べる（旅程ページの内容は消さずに残す）
+(()=>{const st=document.createElement('style');st.textContent='.layout-switch{display:inline-flex;align-items:center;gap:2px;padding:3px;border:1px solid #c7bcb0;border-radius:30px;background:#fffdf8}.layout-switch>span{font-size:10px;letter-spacing:.08em;color:#776e61;padding:0 6px 0 8px}.toolbar .layout-switch button{border:0;margin:0;padding:7px 12px;border-radius:30px;background:transparent;font-size:11px}.toolbar .layout-switch button[aria-pressed="true"]{background:#343e37;color:#fff}@media(max-width:600px){.layout-switch{flex-basis:100%;justify-content:space-between}.layout-switch>span{display:none}.toolbar .layout-switch button{flex:1;padding:8px 6px}}@media print{.layout-switch{display:none}}body.exporting .layout-switch{display:none}';document.head.append(st);
+ document.getElementById('layoutSwitch')?.remove(); // 保存したHTMLから開いたとき
+ const g=document.createElement('div');g.id='layoutSwitch';g.className='layout-switch';g.setAttribute('role','group');g.setAttribute('aria-label','しおりのページ');
+ g.innerHTML='<span>ページ</span><button type="button" data-layout="full" aria-pressed="true">スケジュールあり</button><button type="button" data-layout="photos" aria-pressed="false">表紙と思い出フォトだけ</button>';
+ const brand=document.querySelector('.toolbar .brand');if(brand)brand.after(g);else document.querySelector('.toolbar')?.prepend(g);
+ g.addEventListener('click',e=>{const b=e.target.closest('[data-layout]');if(!b)return;const show=b.dataset.layout==='full';if((data.showSchedule!==false)===show)return;
+  data.showSchedule=show;render();changed('showSchedule');
+  status(show?'スケジュールのページを表示しました。':'表紙と思い出フォトだけのしおりにしました。スケジュールの内容は残っているので、「スケジュールあり」でいつでも戻せます。');});
+})();
+function layoutUI(){const show=data.showSchedule!==false;document.querySelectorAll('#layoutSwitch [data-layout]').forEach(b=>b.setAttribute('aria-pressed',String((b.dataset.layout==='full')===show)));
+ if($('add'))$('add').hidden=!show;if($('refreshPlan'))$('refreshPlan').hidden=!embedded||!show;}
+$('refreshPlan').hidden=!embedded||data?.showSchedule===false;$('refreshPlan').onclick=()=>{if(confirm('最新の予定表を反映します。旅程ページの手編集と写真は置き換わります。表紙・思い出ページは残ります。続けますか？'))parent.postMessage({type:'tabiroute:journal:request-plan'},location.origin)};
 $('designToggle').onclick=()=>{data.design=data.design==='editorial'?'watercolor':'editorial';render();changed('design')};
 $('viewSize').onclick=()=>{document.body.classList.toggle('large');$('viewSize').textContent=document.body.classList.contains('large')?'一覧に戻る':'大きく編集';requestAnimationFrame(fitFields)};
-$('add').onclick=()=>{if(data.schedule.length>=30){status('旅程は最大30ページです。');return}data.schedule.push({title:'旅のスケジュール',subtitle:'',stops:Array.from({length:4},blankStop)});render();changed('schedule.'+(data.schedule.length-1))};$('print').onclick=exportPDF;
+$('add').onclick=()=>{if(data.showSchedule===false)return;if(data.schedule.length>=30){status('旅程は最大30ページです。');return}data.schedule.push({title:'旅のスケジュール',subtitle:'',stops:Array.from({length:4},blankStop)});render();changed('schedule.'+(data.schedule.length-1))};$('print').onclick=exportPDF;
 
 async function inlineJournalAssets(copy){
   const asData=async(url)=>{const res=await fetch(url);if(!res.ok)throw Error('Asset '+res.status);const blob=await res.blob();return await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(reader.error);reader.readAsDataURL(blob)})};
@@ -327,7 +344,7 @@ async function inlineJournalAssets(copy){
 }
 // 持ち出し用：写真本体を埋め込んだデータ
 async function portableData(){const d=JSON.parse(JSON.stringify(persistable()));for(const [k,p]of Object.entries(data.photos)){if(!p)continue;const src=p.src||await getPhoto(p.ref);d.photos[k]=src?{src,x:p.x,y:p.y}:undefined;}return JSON.parse(JSON.stringify(d))}
-$('backup').onclick=async()=>{$('backup').disabled=true;status('編集できるHTMLを作成しています…');try{const copy=document.documentElement.cloneNode(true);copy.querySelector('#travelSaveDialog')?.remove();copy.querySelector('#syncNote')?.remove();copy.querySelector('#backup').disabled=false;copy.querySelector('#seed').textContent=JSON.stringify(await portableData()).replace(/</g,'\\u003c');copy.querySelector('#pages').innerHTML='';copy.querySelector('#status').textContent='';copy.querySelector('#photoDialog').removeAttribute('open');copy.querySelectorAll('style').forEach(s=>{if(s.textContent.startsWith('.sync-note'))s.remove()});await inlineJournalAssets(copy);const blob=new Blob(['<!doctype html>\n'+copy.outerHTML],{type:'text/html;charset=utf-8'});downloadBlob(blob,SLUG+'-travel-journal.html');status('HTMLの準備ができました。保存方法を選んでください。')}catch(e){status('HTML保存に必要な素材を取得できませんでした。オンラインで再度お試しください。');console.error(e)}finally{$('backup').disabled=false}};
+$('backup').onclick=async()=>{$('backup').disabled=true;status('編集できるHTMLを作成しています…');try{const copy=document.documentElement.cloneNode(true);copy.querySelector('#travelSaveDialog')?.remove();copy.querySelector('#syncNote')?.remove();copy.querySelector('#layoutSwitch')?.remove();copy.querySelector('#backup').disabled=false;copy.querySelector('#seed').textContent=JSON.stringify(await portableData()).replace(/</g,'\\u003c');copy.querySelector('#pages').innerHTML='';copy.querySelector('#status').textContent='';copy.querySelector('#photoDialog').removeAttribute('open');copy.querySelectorAll('style').forEach(s=>{if(s.textContent.startsWith('.sync-note'))s.remove()});await inlineJournalAssets(copy);const blob=new Blob(['<!doctype html>\n'+copy.outerHTML],{type:'text/html;charset=utf-8'});downloadBlob(blob,SLUG+'-travel-journal.html');status('HTMLの準備ができました。保存方法を選んでください。')}catch(e){status('HTML保存に必要な素材を取得できませんでした。オンラインで再度お試しください。');console.error(e)}finally{$('backup').disabled=false}};
 $('reset').onclick=()=>{if(!confirm('現在のしおりを初期化しますか？'+(cloud.enabled?'旅行メンバーのしおりも初期化されます。':'')+' 必要なら先にHTMLを保存してください。'))return;data=defaults();render();changed('*')};
 
 /* ---------- PDF・PNG 保存 ---------- */
@@ -426,7 +443,7 @@ async function adoptPhotos(markDirty){
   if(markDirty)dirty.set('photos.'+k,++dirtySeq);
  }
  // 以前の版で書いた文字も、共有サーバーの内容より優先して残す
- if(markDirty)for(const k of ['title','date','message','coverCaption','memoryTitle','memorySubtitle','end','design','captions','schedule'])dirty.set(k,++dirtySeq);
+ if(markDirty)for(const k of ['title','date','message','coverCaption','memoryTitle','memorySubtitle','end','design','showSchedule','captions','schedule'])dirty.set(k,++dirtySeq);
  return ok;
 }
 async function getPhotoStored(ref){if(!db)return null;try{return await idb('photos','readonly',s=>s.get(ref))}catch{return null}}

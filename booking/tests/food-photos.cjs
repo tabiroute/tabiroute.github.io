@@ -7,6 +7,7 @@ const calls=[];let shopMode='old';
 // ホットペッパーの検索結果（表記ゆれのある同じお店と、名前の似た別の支店）
 const hp=[
  {id:'J000000101',name:'スパゲッティハウス チャオ BINO栄店',lat:35.16905,lng:136.90649,address:'愛知県名古屋市中区錦３－２４－１７ ＢＩＮＯ栄Ｂ１',genre:'イタリアン・フレンチ',photo:'https://imgfp.hotp.jp/ciao.jpg',url:'https://www.hotpepper.jp/strJ000000101/'},
+ {id:'J000000201',name:'神田まつや',lat:35.6962,lng:139.76884,address:'東京都千代田区神田須田町１－１３',genre:'和食',photo:'https://imgfp.hotp.jp/matsuya.jpg',url:'https://www.hotpepper.jp/strJ000000201/'},
  {id:'J000000102',name:'スパゲッティハウス チャオ 名駅店',lat:35.1705,lng:136.882,address:'愛知県名古屋市中村区名駅1-1-1',genre:'イタリアン・フレンチ',photo:'https://imgfp.hotp.jp/ciao2.jpg',url:'https://www.hotpepper.jp/strJ000000102/'}
 ];
 const server=http.createServer((req,res)=>{const url=new URL(req.url,'http://localhost');
@@ -24,7 +25,7 @@ const server=http.createServer((req,res)=>{const url=new URL(req.url,'http://loc
  const rel=url.pathname==='/'?'index.html':decodeURIComponent(url.pathname.slice(1));const file=path.resolve(root,rel);
  if(!file.startsWith(root+path.sep)||!fs.existsSync(file)||fs.statSync(file).isDirectory()){res.statusCode=404;res.end('missing');return;}
  res.setHeader('Content-Type',file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':file.endsWith('.html')?'text/html; charset=utf-8':file.endsWith('.json')?'application/json':file.endsWith('.jpg')?'image/jpeg':'application/octet-stream');
- if(rel==='booking/config.js'){res.end('window.TABIROUTE_BOOKING={apiBase:location.origin+"/api",enabled:true};window.TABIROUTE_PLACE_MEDIA={};');return;}
+ if(rel==='booking/config.js'){res.end('window.TABIROUTE_BOOKING={apiBase:location.origin+"/api",enabled:true};window.TABIROUTE_PLACE_MEDIA={};window.TABIROUTE_AFFILIATES={hotpepperLink:"//ck.jp.ap.valuecommerce.com/servlet/referral?sid=3783426&pid=123456789",hotpepperVos:"afhpppvczzzzx00000003"};');return;}
  res.end(fs.readFileSync(file));});
 (async()=>{
  await new Promise(r=>server.listen(0,'127.0.0.1',r));const origin='http://127.0.0.1:'+server.address().port;
@@ -118,21 +119,36 @@ const server=http.createServer((req,res)=>{const url=new URL(req.url,'http://loc
   const hpCalls=calls.filter(u=>u.pathname==='/api/restaurants');
   assert.equal(hpCalls.length,1);assert.equal(hpCalls[0].searchParams.get('q'),'チャオ');assert(hpCalls[0].searchParams.get('lat'));
 
-  // 4b) 新しい Worker（/shop-photos）：ネットで見つかった「お店の写真」がホットペッパーより優先、公式サイトの画像も使う
-  shopMode='new';
+  // 4b) 新しい Worker（/shop-photos）があっても、まずホットペッパーを調べる。ホットペッパーにあるお店はその写真、無いお店だけネットの方法（公式サイトの画像など）
+  shopMode='new';const before4b=calls.length;
   const web=await page.evaluate(async()=>{
    FOOD_PHOTOS.shopUnavailable=false;FOOD_PHOTOS.results.clear();try{sessionStorage.clear();}catch{}
    await f4Catalog();const out={};
-   for(const nm of ['スパゲティハウス チャオ BINO栄店','スパゲッティハウス ヨコイ 住吉本店']){
+   for(const [nm,want] of [['スパゲティハウス チャオ BINO栄店','店舗写真'],['スパゲッティハウス ヨコイ 住吉本店','公式サイトの写真'],['神田まつや 本店','店舗写真']]){
     const f=F4.cat.find(x=>x.name===nm);const box=document.createElement('div');box.innerHTML=f4Card({...f});document.body.prepend(box);
-    hydrateImages();for(let i=0;i<60;i++){const l=box.querySelector('.food-photo-label').textContent;if(l!=='料理イメージ'&&!(nm.includes('チャオ')&&l==='店舗写真'))break;await new Promise(r=>setTimeout(r,100));}
+    const first=box.querySelector('.food-photo-label').textContent;
+    hydrateImages();for(let i=0;i<80;i++){if(box.querySelector('.food-photo-label').textContent===want)break;await new Promise(r=>setTimeout(r,100));}
     await new Promise(r=>setTimeout(r,300));
-    const img=box.querySelector('img');out[nm]={src:img.getAttribute('src'),label:box.querySelector('.food-photo-label').textContent,ref:img.getAttribute('referrerpolicy'),cap:box.querySelector('figcaption').textContent};box.remove();
+    const img=box.querySelector('img');out[nm]={first,src:img.getAttribute('src'),label:box.querySelector('.food-photo-label').textContent,ref:img.getAttribute('referrerpolicy'),cap:box.querySelector('figcaption').textContent};box.remove();
    }
    return out;});
   console.log('web',web);
-  assert.equal(web['スパゲティハウス チャオ BINO栄店'].label,'お店の写真');assert.match(web['スパゲティハウス チャオ BINO栄店'].src,/upload\.wikimedia\.org/);assert.match(web['スパゲティハウス チャオ BINO栄店'].cap,/Taro/);
+  const c4b=calls.slice(before4b).map(u=>u.pathname+' '+(u.searchParams.get('name')||u.searchParams.get('q')||''));console.log('calls 4b',c4b);
+  assert.equal(web['スパゲティハウス チャオ BINO栄店'].label,'店舗写真');assert.equal(web['スパゲティハウス チャオ BINO栄店'].src,'https://imgfp.hotp.jp/ciao.jpg');
+  assert(!c4b.some(x=>x.startsWith('/api/shop-photos')&&x.includes('チャオ')),'ホットペッパーで見つかったお店は、ほかの方法では探さない');
   assert.equal(web['スパゲッティハウス ヨコイ 住吉本店'].label,'公式サイトの写真');assert.equal(web['スパゲッティハウス ヨコイ 住吉本店'].src,'https://yokoi.example.jp/top.jpg');assert.equal(web['スパゲッティハウス ヨコイ 住吉本店'].ref,'no-referrer');assert.match(web['スパゲッティハウス ヨコイ 住吉本店'].cap,/yokoi\.example\.jp/);
+  const iy=c4b.findIndex(x=>x.startsWith('/api/restaurants')&&x.includes('ヨコイ')),sy=c4b.findIndex(x=>x.startsWith('/api/shop-photos')&&x.includes('ヨコイ'));
+  assert(iy>=0&&sy>iy,'ホットペッパーを先に調べてから、ほかの方法で探す');
+  // 確認済みの写真がある有名店も、ホットペッパーにあればホットペッパーの写真に差し替わる
+  assert.equal(web['神田まつや 本店'].first,'お店の写真');assert.equal(web['神田まつや 本店'].label,'店舗写真');assert.equal(web['神田まつや 本店'].src,'https://imgfp.hotp.jp/matsuya.jpg');
+
+  // ホットペッパーへのリンクは、バリューコマースの広告リンク（rel="sponsored"）になる
+  const ad=await page.evaluate(async()=>{const a=document.createElement('a');a.href='https://www.hotpepper.jp/strJ000000101/?vos=nhppalsa000016';a.textContent='ホットペッパー';a.rel='noopener';document.body.append(a);
+   await new Promise(r=>requestAnimationFrame(()=>setTimeout(r,50)));const r={href:a.getAttribute('href'),rel:a.getAttribute('rel'),other:hpAffiliateURL('https://www.google.com/'),hpSearch:hpAffiliateURL(hpSearchURL('ラーメン','東京都'))};a.remove();return r;});
+  console.log('affiliate',ad);
+  assert.equal(ad.href,'https://ck.jp.ap.valuecommerce.com/servlet/referral?sid=3783426&pid=123456789&vc_url='+encodeURIComponent('https://www.hotpepper.jp/strJ000000101/?vos=afhpppvczzzzx00000003'));
+  assert.match(ad.rel,/sponsored/);assert.equal(ad.other,'https://www.google.com/');assert.match(ad.hpSearch,/^https:\/\/ck\.jp\.ap\.valuecommerce\.com\/servlet\/referral\?sid=3783426&pid=123456789&vc_url=https%3A%2F%2Fwww\.hotpepper\.jp%2F/);
+
   // 確認済みの公式サイトがあるお店は、そのURLを手がかりとして Worker に渡す
   await page.evaluate(async()=>{await f4Catalog();const f=F4.cat.find(x=>x.name==='てん茂');await foodWebPhoto({...f}).catch(()=>null);});
   const tenmo=calls.filter(u=>u.pathname==='/api/shop-photos'&&u.searchParams.get('name')==='てん茂').pop();

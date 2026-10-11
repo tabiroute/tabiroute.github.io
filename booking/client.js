@@ -97,7 +97,32 @@ function jalanHotelURL(name){
 }
 function bookingJalanURL(h){const u=bookingSafeURL(bookingMedia(h).jalanUrl);try{if(u&&new URL(u).hostname==='www.jalan.net')return u;}catch{}return jalanHotelURL(h?.name);}
 // 楽天のアフィリエイトリンク（hb.afl.rakuten.co.jp）は【広告】と表示し、rel="sponsored" を付ける（ステマ規制・Google のリンク指針）。
-function bookingIsAd(u){try{return /(^|\.)afl\.rakuten\.co\.jp$/.test(new URL(u).hostname)}catch{return false}}
+function bookingIsAd(u){try{return /(^|\.)afl\.rakuten\.co\.jp$|^ck\.jp\.ap\.valuecommerce\.com$/.test(new URL(u).hostname)}catch{return false}}
+/* ホットペッパーグルメのアフィリエイト（バリューコマース）
+   booking/config.js の TABIROUTE_AFFILIATES.hotpepperLink に、バリューコマースで作ったホットペッパーのテキスト広告のリンク
+   （https://ck.jp.ap.valuecommerce.com/servlet/referral?sid=…&pid=… ）を貼ると、
+   画面に出るホットペッパーへのリンク（お店のページ・検索ページ）がすべて広告リンク（MyLink）になる。空欄なら通常のリンク。 */
+const HP_VC=(()=>{try{const raw=String((window.TABIROUTE_AFFILIATES||{}).hotpepperLink||'').trim();if(!raw)return null;const u=new URL(raw.replace(/^\/\//,'https://'));
+ const sid=u.searchParams.get('sid')||'',pid=u.searchParams.get('pid')||'';
+ const vos=String((window.TABIROUTE_AFFILIATES||{}).hotpepperVos||'').trim();
+ return u.hostname==='ck.jp.ap.valuecommerce.com'&&/^\d{4,12}$/.test(sid)&&/^\d{4,12}$/.test(pid)?{sid,pid,vos:/^[a-z0-9]{6,40}$/i.test(vos)?vos:''}:null;}catch{return null}})();
+function hpAffiliateURL(url){
+ if(!HP_VC)return url;
+ try{const u=new URL(url);if(u.protocol!=='https:'&&u.protocol!=='http:')return url;if(!['www.hotpepper.jp','hotpepper.jp'].includes(u.hostname))return url;u.protocol='https:';
+  if(HP_VC.vos)u.searchParams.set('vos',HP_VC.vos);   // バリューコマースの広告で決められた計測用の値（広告のリンク先URLの vos=…）
+  return 'https://ck.jp.ap.valuecommerce.com/servlet/referral?sid='+HP_VC.sid+'&pid='+HP_VC.pid+'&vc_url='+encodeURIComponent(u.href);}catch{return url}
+}
+// 画面のどこで作ったリンクでも、ホットペッパーへのリンクは広告リンクにし、rel="sponsored" を付ける（描き直しのたびに確かめる）
+function hpAffiliateLinks(root){
+ (root||document).querySelectorAll('a[href*="hotpepper.jp"],a[href*="ck.jp.ap.valuecommerce.com"]').forEach(a=>{
+  const href=a.getAttribute('href')||'',next=hpAffiliateURL(href);if(next!==href)a.setAttribute('href',next);
+  if(bookingIsAd(a.href)){const rel=new Set(String(a.getAttribute('rel')||'').split(/\s+/).filter(Boolean));if(!rel.has('sponsored')){rel.add('sponsored');rel.add('noopener');a.setAttribute('rel',[...rel].join(' '));}}
+ });
+}
+if(HP_VC&&typeof MutationObserver==='function'){let queued=false;const run=()=>{queued=false;hpAffiliateLinks(document);};
+ new MutationObserver(()=>{if(!queued){queued=true;(window.requestAnimationFrame||setTimeout)(run);}}).observe(document.documentElement,{childList:true,subtree:true});
+ document.addEventListener('click',e=>{const a=e.target.closest?.('a[href*="hotpepper.jp"]');if(a)hpAffiliateLinks(a.parentNode||document);},true);
+ if(document.readyState!=='loading')run();else document.addEventListener('DOMContentLoaded',run);}
 function bookingRel(u){return bookingIsAd(u)?'noopener sponsored':'noopener'}
 function bookingAdLabel(u){return bookingIsAd(u)?'【広告】':''}
 function bookingHotelLinks(h){const hu=bookingHotelURL(h);return `<div class="booking-actions"><a class="btn small" href="${esc(hu)}" target="_blank" rel="${bookingRel(hu)}">${bookingAdLabel(hu)}${h?.rkPlanURL||h?.rkURL||h?.url?'楽天で空室・宿泊プランを確認':'楽天でホテルを探す'}</a><a class="btn small ghost" href="${esc(bookingJalanURL(h))}" target="_blank" rel="noopener">じゃらんで探す</a><button type="button" class="btn small ghost" data-bk-copy="${esc(h?.name||'')}">宿泊条件をコピー</button></div><p class="note">直接開く場合は予約サイトで日程・人数を確認してください。じゃらんは施設を選び直す場合があります。</p>`;}
