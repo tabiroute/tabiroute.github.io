@@ -1228,7 +1228,7 @@ article.day{content-visibility:auto;contain-intrinsic-size:auto 900px}
 svg.transport-icon{min-width:22px;min-height:22px}.sgi svg.transport-icon,.tl .tripseg .sgi svg.transport-icon{width:25px;height:25px}.chip svg.transport-icon,.btn svg.transport-icon{width:22px;height:22px}.tl svg.transport-icon{margin-right:5px}button[aria-pressed=true] svg.transport-icon{filter:drop-shadow(0 0 1px white)}
 </style>
 
-<link rel="stylesheet" href="booking/style.css?v=14">
+<link rel="stylesheet" href="booking/style.css?v=17">
 </head>
 <body>
 <div class="wrap" id="wrap">
@@ -1730,36 +1730,40 @@ function locEditor(w){
       <select id="anc-${w.id}" data-anchor="${w.id}"><option value="">選んでください</option>${allSpotsTrip().map(s=>`<option ${w.anchor===s.name?"selected":""}>${esc(s.name)}</option>`).join("")}</select></div>
   </div>`;
 }
+const wishDetailsOpen=new Set();
 function stepWish(){
-  let h=`<section class="panel">${head(3,`${esc(tripTitle())}で行きたい場所は？`,"観光地・お店・ホテルなど、どこでも入力できます。登録にない場所は、インターネットで住所と位置を自動で調べて、地図と予定表に反映します。")}
+  let h=`<section class="panel wish-panel">${head(3,`${esc(tripTitle())}で行きたい場所は？`,"観光地・お店・ホテルを追加できます。")}
   <form class="row" id="wishForm" autocomplete="off"><input type="text" id="wishIn" placeholder="例：${esc((PREF[S.pref]?.spots[0]?.name)||"観光地の名前")}" aria-label="行きたい場所" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done"><button class="btn primary" type="submit">追加</button></form>
   <div class="status" style="margin-top:6px" id="st-wish">${stat("wish")}</div>
   <h2 class="sub">追加した場所 <small>${S.wishes.length}件</small></h2>`;
-  if(!S.wishes.length) h+=`<div class="empty">まだありません。入力するか、このまま次へ進んでおすすめから選べます。</div>`;
+  if(!S.wishes.length)h+=`<div class="empty">まだありません。次へ進んで、おすすめからも選べます。</div>`;
   else{
-    // 1か所をさわっている間は、その1件だけを出して迷わないようにします
     const only=APP.focusWish&&S.wishes.some(w=>w.id===APP.focusWish)?APP.focusWish:null;
     const shown=only?S.wishes.filter(w=>w.id===only):S.wishes;
-    if(only) h+=`<div class="onlybar"><span>${ICON.check}いま1件だけ表示しています</span><button type="button" class="btn small" data-act="showAllWish">ほかの${S.wishes.length-1}件も表示</button></div>`;
-    h+=`<div class="list">`+shown.map(w=>{
-      const src={base:"登録スポット",ai:"AIで確認",manual:"貼り付けた位置",web:"ネットで確認"}[w.src||"base"]||"";
-      let st = busy["web-"+w.id] ? `<span class="pill info"><span class="spin"></span>インターネットで調べています</span>` : w.status==="ok" ? `<span class="pill ok">地図に配置済み（${src}）</span>` : w.anchor ? `<span class="pill info">「${esc(w.anchor)}」の近くに仮配置</span>` : busy.wish&&w.pendingAI ? `<span class="pill info">AIが位置を調べています</span>` : `<span class="pill warn">位置が未設定です</span>`;
-      const open = (w.status!=="ok"&&!w.anchor) || editing.has(w.id);
-      const inf = infoLine(w);
-      const stayOpts = STAYS.map(m=>`<option value="${m}" ${w.stay===m?"selected":""}>${m<60?m+"分":(m/60)+"時間"}</option>`).join("");
-      return `<div class="item"><div class="withimg">${w.status==="ok"||w.anchor?imgSlot(w,"thumb"):""}<div class="main">
-        <div class="row" style="gap:8px"><input type="text" class="nameedit" data-rename="${w.id}" value="${esc(w.name)}" aria-label="場所の名前"></div>
-        <div class="row" style="gap:8px;margin-top:6px">${st}
-          <label class="note" for="stay-${w.id}">滞在</label><select id="stay-${w.id}" data-stay="${w.id}" style="padding:4px 8px">${stayOpts}</select>
-          ${(w.status==="ok"||w.anchor)?`<button type="button" class="linkbtn" data-edit="${w.id}" aria-expanded="${open}">${open?"閉じる":"位置を修正"}</button>`:""}
-          ${w.status==="ok"?`<a class="note" href="https://www.google.com/maps/search/?api=1&query=${w.lat},${w.lng}" target="_blank" rel="noopener">位置を確認</a>`:""}</div>
-        ${mealRow(w)}${inf}${busy["web-"+w.id]&&w.status!=="ok"?"":""}${w.cands&&w.cands.length>1&&(open||w.src==="web")?candPicker(w):""}${open?locEditor(w):""}</div></div>
-        <button type="button" class="x" data-delwish="${w.id}" aria-label="${esc(w.name)}を削除">×</button></div>`;
-    }).join("")+`</div>`;
-    if(only) h+=`<div class="row" style="margin-top:10px"><button type="button" class="btn small" data-act="showAllWish">ほかの場所も表示する</button></div>`;
+    if(only)h+=`<div class="onlybar"><span>いま1件を表示中</span><button type="button" class="btn small" data-act="showAllWish">すべて表示</button></div>`;
+    h+='<div class="wish-list">'+shown.map(w=>{
+      const busyLoc=busy['web-'+w.id],needsLocation=w.status!=='ok'&&!w.anchor,edit=needsLocation||editing.has(w.id);
+      const status=busyLoc?'位置を確認中':w.status==='ok'?'位置確認済み':w.anchor?'仮の位置':'位置を設定';
+      const stay=w.stay<60?w.stay+'分':w.stay/60+'時間';
+      const when=w.food?(w.mealAuto?'食事おまかせ':`${MEALNAME[w.meal]||'食事'} · ${w.day?w.day+'日目':'日程おまかせ'}`):'';
+      const opts=STAYS.map(m=>`<option value="${m}" ${w.stay===m?'selected':''}>${m<60?m+'分':m/60+'時間'}</option>`).join('');
+      return `<article class="wish-card"><div class="wish-overview">${imgSlot(w,'thumb')}<div class="wish-main">
+        <input type="text" class="nameedit" data-rename="${esc(w.id)}" value="${esc(w.name)}" aria-label="場所の名前">
+        <p class="wish-status"><span class="${w.status==='ok'?'is-ok':'is-pending'}">${esc(status)}</span><span>滞在 ${esc(stay)}</span></p>
+        ${when?`<p class="wish-when">${esc(when)}</p>`:''}${w.addr?`<p class="wish-address" title="${esc(w.addr)}">${esc(w.addr)}</p>`:''}
+      </div></div><button type="button" class="x" data-delwish="${esc(w.id)}" aria-label="${esc(w.name)}を削除">×</button>
+      <details class="wish-settings" data-wish-details="${esc(w.id)}" ${edit||wishDetailsOpen.has(w.id)?'open':''}><summary>変更<span>時間・場所${w.food?'・写真':''}</span></summary><div class="wish-settings-body">
+        <div class="row"><label for="stay-${esc(w.id)}">滞在</label><select id="stay-${esc(w.id)}" data-stay="${esc(w.id)}">${opts}</select>
+        ${w.status==='ok'?`<a href="https://www.google.com/maps/search/?api=1&query=${w.lat},${w.lng}" target="_blank" rel="noopener">地図</a>`:''}
+        ${!needsLocation?`<button type="button" class="linkbtn" data-edit="${esc(w.id)}" aria-expanded="${edit}">${edit?'修正を閉じる':'位置を修正'}</button>`:''}</div>
+        ${mealRow(w)}${w.cands&&w.cands.length>1&&edit?candPicker(w):''}${edit?locEditor(w):''}
+        ${w.food?`<details class="wish-photo-settings"><summary>写真を変更</summary><button type="button" class="linkbtn" data-pl-photo="${esc(w.id)}">写真を再取得</button><label>写真URL<input type="url" data-pl-photo-url="${esc(w.id)}" value="${esc(w.ownPhoto||'')}" placeholder="https://…"></label></details>`:''}
+      </div></details></article>`;
+    }).join('')+'</div>';
   }
-  return h+`</section>`;
+  return h+'</section>';
 }
+document.addEventListener('toggle',e=>{const id=e.target.dataset?.wishDetails;if(id){if(e.target.open)wishDetailsOpen.add(id);else wishDetailsOpen.delete(id);}},true);
 /* STEP4 おすすめ */
 function recList(){
   const wishNames=new Set(S.wishes.map(w=>norm(w.name)));
@@ -4012,7 +4016,7 @@ document.addEventListener("click",async e=>{
   if(d.act==="retryImg") return retryImages();
   if(d.act==="aiRec") return aiRec();
   if(d.act==="aiWish") return aiWish();
-  if(d.meal){ const [id,m]=d.meal.split("|"); const w=S.wishes.find(x=>x.id===id); if(w){ const before=w.meal; w.meal=m; if(!w.stayTouched&&before!==m) w.stay=MEALWIN[m].stay; save(); render(); } return; }
+  if(d.meal){ const [id,m]=d.meal.split("|"); const w=S.wishes.find(x=>x.id===id); if(w){ const before=w.meal; w.meal=m; w.mealAuto=false; if(!w.stayTouched&&before!==m) w.stay=MEALWIN[m].stay; save(); render(); } return; }
   if(d.foodon){ const w=S.wishes.find(x=>x.id===d.foodon); if(w){ setFood(w,true); save(); render(); } return; }
   if(d.foodoff){ const w=S.wishes.find(x=>x.id===d.foodoff); if(w){ w.food=false; save(); render(); } return; }
   if(d.foodtab){ S.foodTab=d.foodtab; save(); render(); return; }
@@ -4129,8 +4133,8 @@ document.addEventListener("change",e=>{
     S.dayTimes={...(S.dayTimes||{})}; if(o.start===S.start&&o.end===S.end) delete S.dayTimes[di]; else S.dayTimes[di]={start:o.start,end:o.end};
     if(t.closest(".day")) S.perDay=true; save(); render(); }
   if(t.dataset.rename){ const w=S.wishes.find(x=>x.id===t.dataset.rename); const v=t.value.trim(); if(w&&v){w.name=v; if(w.status!=="ok") w.q=v; save();} }
-  if(t.dataset.stay){ const w=S.wishes.find(x=>x.id===t.dataset.stay); if(w){w.stay=+t.value; w.stayTouched=true; save();} }
-  if(t.dataset.mday){ const w=S.wishes.find(x=>x.id===t.dataset.mday); if(w){w.day=+t.value; save();} }
+  if(t.dataset.stay){ const w=S.wishes.find(x=>x.id===t.dataset.stay); if(w){w.stay=+t.value; w.stayTouched=true; save(); render();} }
+  if(t.dataset.mday){ const w=S.wishes.find(x=>x.id===t.dataset.mday); if(w){w.day=+t.value; w.mealAuto=false; save();} }
   if(t.dataset.anchor){ const w=S.wishes.find(x=>x.id===t.dataset.anchor); if(w){w.anchor=t.value;save();render();} }
   if(t.id==="hAnchor"){ S.hotelAnchor=t.value; save(); render(); }
   if(t.id==="hotelName"){ const v=t.value.trim(); if(v!==S.hotelName){S.hotelName=v;S.hotelLoc=null;S.hotelInfo=null;S.hotelDecCands=[];save();render(); if(v) webHotelFind();} }
@@ -6515,13 +6519,14 @@ window.addEventListener('scroll',queueJournalViewport,{passive:true});window.add
 
 </script>
 <script src="booking/config.js?v=8"></script>
-<script src="booking/photo-core.js?v=13"></script>
+<script src="booking/photo-core.js?v=14"></script>
+<script src="booking/food-photo-core.js?v=2"></script>
 <script src="booking/attraction-photos.js?v=12"></script>
 <script src="booking/client.js?v=10"></script>
 <script src="booking/itinerary.js?v=12"></script>
 <script src="booking/planner-core.js?v=10"></script>
 <script src="shiori/assets/mobile-save.js?v=7"></script>
-<script src="booking/planner.js?v=13"></script>
+<script src="booking/planner.js?v=14"></script>
 <script src="booking/enhancements.js?v=11"></script>
 <script src="booking/food2.js?v=2"></script>
 <script src="booking/odpt.js?v=5"></script>
@@ -6529,7 +6534,9 @@ window.addEventListener('scroll',queueJournalViewport,{passive:true});window.add
 <script src="booking/daytools.js?v=1"></script>
 <script src="booking/stations.js?v=1"></script>
 <script src="booking/stay2.js?v=2"></script>
-<script src="booking/food4.js?v=1"></script>
+<script src="booking/food4.js?v=3"></script>
+<script src="booking/restaurant-photo-seeds.js?v=1"></script>
+<script src="booking/food-photos.js?v=2"></script>
 <script src="shiori/assets/journal-host.js?v=20261005-sync1"></script>
 <script>
 boot();

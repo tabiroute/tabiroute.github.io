@@ -20,7 +20,7 @@ function titles(p){
 function fail(code,retryAfter=60){return Object.assign(new Error(code),{code,retryAfter});}
 function retrySeconds(v,now=Date.now()){const s=String(v||'');const n=/^\d+$/.test(s)?Number(s):Math.ceil((Date.parse(s)-now)/1000);return Number.isFinite(n)&&n>0?Math.min(86400,n):60;}
 function imageURL(v){try{const u=new URL(v);return u.protocol==='https:'&&!u.username&&!u.password&&['upload.wikimedia.org','thumb.wikimedia.org'].includes(u.hostname)?u.href:'';}catch{return '';}}
-function fileName(v){const f=text(v).replace(/^(?:File|ファイル):/,'');return f.length<=240&&!/[\u0000-\u001f/:\\]/.test(f)&&/\.(?:jpe?g|png|webp)$/i.test(f)?f:'';}
+function fileName(v){const f=String(v||'').replace(/^(?:File|ファイル):/,'').replace(/_/g,' ').trim();return f.length<=240&&!/[\u0000-\u001f/:\\]/.test(f)&&/\.(?:jpe?g|png|webp)$/i.test(f)?f:'';}
 function photo(page,p,article,structured=false){
  const ii=page?.imageinfo?.[0],file=fileName(page?.title);if(!ii||!file||!/^image\/(jpeg|png|webp)$/.test(ii.mime)||ii.width<400||ii.height<250||ii.width/ii.height<.45||ii.width/ii.height>4)return null;
  const m=ii.extmetadata||{},license=text(m.LicenseShortName?.value),caption=text(m.ImageDescription?.value),artist=text(m.Artist?.value);

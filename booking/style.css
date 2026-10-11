@@ -264,3 +264,80 @@
 .f4-act a{display:inline-flex;align-items:center;min-height:36px;padding:0 4px}
 .f4-picked .linkbtn{min-height:36px;padding:0 8px}
 .f4-links a{display:inline-flex;align-items:center;min-height:34px}
+
+/* Food photos and compact place cards (shared across all prefectures). */
+.food-photo{position:relative;margin:0;min-width:0;width:76px;flex:none;color:var(--muted)}
+.food-photo>img{display:block;width:100%;height:76px;object-fit:cover;border-radius:10px;background:var(--accent-soft)}
+.food-photo-label{position:absolute;top:56px;left:0;right:0;height:20px;display:grid;place-items:center;border-radius:0 0 10px 10px;background:#172b47b8;color:white;font-size:9px;line-height:1.2;white-space:nowrap}
+.food-photo figcaption{font-size:9px;line-height:1.35;overflow-wrap:anywhere;margin-top:3px}
+.food-photo figcaption a{color:var(--muted);text-decoration:underline}
+.food-photo-empty{height:76px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:var(--accent-soft);border-radius:10px;font-size:10px}
+.food-photo-empty svg{width:22px;height:22px}.food-photo-empty .linkbtn{font-size:10px;padding:2px}
+.food-photo-card,.food-photo-hero{width:100%}.food-photo-card>img,.food-photo-hero>img{height:200px}.food-photo-card .food-photo-label,.food-photo-hero .food-photo-label{top:180px}
+.f4-card{grid-template-columns:76px minmax(0,1fr) auto;align-items:start}
+.f4-act{display:grid;grid-template-columns:auto auto;align-items:center;gap:2px 8px;max-width:110px}
+.f4-act .btn{grid-column:1/-1;min-height:40px;min-width:78px}
+.f4-act a{min-height:32px;justify-content:center;font-size:11px}
+.f4-main small{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.f4-main .f4-addr{-webkit-line-clamp:1}
+.f4-dish{padding:0;overflow:hidden;margin:8px 0}
+.f4-dish-heading{margin:0;font-size:15px}
+.f4-dish-heading button{display:flex;align-items:center;gap:10px;width:100%;min-height:52px;padding:12px 14px;border:0;background:var(--surface);color:var(--ink);font:inherit;font-weight:750;text-align:left;cursor:pointer}
+.f4-dish-heading button>span:first-child{flex:1;min-width:0;overflow-wrap:anywhere}
+.f4-dish-heading small{font-size:12px;color:var(--muted);font-weight:500}
+.f4-chevron{font-size:21px;line-height:1;transition:transform .15s}
+.f4-dish.is-open .f4-chevron{transform:rotate(180deg)}
+.f4-dish.is-open .f4-dish-heading button{background:var(--accent-soft);color:var(--accent)}
+.f4-dish-body{padding:8px 12px 10px}
+.f4-loading{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px;margin:4px 0 8px}
+.wish-list{display:grid;gap:10px}
+.wish-card{position:relative;border:1px solid var(--line);border-radius:14px;background:var(--surface);min-width:0}
+.wish-overview{display:flex;gap:12px;padding:12px 44px 10px 12px;align-items:start;min-width:0}
+.wish-main{flex:1;min-width:0}
+.wish-main .nameedit{width:100%;font-size:16px;font-weight:750;line-height:1.4;padding:0;min-width:0;margin:0}
+.wish-status{display:flex;flex-wrap:wrap;gap:3px 12px;font-size:11px;margin:5px 0;color:var(--muted)}
+.wish-status .is-ok{color:var(--ok)}.wish-status .is-pending{color:var(--warn)}
+.wish-when{font-size:12px;margin:4px 0;color:var(--ink)}
+.wish-address{font-size:11px;margin:4px 0;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wish-card>.x{position:absolute;top:3px;right:3px;width:38px;height:38px;min-height:38px;padding:0}
+.wish-settings{border-top:1px solid var(--line);margin:0}
+.wish-settings>summary{cursor:pointer;padding:8px 12px;min-height:40px;box-sizing:border-box;font-size:12px;font-weight:650;color:var(--accent)}
+.wish-settings>summary span{font-weight:400;color:var(--muted);font-size:11px;margin-left:10px}
+.wish-settings-body{padding:0 12px 12px;font-size:12px}
+.wish-settings-body .row{gap:10px;flex-wrap:wrap}
+.wish-settings-body select{font-size:14px;min-height:40px;max-width:100%}
+.wish-settings-body .linkbtn{min-height:40px}
+.wish-settings-body .mealrow{padding:8px;gap:5px}
+.wish-settings-body .mealrow .chip{min-height:36px;padding:4px 9px;font-size:12px}
+.wish-photo-settings{margin-top:8px}.wish-photo-settings summary{cursor:pointer;min-height:32px;display:list-item}
+.wish-photo-settings label{display:block}.wish-photo-settings input{width:100%;max-width:100%;font-size:16px}
+.wish-overview .ph-thumb,.wish-overview .booking-photo-thumb{width:76px;height:76px;flex:none}
+.wish-overview .booking-photo-thumb>img{height:76px}
+.wish-overview .booking-photo-thumb .booking-no-photo{min-height:76px;padding:4px}
+@media(max-width:600px){
+ .wish-overview{gap:9px;padding:10px 38px 8px 10px}
+ .wish-overview .food-photo,.wish-overview .ph-thumb,.wish-overview .booking-photo-thumb{width:64px}
+ .wish-overview .food-photo>img,.wish-overview .food-photo-empty,.wish-overview .ph-thumb,.wish-overview .booking-photo-thumb,.wish-overview .booking-photo-thumb>img{height:64px}
+ .wish-overview .food-photo-label{top:46px;height:18px;font-size:8px}
+ .wish-main .nameedit{font-size:16px;min-height:26px}
+ .wish-status{gap:2px 7px;font-size:10px}.wish-when{font-size:11px}.wish-address{font-size:10px}
+ .wish-settings>summary{padding:9px 10px;min-height:40px}
+ .f4-card{grid-template-columns:64px minmax(0,1fr);gap:8px;padding:9px}
+ .f4-card.sel{padding:8px}
+ .f4-card .food-photo{width:64px;grid-row:1/3}
+ .f4-card .food-photo>img,.f4-card .food-photo-empty{height:64px}
+ .f4-card .food-photo-label{top:46px;height:18px;font-size:8px}
+ .f4-main b{font-size:13px}.f4-main small{font-size:11px}
+ .f4-act{grid-column:2;display:flex;flex-direction:row;flex-wrap:wrap;justify-content:flex-start;gap:4px 10px;max-width:none}
+ .f4-act .btn{min-width:70px;min-height:38px;padding:6px 12px;font-size:12px;order:3;margin-left:auto}
+ .f4-act a{min-height:36px;padding:0;font-size:11px}
+ .f4-dish-body{padding:8px}.f4-dish-heading button{min-height:48px;padding:10px 12px}
+ .f4-seg button b{font-size:14px}.f4-seg button span{font-size:11px}
+ .f4-links{gap:3px 10px;font-size:11px}.f4-links span{display:none}
+ .f4-chips{gap:6px}.f4-chips .chip{min-height:40px;font-size:12px;padding:6px 10px}
+}
+
+/* Attribution stays one line until requested, including on compact phone cards. */
+.food-photo figcaption summary{cursor:pointer;min-height:24px;display:flex;align-items:center;text-decoration:underline}
+.food-photo figcaption details[open]{overflow-wrap:anywhere}
+.food-photo-empty a{font-size:10px;min-height:24px;display:flex;align-items:center;text-decoration:underline}

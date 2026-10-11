@@ -5,7 +5,7 @@
    ② 選んだお店は「選択済み」にするだけ。何日目の朝・昼・夜に食べるかは、予定表を作るときにアプリが決める（mealAutoAssign）。
    ③ 予定表の「食事の順番を変える」で、お店を押して入れたい枠を押すと入れかわる。 */
 PLAN_KEYS.push('foodPlan','foodTarget');
-const F4={seq:0,res:{},items:new Map(),more:{},geo:new Map(),cat:null,catP:null,name:null,swSel:null,picking:new Set()};
+const F4={seq:0,res:{},items:new Map(),more:{},openDish:'',geo:new Map(),cat:null,catP:null,name:null,swSel:null,picking:new Set(),nameCache:new Map()};
 const F4_SLOTS=[['朝','朝'],['昼','昼'],['休憩','カフェ'],['夜','夜']];
 // 「食べに行く」ものではない名物（候補の食べものには出さない）
 const F4_NOT_DISH=/^(落花生|納豆|すだち|砂丘らっきょう|しょうゆ豆|桃|メロン|パイナップル|朝市|中華街|キタの居酒屋|味噌|チーズ)$/;
@@ -173,34 +173,37 @@ function f4FromHP(h,j,c){return {...bookingToFood(h,j,c),lunch:h.lunch||'',src:'
 function f4Key(f){return f.providerId||('x:'+f.src+':'+f.name+':'+(f.addr||''));}
 function f4Merge(list){const out=[];for(const f of list){if(out.some(o=>f4Key(o)===f4Key(f)||(norm(o.name)===norm(f.name)&&(!bookingPoint(o)||!bookingPoint(f)||hav(o,f)<0.25))))continue;out.push(f);}return out;}
 function f4SA(){return tripPrefs().map(p=>HP_SA[p]).filter(Boolean).slice(0,3).join(',');}
-function f4Timeout(p,ms){return Promise.race([p,new Promise(r=>setTimeout(()=>r(null),ms))]);}
-// 店名で探す：ホットペッパー（行く県の全体＋ルートの近く）と、ネット（有名店リスト・地図データ）を同時に。届いたものから出す
+function f4Timeout(p,ms){return new Promise((resolve,reject)=>{const timer=setTimeout(()=>resolve(null),ms);Promise.resolve(p).then(v=>{clearTimeout(timer);resolve(v);},e=>{clearTimeout(timer);reject(e);});});}
+// Providers start together and paint independently. Repeated searches reuse a short cache.
 async function f4SearchName(q){
   q=String(q||'').normalize('NFKC').replace(/\s+/g,' ').trim().slice(0,80);if(!q)return toast('お店の名前を入れてください');
-  const seq=++F4.seq,state=S,r={q,hp:[],net:[],hpBusy:true,netBusy:true,hpErr:'',seq,state};F4.name=r;render();
-  const done=()=>S===state&&F4.name===r;
-  await f4Catalog();if(!done())return;
-  r.net=f4CatByName(q);render();
-  const hp=(async()=>{
-    const jobs=[],sa=f4SA(),c0=f4Centers()[0];
-    if(sa&&q.length>=2)jobs.push(BookingAPI.get('/restaurants',{sa,q}).then(j=>(j.items||[]).map(h=>f4FromHP(h,j,c0))));
-    if(c0)jobs.push(BookingAPI.get('/restaurants',{lat:c0.lat.toFixed(5),lng:c0.lng.toFixed(5),q,range:5}).then(j=>(j.items||[]).map(h=>f4FromHP(h,j,c0))));
-    const res=await Promise.allSettled(jobs);if(!done())return;
-    const ok=res.filter(x=>x.status==='fulfilled').flatMap(x=>x.value);
-    r.hp=f4Merge(ok).sort((a,b)=>(norm(a.name).startsWith(norm(q))?0:1)-(norm(b.name).startsWith(norm(q))?0:1)||((f4RouteKm(a)??999)-(f4RouteKm(b)??999)));
-    if(!ok.length){const e=res.find(x=>x.status==='rejected');if(e)r.hpErr=bookingMessage(e.reason);}
-    r.hpBusy=false;render();
-  })();
+  const state=S,centers=f4Centers(),sa=f4SA(),key=JSON.stringify([q,sa,centers]);
+  if(F4.name?.key===key&&F4.name.state===state&&(F4.name.hpBusy||F4.name.netBusy))return;
+  const cached=F4.nameCache.get(key);
+  if(cached?.until>Date.now()){F4.name={...cached.result,state,hpBusy:false,netBusy:false};render();return;}
+  const seq=++F4.seq,r={q,key,hp:[],net:f4CatByName(q),hpBusy:true,netBusy:true,hpErr:'',seq,state};F4.name=r;render();
+  const done=()=>S===state&&F4.name===r,paint=()=>{if(done())render();},c0=centers[0],params=[];
+  if(sa&&q.length>=2)params.push({sa,q});
+  if(c0)params.push({lat:c0.lat.toFixed(5),lng:c0.lng.toFixed(5),q,range:5});
+  let hpLeft=params.length,netLeft=2;
+  r.hpBusy=hpLeft>0;
+  const hp=params.map(p=>BookingAPI.get('/restaurants',p).then(j=>{
+    if(!done())return;
+    r.hp=f4Merge([...r.hp,...(j.items||[]).map(h=>f4FromHP(h,j,c0))]).sort((a,b)=>(norm(a.name).startsWith(norm(q))?0:1)-(norm(b.name).startsWith(norm(q))?0:1)||((f4RouteKm(a)??999)-(f4RouteKm(b)??999)));
+  }).catch(e=>{if(done())r.hpErr=bookingMessage(e);}).finally(()=>{r.hpBusy=--hpLeft>0;paint();}));
+  const catalog=f4Catalog().then(()=>{if(done())r.net=f4Merge([...f4CatByName(q),...r.net]);}).finally(()=>{r.netBusy=--netLeft>0;paint();});
   const net=(async()=>{
     let list=null;try{list=await f4Timeout(searchNomi(q,{bounded:true,limit:6}),6000);}catch(e){}
     if(!done())return;
     const osm=(list||[]).map(food2FromOSM).filter(Boolean).map(f=>({...f,src:'osm'}));
-    r.net=f4Merge([...r.net,...osm]);r.netBusy=false;r.netSlow=list===null;render();
-    f4GeoFill(r.net);
-  })();
-  await Promise.all([hp,net]);
+    r.net=f4Merge([...r.net,...osm]);r.netSlow=list===null;
+  })().finally(()=>{r.netBusy=--netLeft>0;paint();});
+  await Promise.allSettled([...hp,catalog,net]);
+  if(!done())return;
+  if(!r.hpErr&&!r.netSlow){F4.nameCache.set(key,{until:Date.now()+300000,result:{...r,state:null}});if(F4.nameCache.size>20)F4.nameCache.delete(F4.nameCache.keys().next().value);}
+  f4GeoFill(r.net);
 }
-// 名物から探す：有名店（有名店リスト＋ホットペッパーのおすすめ順）／ルートの近く（ホットペッパー・観光地から近い順）
+// 名物から探す：有名店（有名店リスト＋ホットペッパー順）／ルートの近く（ホットペッパー・観光地から近い順）
 function f4ResKey(dish,how){return how+'|'+dish+'|'+JSON.stringify(f4Centers().map(p=>[p.lat.toFixed(2),p.lng.toFixed(2)]))+'|'+tripPrefs().join();}
 async function f4SearchDish(dish,how){
   const key=f4ResKey(dish,how),old=F4.res[key];
@@ -208,7 +211,7 @@ async function f4SearchDish(dish,how){
   const state=S,r={dish,how,busy:true,hp:[],err:'',expiresAt:0};F4.res[key]=r;
   try{
     if(how==='famous'){
-      await f4Catalog();
+      await f4Catalog();if(S===state&&S.step===5)render();
       const sa=f4SA(),plan=foodQueryPlan(dish,{pref:S.pref,city:''}),words=[...new Set([dish.length<2?dish+'料理':dish,...plan.filter(v=>v.tier===1&&v.q&&v.q.length>=2).map(v=>v.q)])].slice(0,2);
       r.expiresAt=Date.now()+600000;
       for(const q of words){if(!sa||q.length<2)continue;const j=await BookingAPI.get('/restaurants',{sa,q});r.expiresAt=Math.max(Number(j.expiresAt)||0,Date.now()+60000);r.hp=(j.items||[]).map(h=>f4FromHP(h,j,f4Centers()[0]));if(r.hp.length)break;}
@@ -234,8 +237,9 @@ async function f4SearchDish(dish,how){
 async function f4SearchAll(){
   const p=f4Plan();if(p.mode!=='undecided'||!p.how)return;
   const state=S;
-  await Promise.all(p.dishes.map(d=>f4SearchDish(d,p.how)));   // 食べものごとに同時に探す
-  if(p.how==='famous'){await f4Catalog();if(S===state)f4GeoFill(p.dishes.flatMap(d=>f4CatFor(d).slice(0,4)));}
+  const dishes=p.dishes.filter(d=>d===F4.openDish);
+  await Promise.all(dishes.map(d=>f4SearchDish(d,p.how)));   // 開いた料理だけを検索
+  if(p.how==='famous'){await f4Catalog();if(S===state)f4GeoFill(dishes.flatMap(d=>f4CatFor(d).slice(0,4)));}
 }
 
 /* ---- 選ぶ・外す ---- */
@@ -306,9 +310,9 @@ function f4Card(f){
   const sel=!!f4Selected(f),km=f4RouteKm(f);
   const src=f.src==='hotpepper'?'ホットペッパー':f.src==='famous'?'有名店':f.src==='osm'?'地図データ':'登録';
   const meta=[f.src==='famous'?f.why:'',km!=null?`ルートから約${f4Km(km)}km`:'',f.src==='hotpepper'?f.cuisine:(f.cuisine||''),f.src==='hotpepper'&&f.budget?'予算 '+f.budget:''].filter(Boolean);
-  const photo=Number(f.apiExpiresAt)>Date.now()&&bookingSafeURL(f.apiPhoto);
+  const photo=typeof foodPhotoSlot==='function'?foodPhotoSlot(f,'result'):bookingPhoto(f,'thumb');
   const link=f.src==='hotpepper'?hpURL(f):'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(bookingPoint(f)&&f.src==='osm'?f.lat+','+f.lng:[f.name,f.addr||f4Short(f.pref||S.pref)].join(' '));
-  return `<article class="f4-card${sel?' sel':''}"><div class="f4-ph">${photo?`<img src="${esc(photo)}" alt="" loading="lazy" onerror="this.remove()">`:''}<span aria-hidden="true">${esc(String(f.dish||f.cuisine||f.name||'').slice(0,1))}</span></div><div class="f4-main"><span class="f4-src f4-src-${esc(f.src||'x')}">${src}</span><b>${esc(f.name)}</b>${meta.length?`<small>${esc(meta.join('・'))}</small>`:''}${f.addr?`<small class="f4-addr">${esc(f.addr)}</small>`:''}</div><div class="f4-act">${F4.picking.has(key)?'<button type="button" class="btn small" disabled><span class="spin"></span>確認中</button>':`<button type="button" class="btn small ${sel?'':'primary'}" data-f4-pick="${esc(key)}" aria-pressed="${sel}">${sel?'✓ 選択済み':'選ぶ'}</button>`}<a href="${esc(link)}" target="_blank" rel="noopener">${f.src==='hotpepper'?'お店のページ':'地図'}</a>${f.src==='famous'&&bookingSafeURL(f.srcURL)?`<a href="${esc(bookingSafeURL(f.srcURL))}" target="_blank" rel="noopener">出典</a>`:''}</div></article>`;
+  return `<article class="f4-card${sel?' sel':''}">${photo}<div class="f4-main"><span class="f4-src f4-src-${esc(f.src||'x')}">${src}</span><b>${esc(f.name)}</b>${meta.length?`<small>${esc(meta.join('・'))}</small>`:''}${f.addr?`<small class="f4-addr">${esc(f.addr)}</small>`:''}</div><div class="f4-act">${F4.picking.has(key)?'<button type="button" class="btn small" disabled><span class="spin"></span>確認中</button>':`<button type="button" class="btn small ${sel?'':'primary'}" data-f4-pick="${esc(key)}" aria-pressed="${sel}">${sel?'✓ 選択済み':'選ぶ'}</button>`}<a href="${esc(link)}" target="_blank" rel="noopener">${f.src==='hotpepper'?'お店のページ':'地図'}</a>${f.src==='famous'&&bookingSafeURL(f.srcURL)?`<a href="${esc(bookingSafeURL(f.srcURL))}" target="_blank" rel="noopener">出典</a>`:''}</div></article>`;
 }
 function f4List(list,id,n=4){
   if(!list.length)return '';
@@ -331,10 +335,10 @@ function f4DecidedHTML(){
   let h=f4Q(2,'お店の名前は？','ホットペッパーとネットで探します')+`<form id="f4NameForm" class="f4-form"><input id="f4NameQ" name="q" maxlength="80" value="${esc(q)}" placeholder="お店の名前" aria-label="お店の名前" autocomplete="off"><button class="btn primary">探す</button></form>`;
   if(!r)return h+'<p class="f4-note">食べる日と時間（朝・昼・夜）は、予定表でアプリが決めます。</p>';
   h+=`<div class="f4-res"><h3 class="f4-h">ホットペッパー${r.hpBusy?'<span class="spin"></span>':`<small>${r.hp.length}件</small>`}</h3>`;
-  h+=r.hpBusy?'':r.hp.length?f4List(r.hp,'name-hp'):`<p class="f4-empty">${esc(r.hpErr||'見つかりませんでした')}</p>`;
+  h+=r.hp.length?f4List(r.hp,'name-hp'):r.hpBusy?'':`<p class="f4-empty">${esc(r.hpErr||'見つかりませんでした')}</p>`;
   if(r.hp.length)h+=`<div class="booking-credit">${BOOKING_CREDIT_HP}</div>`;
-  h+=`<h3 class="f4-h">ネット（有名店・地図データ）${r.netBusy?'<span class="spin"></span>':`<small>${r.net.length}件</small>`}</h3>`;
-  h+=r.net.length?f4List(r.net,'name-net'):r.netBusy?'':`<p class="f4-empty">${r.netSlow?'時間がかかったため、ここまでで止めました。下のリンクから探せます。':'見つかりませんでした'}</p>`;
+  h+=`<h3 class="f4-h">ネットで見つかるお店${r.netBusy?'<span class="spin"></span>':`<small>${r.net.length}件</small>`}</h3>`;
+  h+=r.net.length?f4List(r.net,'name-net'):r.netBusy?'':`<p class="f4-empty">${r.netSlow?'検索に時間がかかっています。下のリンクからも探せます。':'見つかりませんでした'}</p>`;
   h+=f4Links(q,false)+'</div>';
   const none=!r.hpBusy&&!r.netBusy&&!r.hp.length&&!r.net.length;
   h+=`<details class="f4-manual" ${none?'open':''}><summary>見つからないとき：住所で登録</summary><label>店名<input id="f4ManName" maxlength="80" value="${esc(q)}"></label><label>住所・駅名<input id="f4ManPlace" maxlength="120" placeholder="例：札幌市豊平区中の島2条7-8-28"></label><button type="button" class="btn" data-f4-manual>登録</button><span class="status" id="f4ManStatus"></span></details>`;
@@ -342,25 +346,29 @@ function f4DecidedHTML(){
 }
 function f4UndecidedHTML(){
   const p=f4Plan(),foods=f4Foods(),own=p.own.filter(x=>!foods.includes(x)),all=[...foods,...own];
-  let h=f4Q(2,'食べたいものは？','いくつでも');
+  let h=f4Q(2,'食べたいものは？','複数選べます');
   h+=`<div class="f4-chips">${all.map(x=>`<button type="button" class="chip" data-f4-dish="${esc(x)}" aria-pressed="${p.dishes.includes(x)}">${esc(x)}</button>`).join('')}</div>`;
   h+=`<form id="f4OwnForm" class="f4-form f4-own"><input id="f4OwnQ" maxlength="30" placeholder="ほかの食べもの（例：うなぎ）" aria-label="ほかの食べもの" autocomplete="off"><button class="btn">追加</button></form>`;
   if(!p.dishes.length)return h;
   h+=f4Q(3,'お店の選び方は？');
   h+=f4Seg('data-f4-how',p.how,[['famous','有名店','その料理で名の知れたお店'],['route','ルートの近く','観光の合間に寄りやすい']]);
   if(!p.how)return h;
-  h+='<div class="f4-res">';
+  h+='<div class="f4-res"><p class="f4-note">料理名を押すと、お店が見られます。</p>';
   for(const d of p.dishes){
     const r=F4.res[f4ResKey(d,p.how)],famous=p.how==='famous',cat=famous?f4CatFor(d):[];
     const hp=(r?.hp||[]).slice(0,famous?6:12);
-    h+=`<section class="f4-dish"><h3 class="f4-h">${esc(d)}${r?.busy?'<span class="spin"></span>':''}</h3>`;
+    const open=F4.openDish===d,id='f4-dish-'+p.dishes.indexOf(d);
+    h+=`<section class="f4-dish${open?' is-open':''}"><h3 class="f4-dish-heading"><button type="button" data-f4-open="${esc(d)}" aria-expanded="${open}" aria-controls="${id}"><span>${esc(d)}</span><small>${cat.length+hp.length?`${cat.length+hp.length}店`:''}</small><span class="f4-chevron" aria-hidden="true">⌄</span></button></h3>`;
+    if(!open){h+=`<div id="${id}" hidden></div></section>`;continue;}
+    h+=`<div id="${id}" class="f4-dish-body">`;
+    if(!r||r.busy)h+='<p class="f4-loading" role="status"><span class="spin"></span>お店を探しています</p>';
     if(famous){
-      h+=cat.length?`<p class="f4-sub">有名店（ネットで調べたお店）</p>${f4List(cat,'cat-'+d,3)}`:'';
-      h+=hp.length?`<p class="f4-sub">ホットペッパーのおすすめ</p>${f4List(hp,'hp-'+d,3)}<div class="booking-credit">${BOOKING_CREDIT_HP}</div>`:'';
+      h+=cat.length?`<p class="f4-sub">有名店</p>${f4List(cat,'cat-'+d,3)}`:'';
+      h+=hp.length?`<p class="f4-sub">ホットペッパー</p>${f4List(hp,'hp-'+d,3)}<div class="booking-credit">${BOOKING_CREDIT_HP}</div>`:'';
     }else h+=hp.length?`${f4List(hp,'hp-'+d,4)}<div class="booking-credit">${BOOKING_CREDIT_HP}</div>`:'';
     if(r&&!r.busy&&!hp.length&&!cat.length)h+=`<p class="f4-empty">${esc(r.err||(famous?'見つかりませんでした。下のリンクから探せます。':'ルートの近くでは見つかりませんでした。「有名店」も試せます。'))}</p>`;
     else if(r?.err&&!hp.length)h+=`<p class="f4-empty">${esc(r.err)}</p>`;
-    h+=f4Links(d,famous)+'</section>';
+    h+=f4Links(d,famous)+'</div></section>';
   }
   return h+'</div>';
 }
@@ -369,7 +377,7 @@ stepFood=function(){
   let h=`<section class="panel booking-panel f4">${head(5,'食事')}`;
   if(t)h+=`<div class="f4-target"><span><b>${t.di+1}日目の${MEALNAME[t.slot]}</b>に入れるお店を選んでいます</span><button type="button" class="linkbtn" data-f4-target-clear>やめる</button></div>`;
   h+=f4PickedHTML();
-  h+=f4Q(1,'食べたいご飯は決まっていますか？');
+  h+=f4Q(1,'お店は決まっていますか？');
   h+=f4Seg('data-f4-mode',p.mode,[['decided','決まっている','お店の名前で探す'],['undecided','決まっていない','名物から選ぶ']]);
   if(p.mode==='decided')h+=f4DecidedHTML();
   else if(p.mode==='undecided')h+=f4UndecidedHTML();
@@ -448,10 +456,11 @@ stepResult=function(){
 
 /* ---- 操作 ---- */
 document.addEventListener('click',e=>{
-  const t=e.target.closest('[data-f4-mode],[data-f4-dish],[data-f4-how],[data-f4-pick],[data-f4-more],[data-f4-manual],[data-f4-target-clear],[data-f4-swap],[data-f4sw],[data-f4sw-pick],[data-f4sw-auto]');if(!t)return;
+  const t=e.target.closest('[data-f4-open],[data-f4-mode],[data-f4-dish],[data-f4-how],[data-f4-pick],[data-f4-more],[data-f4-manual],[data-f4-target-clear],[data-f4-swap],[data-f4sw],[data-f4sw-pick],[data-f4sw-auto]');if(!t)return;
   const d=t.dataset;
-  if(d.f4Mode!==undefined){f4Set({mode:d.f4Mode});if(d.f4Mode==='undecided')f4SearchAll();setTimeout(()=>document.getElementById(d.f4Mode==='decided'?'f4NameQ':'f4OwnQ')?.closest('.f4-form')?.scrollIntoView({block:'nearest',behavior:'smooth'}),40);}
-  else if(d.f4Dish!==undefined){const p=f4Plan(),on=p.dishes.includes(d.f4Dish);f4Set({dishes:on?p.dishes.filter(x=>x!==d.f4Dish):[...p.dishes,d.f4Dish].slice(-8)});if(!on)f4SearchAll();}
+  if(d.f4Open!==undefined){F4.openDish=F4.openDish===d.f4Open?'':d.f4Open;render();f4SearchAll();document.querySelector(`[data-f4-open="${CSS.escape(d.f4Open)}"]`)?.focus({preventScroll:true});}
+  else if(d.f4Mode!==undefined){f4Set({mode:d.f4Mode});if(d.f4Mode==='undecided')f4SearchAll();setTimeout(()=>document.getElementById(d.f4Mode==='decided'?'f4NameQ':'f4OwnQ')?.closest('.f4-form')?.scrollIntoView({block:'nearest',behavior:'smooth'}),40);}
+  else if(d.f4Dish!==undefined){const p=f4Plan(),on=p.dishes.includes(d.f4Dish);F4.openDish=on?'':d.f4Dish;f4Set({dishes:on?p.dishes.filter(x=>x!==d.f4Dish):[...p.dishes,d.f4Dish].slice(-8)});if(!on)f4SearchAll();}
   else if(d.f4How!==undefined){f4Set({how:d.f4How});f4SearchAll();}
   else if(d.f4Pick!==undefined){const f=F4.items.get(d.f4Pick);if(f)f4Pick(f);}
   else if(d.f4More!==undefined){F4.more[d.f4More]=!F4.more[d.f4More];render();}
@@ -470,20 +479,23 @@ document.addEventListener('click',e=>{
 document.addEventListener('click',e=>{const t=e.target.closest('[data-route-open-food]');if(!t)return;const [di,slot]=t.dataset.routeOpenFood.split('|');if(MEALS.includes(slot)){S.foodTarget={di:+di,slot};}},true);
 document.addEventListener('submit',e=>{
   if(e.target.id==='f4NameForm'){e.preventDefault();f4SearchName(document.getElementById('f4NameQ')?.value);}
-  if(e.target.id==='f4OwnForm'){e.preventDefault();const v=String(document.getElementById('f4OwnQ')?.value||'').normalize('NFKC').trim().slice(0,30);if(!v)return toast('食べものを入れてください');const p=f4Plan();f4Set({own:[...p.own.filter(x=>x!==v),v].slice(-6),dishes:[...p.dishes.filter(x=>x!==v),v].slice(-8)});f4SearchAll();}
+  if(e.target.id==='f4OwnForm'){e.preventDefault();const v=String(document.getElementById('f4OwnQ')?.value||'').normalize('NFKC').trim().slice(0,30);if(!v)return toast('食べものを入れてください');const p=f4Plan();F4.openDish=v;f4Set({own:[...p.own.filter(x=>x!==v),v].slice(-6),dishes:[...p.dishes.filter(x=>x!==v),v].slice(-8)});f4SearchAll();}
 });
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.isComposing||e.keyCode===229)&&e.target.closest?.('.f4-form'))e.preventDefault();},true);
 // モーダルを閉じたら、選んでいたお店を忘れる
 const f4CloseModal=closeModal;closeModal=function(){F4.swSel=null;F4.swOpen=false;return f4CloseModal.apply(this,arguments);};
 // 食事の画面を開いたとき、名物の候補を先に読んでおく
+for(const id of ['f4NameQ','f4OwnQ','f4ManName','f4ManPlace'])if(!DRAFT_IDS.includes(id))DRAFT_IDS.push(id);
 const f4OldRender=render;
 render=function(){
+  const focusedDish=document.activeElement?.closest?.('[data-f4-open]')?.dataset.f4Open;
   const r=f4OldRender.apply(this,arguments);
+  if(focusedDish)document.querySelector(`[data-f4-open="${CSS.escape(focusedDish)}"]`)?.focus({preventScroll:true});
   if(S?.step===5){
     if(!F4.cat&&!F4.catP)f4Catalog().then(c=>{if(S?.step===5&&c.length)render();});
     // 保存してあった「名物＋選び方」で、まだ候補がないとき（読み込み直した・別の画面から戻った）は探し直す
     const p=f4Plan();F4.auto=F4.auto||{};
-    const due=p.mode==='undecided'&&p.how?p.dishes.map(d=>f4ResKey(d,p.how)).filter(k=>{const x=F4.res[k];return (!x||(!x.busy&&x.expiresAt<=Date.now()))&&!(F4.auto[k]>Date.now()-60000);}):[];
+    const due=p.mode==='undecided'&&p.how?p.dishes.filter(d=>d===F4.openDish).map(d=>f4ResKey(d,p.how)).filter(k=>{const x=F4.res[k];return (!x||(!x.busy&&x.expiresAt<=Date.now()))&&!(F4.auto[k]>Date.now()-60000);}):[];
     if(due.length){due.forEach(k=>F4.auto[k]=Date.now());setTimeout(f4SearchAll,0);}   // 自動で探し直すのは、同じ条件で1分に1回まで
   }
   return r;

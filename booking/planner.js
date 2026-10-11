@@ -123,6 +123,7 @@ bookingPhoto=function(o,size){
  return food&&o.id?`<div class="planner-photo-block">${html}</div>`:html;
 };
 async function plannerRefreshPhoto(id,manual=false){
+ if(typeof foodPhotoRefresh==='function')return foodPhotoRefresh(id,manual);
  const state=S,w=S.wishes.find(x=>x.id===id);if(!w||!bookingPoint(w))return;
  const k=APP.pid+'|'+id;if(!manual&&plannerPhotoAttempts.has(k))return;plannerPhotoAttempts.add(k);
  try{
