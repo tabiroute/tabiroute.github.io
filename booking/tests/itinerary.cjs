@@ -8,7 +8,7 @@ const server=http.createServer((req,res)=>{const url=new URL(req.url,'http://loc
  const rel=url.pathname==='/'?'index.html':url.pathname.slice(1);const file=path.resolve(root,rel);if(!file.startsWith(root+path.sep)||!fs.existsSync(file)||fs.statSync(file).isDirectory()){res.statusCode=404;res.end('missing');return;}res.setHeader('Content-Type',file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':file.endsWith('.html')?'text/html; charset=utf-8':'application/octet-stream');if(rel==='booking/config.js'){res.end('window.TABIROUTE_BOOKING={apiBase:location.origin+"/api",enabled:true};window.TABIROUTE_PLACE_MEDIA={};');return;}res.end(fs.readFileSync(file));});
 (async()=>{
  await new Promise(r=>server.listen(0,'127.0.0.1',r));const origin='http://127.0.0.1:'+server.address().port;
- const browser=await chromium.launch({headless:true,executablePath:path.resolve(root,'../browser-runtime/chromium-route'),args:['--no-sandbox','--disable-gpu','--no-zygote']});
+ const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME||path.resolve(root,'../browser-runtime/chromium-route'),args:['--no-sandbox','--disable-gpu','--no-zygote']});
  try{
   const page=await browser.newPage({viewport:{width:390,height:844}}),errors=[];
   page.on('pageerror',e=>errors.push(e.message));

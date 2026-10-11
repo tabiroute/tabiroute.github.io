@@ -50,8 +50,8 @@ function f4Centers(){
 /* ---- 有名店リスト（booking/famous-food.json：食べログ百名店・発祥の店・老舗などをネットで調べたもの） ---- */
 function f4Catalog(){
   if(F4.cat)return Promise.resolve(F4.cat);
-  return F4.catP||(F4.catP=fetch('booking/famous-food.json?v=1').then(r=>r.ok?r.json():null).then(j=>{
-    F4.cat=(j?.shops||[]).map(a=>({pref:a[0],city:a[1],dish:a[2],name:a[3],addr:a[4],kind:a[5],why:a[6],srcURL:a[7],lat:a[8]??null,lng:a[9]??null,src:'famous',food:true,type:'restaurant',providerId:'famous:'+a[0]+':'+a[3]}));
+  return F4.catP||(F4.catP=fetch('booking/famous-food.json?v=2').then(r=>r.ok?r.json():null).then(j=>{
+    F4.cat=(j?.shops||[]).map(a=>({pref:a[0],city:a[1],dish:a[2],name:a[3],addr:a[4],kind:a[5],why:a[6],srcURL:a[7],lat:a[8]??null,lng:a[9]??null,geoExact:a[10]!==0,src:'famous',food:true,type:'restaurant',providerId:'famous:'+a[0]+':'+a[3]}));
     F4.catAt=j?.checked||'';return F4.cat;
   }).catch(()=>{F4.cat=[];F4.catFail=true;return F4.cat;}));   // 読めなかったときは空のまま（何度も取りに行かない）
 }

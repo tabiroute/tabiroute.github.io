@@ -341,3 +341,8 @@
 .food-photo figcaption summary{cursor:pointer;min-height:24px;display:flex;align-items:center;text-decoration:underline}
 .food-photo figcaption details[open]{overflow-wrap:anywhere}
 .food-photo-empty a{font-size:10px;min-height:24px;display:flex;align-items:center;text-decoration:underline}
+
+/* 料理イメージ（その土地の名物の写真）。お店の写真と見分けられるよう、ラベルの色を変える */
+.food-photo-label.is-dish{background:#6b3f10c9}
+.food-photo>img{transition:opacity .2s}
+.food-photo figcaption details{font-size:10px}
