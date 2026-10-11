@@ -3,7 +3,7 @@
 const {chromium}=require('playwright'),fs=require('fs'),path=require('path'),http=require('http'),assert=require('node:assert/strict');
 const root=path.resolve(__dirname,'../..');
 const jpg=fs.readFileSync(path.join(root,'img/food.jpg'));
-const calls=[];
+const calls=[];let shopMode='old';
 // ホットペッパーの検索結果（表記ゆれのある同じお店と、名前の似た別の支店）
 const hp=[
  {id:'J000000101',name:'スパゲッティハウス チャオ BINO栄店',lat:35.16905,lng:136.90649,address:'愛知県名古屋市中区錦３－２４－１７ ＢＩＮＯ栄Ｂ１',genre:'イタリアン・フレンチ',photo:'https://imgfp.hotp.jp/ciao.jpg',url:'https://www.hotpepper.jp/strJ000000101/'},
@@ -13,6 +13,12 @@ const server=http.createServer((req,res)=>{const url=new URL(req.url,'http://loc
  if(url.pathname.startsWith('/api/')){calls.push(url);res.setHeader('Content-Type','application/json');
   if(url.pathname==='/api/restaurants'){const q=url.searchParams.get('q')||'';res.end(JSON.stringify({ok:true,items:hp.filter(h=>h.name.includes(q)),expiresAt:Date.now()+3600000,fetchedAt:Date.now()}));return;}
   if(url.pathname==='/api/food-photos'){res.end(JSON.stringify({ok:true,version:'food-photo-v2',status:'missing',photos:[],expiresAt:Date.now()+300000}));return;}
+  if(url.pathname==='/api/shop-photos'){
+   if(shopMode==='old'){res.statusCode=404;res.end(JSON.stringify({ok:false,code:'not_found'}));return;}
+   const n=url.searchParams.get('name')||'';
+   const photos=n.includes('チャオ')?[{kind:'shop-free',file:'Ciao BINO.jpg',src:'http://x/api/photo-image?file=Ciao%20BINO.jpg',remote:'https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/Ciao_BINO.jpg/500px-Ciao_BINO.jpg',artist:'Taro',license:'CC BY-SA 4.0',licenseURL:'https://creativecommons.org/licenses/by-sa/4.0/',page:'https://commons.wikimedia.org/wiki/File:Ciao_BINO.jpg'}]
+    :n.includes('ヨコイ')?[{kind:'official',src:'https://yokoi.example.jp/top.jpg',page:'https://yokoi.example.jp/',credit:'出典：yokoi.example.jp（公式サイト）'}]:[];
+   res.end(JSON.stringify({ok:true,version:'shop-photo-v1',status:photos.length?'ready':'missing',photos,expiresAt:Date.now()+86400000}));return;}
   if(url.pathname==='/api/photo-image'){res.setHeader('Content-Type','image/jpeg');res.end(jpg);return;}
   res.statusCode=404;res.end('{}');return;}
  const rel=url.pathname==='/'?'index.html':decodeURIComponent(url.pathname.slice(1));const file=path.resolve(root,rel);
@@ -31,7 +37,7 @@ const server=http.createServer((req,res)=>{const url=new URL(req.url,'http://loc
   await page.route('**/*',r=>{const u=r.request().url();
    if(u.startsWith(origin))return r.continue();
    if(/^https:\/\/(thumb|upload)\.wikimedia\.org\//.test(u)){wiki++;return r.fulfill({status:200,contentType:'image/jpeg',body:jpg});}
-   if(/^https:\/\/imgfp\.hotp\.jp\//.test(u))return r.fulfill({status:200,contentType:'image/jpeg',body:jpg});
+   if(/^https:\/\/(imgfp\.hotp\.jp|yokoi\.example\.jp)\//.test(u))return r.fulfill({status:200,contentType:'image/jpeg',body:jpg});
    return r.abort();});
   await page.goto(origin);await page.waitForFunction(()=>typeof APP!=='undefined'&&APP.view==='home'&&typeof foodPhotoSlot==='function');
   await page.click('[data-app="open"][data-v="lsample"]');await page.waitForFunction(()=>S&&APP.view==='project');
@@ -54,6 +60,19 @@ const server=http.createServer((req,res)=>{const url=new URL(req.url,'http://loc
   assert.equal(all.generic,0,'every famous shop gets a photo of its own dish, not the generic fallback');
   assert.equal(all.withGeo,all.shops,'every famous shop has coordinates (no geocoding while the list is shown)');
   assert(all.ms<1500,'rendering all cards with photos is fast: '+all.ms+'ms');
+
+  // 1b) 確認済みの「お店そのものの写真」（famous-photos.js）がある有名店は、最初からその写真
+  const own=await page.evaluate(async()=>{
+   await f4Catalog();const keys=Object.keys(window.TABIROUTE_FAMOUS_PHOTOS.p);
+   const hit=F4.cat.filter(f=>keys.includes(f.pref+'|'+f.name));
+   const box=document.createElement('div');box.innerHTML=hit.map(f=>f4Card({...f})).join('');document.body.append(box);
+   const labels=[...box.querySelectorAll('.food-photo-label')].map(x=>x.textContent);
+   const m=F4.cat.find(f=>f.name==='神田まつや 本店');const b2=document.createElement('div');b2.innerHTML=f4Card({...m});
+   const r={keys:keys.length,hit:hit.length,uniq:new Set(hit.map(f=>f.pref+'|'+f.name)).size,shopLabels:labels.filter(l=>l==='お店の写真').length,matsuya:b2.querySelector('.food-photo-label').textContent,matsuyaSrc:b2.querySelector('img').getAttribute('src'),matsuyaCap:b2.querySelector('figcaption').textContent};
+   box.remove();return r;});
+  console.log('own shop photos',{...own,matsuyaCap:own.matsuyaCap.slice(0,80)});
+  assert.equal(own.uniq,own.keys,'every curated photo belongs to a shop in the list');assert.equal(own.shopLabels,own.hit);
+  assert.equal(own.matsuya,'お店の写真');assert.match(own.matsuyaSrc,/thumb\.wikimedia\.org/);assert.match(own.matsuyaCap,/CC/);
 
   // 2) 料理名の対応：あんかけスパの有名店にはあんかけスパの写真、別名（デニム丼など）は写っている料理名を出す
   const map=await page.evaluate(()=>({
@@ -98,6 +117,27 @@ const server=http.createServer((req,res)=>{const url=new URL(req.url,'http://loc
   assert.equal(swap.after,'https://imgfp.hotp.jp/ciao.jpg');assert.equal(swap.afterLabel,'店舗写真');
   const hpCalls=calls.filter(u=>u.pathname==='/api/restaurants');
   assert.equal(hpCalls.length,1);assert.equal(hpCalls[0].searchParams.get('q'),'チャオ');assert(hpCalls[0].searchParams.get('lat'));
+
+  // 4b) 新しい Worker（/shop-photos）：ネットで見つかった「お店の写真」がホットペッパーより優先、公式サイトの画像も使う
+  shopMode='new';
+  const web=await page.evaluate(async()=>{
+   FOOD_PHOTOS.shopUnavailable=false;FOOD_PHOTOS.results.clear();try{sessionStorage.clear();}catch{}
+   await f4Catalog();const out={};
+   for(const nm of ['スパゲティハウス チャオ BINO栄店','スパゲッティハウス ヨコイ 住吉本店']){
+    const f=F4.cat.find(x=>x.name===nm);const box=document.createElement('div');box.innerHTML=f4Card({...f});document.body.prepend(box);
+    hydrateImages();for(let i=0;i<60;i++){const l=box.querySelector('.food-photo-label').textContent;if(l!=='料理イメージ'&&!(nm.includes('チャオ')&&l==='店舗写真'))break;await new Promise(r=>setTimeout(r,100));}
+    await new Promise(r=>setTimeout(r,300));
+    const img=box.querySelector('img');out[nm]={src:img.getAttribute('src'),label:box.querySelector('.food-photo-label').textContent,ref:img.getAttribute('referrerpolicy'),cap:box.querySelector('figcaption').textContent};box.remove();
+   }
+   return out;});
+  console.log('web',web);
+  assert.equal(web['スパゲティハウス チャオ BINO栄店'].label,'お店の写真');assert.match(web['スパゲティハウス チャオ BINO栄店'].src,/upload\.wikimedia\.org/);assert.match(web['スパゲティハウス チャオ BINO栄店'].cap,/Taro/);
+  assert.equal(web['スパゲッティハウス ヨコイ 住吉本店'].label,'公式サイトの写真');assert.equal(web['スパゲッティハウス ヨコイ 住吉本店'].src,'https://yokoi.example.jp/top.jpg');assert.equal(web['スパゲッティハウス ヨコイ 住吉本店'].ref,'no-referrer');assert.match(web['スパゲッティハウス ヨコイ 住吉本店'].cap,/yokoi\.example\.jp/);
+  // 確認済みの公式サイトがあるお店は、そのURLを手がかりとして Worker に渡す
+  await page.evaluate(async()=>{await f4Catalog();const f=F4.cat.find(x=>x.name==='てん茂');await foodWebPhoto({...f}).catch(()=>null);});
+  const tenmo=calls.filter(u=>u.pathname==='/api/shop-photos'&&u.searchParams.get('name')==='てん茂').pop();
+  assert(tenmo,'shop-photos called for てん茂');assert.equal(tenmo.searchParams.get('web'),'http://tenmo.jp');
+  const sp=calls.filter(u=>u.pathname==='/api/shop-photos');assert(sp.some(u=>u.searchParams.get('lat')&&u.searchParams.get('exact')));
 
   // 5) 写真が読めないときは、写真プロキシ → たびルートの料理写真に切り替わり、空欄にならない
   const broken=await page.evaluate(async()=>{

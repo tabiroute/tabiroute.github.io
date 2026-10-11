@@ -54,10 +54,22 @@ function foodDishPhoto(o){
     file,page,artist,license,licenseURL,dish,kind:'dish-image',label:'料理イメージ',changes:'表示用に縮小・トリミング',expiresAt:Infinity};
 }
 
+// 有名店ごとに確かめた「お店の写真」（Wikimedia Commons・booking/famous-photos.js）。画面に出した瞬間に表示できる
+const FAMOUS_PHOTOS=window.TABIROUTE_FAMOUS_PHOTOS||{p:{},w:{}};
+function foodFamousKey(o){return (o.pref||'')+'|'+(o.name||'');}
+function foodFamousPhoto(o){
+ const d=FAMOUS_PHOTOS.p?.[foodFamousKey(o)];if(!d)return null;
+ const [path,width,artist,license,lic]=d,u=dishURLs(path,width),file=u.file,base=photoBase();
+ const page='https://commons.wikimedia.org/wiki/File:'+encodeURIComponent(file.replace(/ /g,'_'));
+ const licenseURL=/^L:/.test(lic||'')?(/^L:zero\//.test(lic)?'https://creativecommons.org/publicdomain/'+lic.slice(2)+'/':'https://creativecommons.org/licenses/'+lic.slice(2)+'/'):/^https:/.test(lic||'')?lic:page;
+ const src=[u.small,base?base+'/photo-image?file='+encodeURIComponent(file):'',u.orig].find(x=>x&&!FOOD_PHOTOS.failed.has(x));
+ return src?{src,file,page,artist,license,licenseURL,kind:'shop-free',label:'お店の写真',changes:'表示用に縮小・トリミング',expiresAt:Infinity}:null;
+}
 function foodPhotoSeed(o){
+ // 1枚ずつ確認した写真（RESTAURANT_PHOTO_SEEDS）を先に、無ければ有名店の確認済み写真
  const match=RESTAURANT_PHOTO_SEEDS.find(s=>norm(s.name)===norm(o.name)&&TabirouteFoodPhotoCore.address(s.addr)===TabirouteFoodPhotoCore.address(o.addr)&&(!o.pref||s.pref===o.pref));
- if(!match)return null;const p=match.photo,src=[p.src,p.remote].find(u=>u&&!FOOD_PHOTOS.failed.has(u));
- return src?{...p,src,expiresAt:Infinity}:null;
+ const p=match?.photo,src=p&&[p.src,p.remote].find(u=>u&&!FOOD_PHOTOS.failed.has(u));
+ return src?{...p,src,expiresAt:Infinity}:foodFamousPhoto(o);
 }
 function foodPhotoProvided(o){
  const custom=bookingMedia(o),own=bookingSafeURL(o.ownPhoto),registered=bookingSafeURL(custom.url),api=Number(o.apiExpiresAt)>Date.now()?bookingSafeURL(o.apiPhoto):'';
@@ -74,7 +86,8 @@ function foodPhotoRemember(key,r){
  FOOD_PHOTOS.results.set(key,r);
  try{sessionStorage.setItem(FOOD_PHOTO_CACHE+key,JSON.stringify(r));const keys=Object.keys(sessionStorage).filter(k=>k.startsWith(FOOD_PHOTO_CACHE));for(const k of keys){const v=JSON.parse(sessionStorage.getItem(k)||'null');if(!v||v.until<=Date.now())sessionStorage.removeItem(k);}keys.slice(0,Math.max(0,keys.length-120)).forEach(k=>sessionStorage.removeItem(k));}catch{}
 }
-const FOOD_PHOTO_RANK=p=>p.manual?100:p.kind==='restaurant-dish'?80:p.kind==='shop'?60:p.generic?1:10;
+// 並び：登録写真 ＞ そのお店の料理写真 ＞ そのお店の写真（Commons 等・ライセンス確認済み）＞ ホットペッパーの店舗写真 ＞ 公式サイトの画像 ＞ 料理イメージ
+const FOOD_PHOTO_RANK=p=>p.manual?100:p.kind==='restaurant-dish'?80:p.kind==='shop-free'?75:p.kind==='shop'?60:p.kind==='official'?50:p.generic?1:10;
 // お店自身の写真（登録・ホットペッパー・確認済みのCommons）があればそれ。無ければ料理イメージ（必ずある）
 function foodPhotoShopChoice(key){
  const o=FOOD_PHOTOS.items.get(key)||{},provided=foodPhotoProvided(o),seed=foodPhotoSeed(o),r=foodPhotoCached(key)?.photo;
@@ -106,6 +119,25 @@ async function foodRestaurantDish(o){
  if(!data)data=await foodPhotoResolver.resolve(place);
  const photo=(data.photos||[]).find(p=>p.kind==='restaurant-dish'&&PHOTO_CORE.fileName(p.file)&&p.artist&&p.license&&PHOTO_CORE.imageURL(p.remote||p.src)&&!FOOD_PHOTOS.failed.has(PHOTO_CORE.imageURL(p.remote||p.src)));
  return photo?{...photo,src:PHOTO_CORE.imageURL(photo.remote||photo.src),proxy:base&&photo.src===base+'/photo-image?file='+encodeURIComponent(photo.file)?photo.src:'',expiresAt:Number(data.expiresAt)}:null;
+}
+
+/* ---- ネットからお店自身の写真を探す（Worker の /shop-photos：OpenStreetMap・Commons・Wikipedia・Wikidata・公式サイト） ---- */
+async function foodWebPhoto(o){
+ const base=photoBase();if(!base||FOOD_PHOTOS.shopUnavailable||!bookingPoint(o))return null;
+ const web=FAMOUS_PHOTOS.w?.[foodFamousKey(o)]||'';
+ const q={name:o.name,addr:o.addr||'',lat:Number(o.lat).toFixed(5),lng:Number(o.lng).toFixed(5),pref:o.pref||'',exact:o.geoExact===false?'0':'1',...(web?{web}:{})};
+ const r=await fetch(base+'/shop-photos?'+new URLSearchParams(q),{credentials:'omit',signal:AbortSignal.timeout(25000)});
+ let j=null;try{j=await r.json();}catch{}
+ // 古い Worker（/shop-photos が無い）のときは、これまでの方法（/food-photos）だけで探す
+ if(r.status===404||(r.ok&&j?.version!=='shop-photo-v1')){FOOD_PHOTOS.shopUnavailable=true;return null;}
+ if(!r.ok)throw PHOTO_CORE.fail(r.status===429?'provider_limited':'provider_unavailable',PHOTO_CORE.retrySeconds(r.headers.get('Retry-After')));
+ const exp=Number(j.expiresAt)||Date.now()+86400000;
+ for(const p of j.photos||[]){
+  if(p.kind==='shop-free'){const remote=PHOTO_CORE.imageURL(p.remote||''),proxy=bookingSafeURL(p.src);const src=[remote,proxy].find(u=>u&&!FOOD_PHOTOS.failed.has(u));
+   if(src&&p.artist&&p.license)return {src,proxy:proxy!==src?proxy:'',remote,file:p.file,page:bookingSafeURL(p.page),artist:p.artist,license:p.license,licenseURL:bookingSafeURL(p.licenseURL),kind:'shop-free',label:'お店の写真',expiresAt:exp};}
+  if(p.kind==='official'){const src=String(p.src||'');if(/^https:\/\//.test(src)&&bookingSafeURL(src)&&!FOOD_PHOTOS.failed.has(src))return {src,page:bookingSafeURL(p.page),credit:String(p.credit||'公式サイト').slice(0,80),kind:'official',label:'公式サイトの写真',expiresAt:exp};}
+ }
+ return null;
 }
 
 /* ---- ホットペッパーの「そのお店」の写真：店名と住所（または位置）の両方が合うときだけ ---- */
@@ -178,9 +210,9 @@ function foodPhotoInner(key,size){
  const isDish=p.kind==='dish-image';
  const credit=p.artist||p.credit||'',source=p.page?`<a href="${esc(bookingSafeURL(p.page))}" target="_blank" rel="noopener">${esc(credit)}</a>`:esc(credit);
  const license=p.license?` · <a href="${esc(bookingSafeURL(p.licenseURL||p.page))}" target="_blank" rel="noopener">${esc(p.license)}</a>`:'';
- const note=isDish?`「${esc(p.dish||'料理')}」の写真です（このお店の写真ではありません）<br>`:'';
- const alt=isDish?`${p.dish||'料理'}のイメージ写真`:o.name+'の'+(p.kind==='restaurant-dish'?'料理写真':'店舗写真');
- return `<img src="${esc(p.src)}" alt="${esc(alt)}" loading="lazy" decoding="async" onerror="foodPhotoBroken(this)"><span class="food-photo-label${isDish?' is-dish':''}">${esc(p.label||'店舗写真')}</span><figcaption><details><summary>写真・出典</summary>${note}${source}${license}${p.changes?'<br>'+esc(p.changes):''}</details></figcaption>`;
+ const note=isDish?`「${esc(p.dish||'料理')}」の写真です（このお店の写真ではありません）<br>`:p.kind==='official'?'お店の公式サイトの紹介画像です<br>':'';
+ const alt=isDish?`${p.dish||'料理'}のイメージ写真`:o.name+'の'+(p.kind==='restaurant-dish'?'料理写真':p.kind==='official'?'公式サイトの写真':'写真');
+ return `<img src="${esc(p.src)}" alt="${esc(alt)}" loading="lazy" decoding="async"${p.kind==='official'?' referrerpolicy="no-referrer"':''} onerror="foodPhotoBroken(this)"><span class="food-photo-label${isDish?' is-dish':''}">${esc(p.label||'店舗写真')}</span><figcaption><details><summary>写真・出典</summary>${note}${source}${license}${p.changes?'<br>'+esc(p.changes):''}</details></figcaption>`;
 }
 function foodPhotoSlot(o,size){
  const key=foodPhotoKey(o);FOOD_PHOTOS.items.set(key,{...o,_size:size});
@@ -194,7 +226,9 @@ async function foodPhotoLoad(key){
  const publish=p=>{if(!p||FOOD_PHOTOS.failed.has(p.src))return;if(!best||FOOD_PHOTO_RANK(p)>FOOD_PHOTO_RANK(best)){best=p;foodPhotoRemember(key,{photo:best,until:Math.min(best.expiresAt,Date.now()+86400000)});foodPhotoPaint(key);}};
  const catchError=e=>{retry=Math.max(retry,e?.retryAfter||e?.seconds||0);};
  const provided=foodPhotoShopChoice(key);
- const jobs=[foodRestaurantDish(o).then(publish).catch(catchError)];
+ const jobs=[];
+ // ネット検索（新しい Worker）と、ホットペッパーを同時に探す。早く見つかったものから表示し、良いものが後から来たら差し替える
+ if(!(provided&&FOOD_PHOTO_RANK(provided)>=75))jobs.push(foodWebPhoto(o).then(async p=>{if(p)return publish(p);if(FOOD_PHOTOS.shopUnavailable)publish(await foodRestaurantDish(o));}).catch(catchError));
  if(!provided)jobs.push(foodShopPhoto(o).then(publish).catch(catchError));
  // Each provider paints immediately; a slow provider cannot delay a faster result.
  await Promise.allSettled(jobs);
@@ -203,7 +237,7 @@ async function foodPhotoLoad(key){
 function foodPhotoRequest(key,force=false){
  if(FOOD_PHOTOS.pending.has(key))return FOOD_PHOTOS.pending.get(key);
  const o=FOOD_PHOTOS.items.get(key);if(!o)return Promise.resolve();
- const p=foodPhotoShopChoice(key);if(p?.manual||p?.kind==='restaurant-dish')return Promise.resolve();
+ const p=foodPhotoShopChoice(key);if(p&&FOOD_PHOTO_RANK(p)>=75)return Promise.resolve();   // 登録写真・確認済みのお店の写真があれば、ネットでは探さない
  if(!force&&foodPhotoCached(key)?.until>Date.now())return Promise.resolve();
  let finish;const job=new Promise(r=>finish=r);FOOD_PHOTOS.pending.set(key,job);FOOD_PHOTOS.queue.push({key,finish});foodPhotoPump();return job;
 }
